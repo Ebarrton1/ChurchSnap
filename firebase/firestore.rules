@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function memberDoc(churchId) {
+      return get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
+    }
+
+    function isChurchMember(churchId) {
+      return signedIn() && exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
+    }
+
+    function isAdmin(churchId) {
+      return isChurchMember(churchId) && memberDoc(churchId).data.role in ['admin', 'pastor'];
+    }
+
+    match /churches/{churchId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin(churchId);
+
+      match /members/{memberId} {
+        allow read: if isChurchMember(churchId);
+        allow create: if signedIn() && request.auth.uid == memberId;
+        allow update: if signedIn() && (request.auth.uid == memberId || isAdmin(churchId));
+        allow delete: if isAdmin(churchId);
+      }
+
+      match /sermons/{docId} {
+        allow read: if true;
+        allow write: if isAdmin(churchId);
+      }
+
+      match /events/{docId} {
+        allow read: if true;
+        allow write: if isAdmin(churchId);
+      }
+
+      match /announcements/{docId} {
+        allow read: if true;
+        allow write: if isAdmin(churchId);
+      }
+
+      match /ministries/{docId} {
+        allow read: if true;
+        allow write: if isAdmin(churchId);
+      }
+
+      match /prayer_requests/{docId} {
+        allow read: if isChurchMember(churchId) && resource.data.isPrivate == false || isAdmin(churchId);
+        allow create: if signedIn();
+        allow update, delete: if isAdmin(churchId);
+      }
+
+      match /check_ins/{docId} {
+        allow create: if signedIn();
+        allow read, update, delete: if isAdmin(churchId);
+      }
+
+      match /settings/{docId} {
+        allow read: if true;
+        allow write: if isAdmin(churchId);
+      }
+    }
+  }
+}

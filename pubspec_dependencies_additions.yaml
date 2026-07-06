@@ -1,0 +1,5 @@
+# Recommended: run this command instead of copying versions manually.
+# flutter pub add firebase_core firebase_auth cloud_firestore firebase_storage firebase_messaging firebase_crashlytics firebase_analytics
+
+# Optional sign-in providers later:
+# flutter pub add google_sign_in sign_in_with_apple
