@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
+import '../../features/prayer/providers/prayer_providers.dart';
 import '../../models/prayer_request.dart';
 
-class PrayerScreen extends StatefulWidget {
+class PrayerScreen extends ConsumerStatefulWidget {
   const PrayerScreen({super.key});
 
   @override
-  State<PrayerScreen> createState() => _PrayerScreenState();
+  ConsumerState<PrayerScreen> createState() => _PrayerScreenState();
 }
 
-class _PrayerScreenState extends State<PrayerScreen> {
-  final requests = <PrayerRequest>[
-    const PrayerRequest(
-      name: 'Church Family',
-      request: 'Pray for healing, strength, and unity this week.',
-    ),
-  ];
-
+class _PrayerScreenState extends ConsumerState<PrayerScreen> {
   @override
   Widget build(BuildContext context) {
+    final prayers = ref.watch(prayerRequestsProvider);
+
     return ChurchSnapScreen(
       title: 'Prayer',
       subtitle: 'Share requests and pray together.',
@@ -31,28 +28,48 @@ class _PrayerScreenState extends State<PrayerScreen> {
         ),
         const SizedBox(height: 18),
         const SectionTitle(title: 'Prayer Wall'),
-        ...requests.map(
-          (request) => AppCard(
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                child: Icon(
-                  request.isPrivate
-                      ? Icons.lock_rounded
-                      : Icons.favorite_rounded,
+        prayers.when(
+          loading: () =>
+              const AppCard(child: Center(child: CircularProgressIndicator())),
+          error: (error, stackTrace) =>
+              const AppCard(child: Text('Unable to load prayer requests.')),
+          data: (requests) {
+            if (requests.isEmpty) {
+              return const AppCard(
+                child: ListTile(
+                  leading: Icon(Icons.favorite_outline),
+                  title: Text('No prayer requests yet'),
+                  subtitle: Text('Be the first to submit a prayer request.'),
                 ),
-              ),
-              title: Text(
-                request.isPrivate ? 'Private Request' : request.name,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              subtitle: Text(
-                request.isPrivate
-                    ? 'Shared privately with church leaders.'
-                    : request.request,
-              ),
-            ),
-          ),
+              );
+            }
+
+            return Column(
+              children: requests.map((request) {
+                return AppCard(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      child: Icon(
+                        request.isPrivate
+                            ? Icons.lock_rounded
+                            : Icons.favorite_rounded,
+                      ),
+                    ),
+                    title: Text(
+                      request.isPrivate ? 'Private Request' : request.name,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: Text(
+                      request.isPrivate
+                          ? 'Shared privately with church leaders.'
+                          : request.request,
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );
@@ -60,6 +77,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
 
   void _openPrayerForm() {
     final controller = TextEditingController();
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -89,14 +107,11 @@ class _PrayerScreenState extends State<PrayerScreen> {
               child: FilledButton(
                 onPressed: () {
                   final text = controller.text.trim();
-                  if (text.isNotEmpty)
-                    setState(
-                      () => requests.insert(
-                        0,
-                        PrayerRequest(name: 'Anonymous', request: text),
-                      ),
-                    );
-                  Navigator.pop(context);
+
+                  if (text.isNotEmpty) {
+                    // Firestore saving will be wired in the next step.
+                    Navigator.pop(context);
+                  }
                 },
                 child: const Text('Submit'),
               ),
