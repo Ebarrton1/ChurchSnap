@@ -1,5 +1,4 @@
 import 'package:churchsnap/features/announcements/repositories/announcement_repository.dart';
-import 'package:churchsnap/models/announcement.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/church_config.dart';
@@ -132,25 +131,6 @@ class _QuickActionsGrid extends StatelessWidget {
           ),
         );
       }).toList(),
-    );
-  }
-}
-
-class _AnnouncementCard extends StatelessWidget {
-  const _AnnouncementCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return const AppCard(
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: CircleAvatar(child: Icon(Icons.campaign_rounded)),
-        title: Text('Welcome team meeting'),
-        subtitle: Text(
-          'All greeters and volunteers meet this Wednesday at 7:00 PM.',
-        ),
-        trailing: Icon(Icons.chevron_right_rounded),
-      ),
     );
   }
 }
