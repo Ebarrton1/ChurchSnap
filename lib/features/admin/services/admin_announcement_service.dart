@@ -1,5 +1,5 @@
-import '../../announcements/repositories/announcement_repository.dart';
 import '../../../models/announcement.dart';
+import '../../announcements/repositories/announcement_repository.dart';
 
 class AdminAnnouncementService {
   AdminAnnouncementService(this._repository);
