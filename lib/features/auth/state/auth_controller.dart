@@ -3,13 +3,13 @@ import 'package:flutter/foundation.dart';
 import '../../../core/services/service_result.dart';
 import '../models/churchsnap_user.dart';
 import '../repositories/auth_repository.dart';
-import '../repositories/mock_auth_repository.dart';
+import '../repositories/firebase/firebase_auth_repository_stub.dart';
 
 enum AuthStatus { authenticated, unauthenticated, loading }
 
 class AuthController extends ChangeNotifier {
   AuthController({AuthRepository? repository})
-    : _repository = repository ?? MockAuthRepository() {
+    : _repository = repository ?? FirebaseAuthRepository() {
     _currentUser = _repository.currentUser;
     _status = _currentUser == null
         ? AuthStatus.unauthenticated
