@@ -1,36 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../../models/announcement.dart';
+import '../../../core/repositories/firestore_collection_repository.dart';
+import '../../../models/announcement.dart';
 
 class AnnouncementRepository {
   AnnouncementRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _repository = FirestoreCollectionRepository<Announcement>(
+        firestore: firestore,
+        collectionPath: 'churches/demo-church/announcements',
+        fromMap: Announcement.fromMap,
+      );
 
   final FirebaseFirestore _firestore;
+  final FirestoreCollectionRepository<Announcement> _repository;
 
-  static const String defaultChurchId = 'demo-church';
+  Stream<List<Announcement>> watchPublishedAnnouncements() {
+    return _repository.watchPublished(dateField: 'createdAt', descending: true);
+  }
 
-  Stream<List<Announcement>> watchPublishedAnnouncements({
-    String churchId = defaultChurchId,
-  }) {
+  Future<void> addAnnouncement(Announcement announcement) {
     return _firestore
         .collection('churches')
-        .doc(churchId)
+        .doc('demo-church')
         .collection('announcements')
-        .where('published', isEqualTo: true)
-        .snapshots()
-        .map((snapshot) {
-          final announcements = snapshot.docs
-              .map((doc) => Announcement.fromMap(doc.id, doc.data()))
-              .toList();
-
-          announcements.sort((a, b) {
-            final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            return bDate.compareTo(aDate);
-          });
-
-          return announcements;
-        });
+        .add(announcement.toMap());
   }
 }
