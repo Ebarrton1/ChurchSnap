@@ -26,4 +26,22 @@ class AnnouncementRepository {
         .collection('announcements')
         .add(announcement.toMap());
   }
+
+  Future<void> updateAnnouncement(String id, Announcement announcement) {
+    return _firestore
+        .collection('churches')
+        .doc('demo-church')
+        .collection('announcements')
+        .doc(id)
+        .update(announcement.toMap());
+  }
+
+  Future<void> deleteAnnouncement(String id) {
+    return _firestore
+        .collection('churches')
+        .doc('demo-church')
+        .collection('announcements')
+        .doc(id)
+        .delete();
+  }
 }
