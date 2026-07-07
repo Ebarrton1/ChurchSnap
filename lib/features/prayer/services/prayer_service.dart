@@ -9,4 +9,8 @@ class PrayerService {
   Stream<List<PrayerRequest>> watchPublishedPrayerRequests() {
     return _repository.watchPublishedPrayerRequests();
   }
+
+  Future<void> submitPrayerRequest(PrayerRequest request) {
+    return _repository.addPrayerRequest(request);
+  }
 }

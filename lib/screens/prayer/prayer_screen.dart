@@ -105,11 +105,21 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () {
+                onPressed: () async {
                   final text = controller.text.trim();
-
                   if (text.isNotEmpty) {
-                    // Firestore saving will be wired in the next step.
+                    await ref
+                        .read(prayerServiceProvider)
+                        .submitPrayerRequest(
+                          PrayerRequest(
+                            name: 'Anonymous',
+                            request: text,
+                            isPrivate: false,
+                          ),
+                        );
+
+                    if (!mounted) return;
+
                     Navigator.pop(context);
                   }
                 },
