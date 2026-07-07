@@ -1,3 +1,5 @@
+import 'package:churchsnap/features/announcements/repositories/announcement_repository.dart';
+import 'package:churchsnap/models/announcement.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/church_config.dart';
@@ -12,14 +14,14 @@ class HomeScreen extends StatelessWidget {
     return ChurchSnapScreen(
       title: churchConfig.welcomeGreeting,
       subtitle: 'Stay connected with your church family.',
-      children: const [
+      children: [
         _HeroWorshipCard(),
         SectionTitle(title: 'This Weekend'),
         _WeekendScheduleCard(),
         SectionTitle(title: 'Quick Actions'),
         _QuickActionsGrid(),
         SectionTitle(title: 'Announcements'),
-        _AnnouncementCard(),
+        const _LiveAnnouncements(),
       ],
     );
   }
@@ -149,6 +151,50 @@ class _AnnouncementCard extends StatelessWidget {
         ),
         trailing: Icon(Icons.chevron_right_rounded),
       ),
+    );
+  }
+}
+
+class _LiveAnnouncements extends StatelessWidget {
+  const _LiveAnnouncements();
+
+  @override
+  Widget build(BuildContext context) {
+    final repository = AnnouncementRepository();
+
+    return StreamBuilder(
+      stream: repository.watchPublishedAnnouncements(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const AppCard(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return const AppCard(child: Text('Unable to load announcements.'));
+        }
+
+        final announcements = snapshot.data ?? [];
+
+        if (announcements.isEmpty) {
+          return const AppCard(child: Text('No announcements yet.'));
+        }
+
+        return Column(
+          children: announcements.map((announcement) {
+            return AppCard(
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(child: Icon(announcement.icon)),
+                title: Text(announcement.title),
+                subtitle: Text(announcement.message),
+                trailing: const Icon(Icons.chevron_right_rounded),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }
