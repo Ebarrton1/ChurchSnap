@@ -1,3 +1,4 @@
+import '../../features/sermons/repositories/sermon_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/announcements/repositories/announcement_repository.dart';
@@ -9,4 +10,8 @@ final announcementRepositoryProvider = Provider<AnnouncementRepository>((ref) {
 
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
   return EventRepository();
+});
+
+final sermonRepositoryProvider = Provider<SermonRepository>((ref) {
+  return SermonRepository();
 });
