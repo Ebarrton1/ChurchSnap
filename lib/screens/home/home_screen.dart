@@ -1,15 +1,17 @@
-import 'package:churchsnap/features/announcements/repositories/announcement_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../features/announcements/providers/announcement_providers.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/church_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ChurchSnapScreen(
       title: churchConfig.welcomeGreeting,
       subtitle: 'Stay connected with your church family.',
@@ -135,28 +137,19 @@ class _QuickActionsGrid extends StatelessWidget {
   }
 }
 
-class _LiveAnnouncements extends StatelessWidget {
+class _LiveAnnouncements extends ConsumerWidget {
   const _LiveAnnouncements();
 
   @override
-  Widget build(BuildContext context) {
-    final repository = AnnouncementRepository();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final announcementsAsync = ref.watch(announcementsProvider);
 
-    return StreamBuilder(
-      stream: repository.watchPublishedAnnouncements(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const AppCard(
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return const AppCard(child: Text('Unable to load announcements.'));
-        }
-
-        final announcements = snapshot.data ?? [];
-
+    return announcementsAsync.when(
+      loading: () =>
+          const AppCard(child: Center(child: CircularProgressIndicator())),
+      error: (_, _) =>
+          const AppCard(child: Text('Unable to load announcements.')),
+      data: (announcements) {
         if (announcements.isEmpty) {
           return const AppCard(child: Text('No announcements yet.'));
         }
