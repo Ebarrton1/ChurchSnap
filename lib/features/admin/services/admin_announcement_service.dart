@@ -6,6 +6,14 @@ class AdminAnnouncementService {
 
   final AnnouncementRepository _repository;
 
+  Future<void> updateAnnouncement(String id, Announcement announcement) {
+    return _repository.updateAnnouncement(id, announcement);
+  }
+
+  Future<void> deleteAnnouncement(String id) {
+    return _repository.deleteAnnouncement(id);
+  }
+
   Future<void> publishAnnouncement({
     required String title,
     required String message,
