@@ -1,36 +1,50 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../../models/church_event.dart';
+import '../../../core/repositories/firestore_collection_repository.dart';
+import '../../../models/church_event.dart';
 
 class EventRepository {
   EventRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _repository = FirestoreCollectionRepository<ChurchEvent>(
+        firestore: firestore,
+        collectionPath: 'churches/demo-church/events',
+        fromMap: ChurchEvent.fromMap,
+      );
 
   final FirebaseFirestore _firestore;
+  final FirestoreCollectionRepository<ChurchEvent> _repository;
 
-  static const String defaultChurchId = 'demo-church';
+  Stream<List<ChurchEvent>> watchPublishedEvents() {
+    return _repository.watchPublished(
+      dateField: 'startDate',
+      descending: false,
+    );
+  }
 
-  Stream<List<ChurchEvent>> watchPublishedEvents({
-    String churchId = defaultChurchId,
-  }) {
+  Future<void> addEvent(ChurchEvent event) {
     return _firestore
         .collection('churches')
-        .doc(churchId)
+        .doc('demo-church')
         .collection('events')
-        .where('published', isEqualTo: true)
-        .snapshots()
-        .map((snapshot) {
-          final events = snapshot.docs
-              .map((doc) => ChurchEvent.fromMap(doc.id, doc.data()))
-              .toList();
+        .add(event.toMap());
+  }
 
-          events.sort((a, b) {
-            final aDate = a.startDate ?? DateTime.fromMillisecondsSinceEpoch(0);
-            final bDate = b.startDate ?? DateTime.fromMillisecondsSinceEpoch(0);
-            return aDate.compareTo(bDate);
-          });
+  Future<void> updateEvent(String id, ChurchEvent event) {
+    return _firestore
+        .collection('churches')
+        .doc('demo-church')
+        .collection('events')
+        .doc(id)
+        .update(event.toMap());
+  }
 
-          return events;
-        });
+  Future<void> deleteEvent(String id) {
+    return _firestore
+        .collection('churches')
+        .doc('demo-church')
+        .collection('events')
+        .doc(id)
+        .delete();
   }
 }
