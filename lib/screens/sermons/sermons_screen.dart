@@ -1,75 +1,78 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
+import '../../features/sermons/providers/sermon_providers.dart';
 import '../../models/sermon.dart';
 
-class SermonsScreen extends StatefulWidget {
+class SermonsScreen extends ConsumerStatefulWidget {
   const SermonsScreen({super.key});
 
   @override
-  State<SermonsScreen> createState() => _SermonsScreenState();
+  ConsumerState<SermonsScreen> createState() => _SermonsScreenState();
 }
 
-class _SermonsScreenState extends State<SermonsScreen> {
+class _SermonsScreenState extends ConsumerState<SermonsScreen> {
   final Set<String> saved = {};
-
-  final sermons = const [
-    Sermon(
-      title: 'Faith That Moves Mountains',
-      speaker: 'Pastor John',
-      scripture: 'Matthew 17:20',
-      duration: '42 min',
-    ),
-    Sermon(
-      title: 'Walking by Faith',
-      speaker: 'Pastor John',
-      scripture: '2 Corinthians 5:7',
-      duration: '38 min',
-    ),
-    Sermon(
-      title: 'Grace for the Journey',
-      speaker: 'Guest Speaker',
-      scripture: 'Ephesians 2:8',
-      duration: '35 min',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final sermonsAsync = ref.watch(sermonsProvider);
+
     return ChurchSnapScreen(
       title: 'Sermons',
       subtitle: 'Watch, listen, and grow in faith.',
       children: [
         const SectionTitle(title: 'Featured Messages'),
-        ...sermons.map((sermon) {
-          final isSaved = saved.contains(sermon.title);
-          return AppCard(
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(child: Icon(sermon.icon)),
-              title: Text(
-                sermon.title,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              subtitle: Text(
-                '${sermon.speaker} • ${sermon.duration} • ${sermon.scripture}',
-              ),
-              trailing: IconButton(
-                icon: Icon(
-                  isSaved
-                      ? Icons.bookmark_rounded
-                      : Icons.bookmark_border_rounded,
-                ),
-                onPressed: () => setState(
-                  () => isSaved
-                      ? saved.remove(sermon.title)
-                      : saved.add(sermon.title),
-                ),
-              ),
-              onTap: () => _showSermon(context, sermon),
-            ),
-          );
-        }),
+        sermonsAsync.when(
+          loading: () =>
+              const AppCard(child: Center(child: CircularProgressIndicator())),
+          error: (error, stackTrace) =>
+              const AppCard(child: Text('Unable to load sermons.')),
+          data: (sermons) {
+            if (sermons.isEmpty) {
+              return const AppCard(child: Text('No sermons available yet.'));
+            }
+
+            return Column(
+              children: sermons.map((sermon) {
+                final sermonKey = sermon.id.isEmpty ? sermon.title : sermon.id;
+                final isSaved = saved.contains(sermonKey);
+
+                return AppCard(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(child: Icon(sermon.icon)),
+                    title: Text(
+                      sermon.title,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: Text(
+                      '${sermon.speaker} • ${sermon.duration} • ${sermon.scripture}',
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(
+                        isSaved
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          if (isSaved) {
+                            saved.remove(sermonKey);
+                          } else {
+                            saved.add(sermonKey);
+                          }
+                        });
+                      },
+                    ),
+                    onTap: () => _showSermon(context, sermon),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
       ],
     );
   }
@@ -90,6 +93,10 @@ class _SermonsScreenState extends State<SermonsScreen> {
             ),
             const SizedBox(height: 8),
             Text('${sermon.speaker} • ${sermon.scripture}'),
+            if (sermon.description.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(sermon.description),
+            ],
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
