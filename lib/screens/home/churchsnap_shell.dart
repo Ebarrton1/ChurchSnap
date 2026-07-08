@@ -25,6 +25,7 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
   List<Widget> get pages => [
     const HomeScreen(),
     const SermonsScreen(),
+    const MediaScreen(),
     EventsScreen(authController: widget.authController),
     const PrayerScreen(),
     const GivingScreen(),
@@ -50,7 +51,7 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
             selectedIcon: Icon(Icons.play_circle_fill_rounded),
             label: 'Sermons',
           ),
-          const MediaScreen(),
+
           const NavigationDestination(
             icon: Icon(Icons.video_library_outlined),
             selectedIcon: Icon(Icons.video_library_rounded),
