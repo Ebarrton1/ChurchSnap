@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/media/models/media_item.dart';
 import '../../features/media/providers/media_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MediaScreen extends ConsumerWidget {
   const MediaScreen({super.key});
@@ -146,10 +147,21 @@ class MediaDetailScreen extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: item.mediaUrl.isEmpty
                       ? null
-                      : () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Open: ${item.mediaUrl}')),
-                          );
+                      : () async {
+                          final uri = Uri.parse(item.mediaUrl);
+
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          } else if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Unable to open media.'),
+                              ),
+                            );
+                          }
                         },
                   icon: const Icon(Icons.play_arrow_rounded),
                   label: Text(
