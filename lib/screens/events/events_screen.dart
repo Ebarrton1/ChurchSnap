@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
-
-import 'package:churchsnap/features/events/repositories/event_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
+import '../../features/auth/state/auth_controller.dart';
+import '../../features/events/providers/event_providers.dart';
+import '../../features/events/repositories/event_repository.dart';
 import '../../models/church_event.dart';
 
-class EventsScreen extends StatefulWidget {
-  const EventsScreen({super.key});
+class EventsScreen extends ConsumerWidget {
+  final AuthController? authController;
+
+  const EventsScreen({super.key, this.authController});
 
   @override
-  State<EventsScreen> createState() => _EventsScreenState();
-}
-
-class _EventsScreenState extends State<EventsScreen> {
-  final Set<String> rsvps = {};
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final repository = EventRepository();
+    final userId = authController?.currentUser?.id ?? 'guest';
 
     return ChurchSnapScreen(
       title: 'Events',
@@ -34,18 +32,22 @@ class _EventsScreenState extends State<EventsScreen> {
             }
 
             if (snapshot.hasError) {
-              return const AppCard(child: Text('Unable to load events.'));
+              return const AppCard(
+                child: Text('Unable to load events.'),
+              );
             }
 
             final events = snapshot.data ?? <ChurchEvent>[];
 
             if (events.isEmpty) {
-              return const AppCard(child: Text('No upcoming events yet.'));
+              return const AppCard(
+                child: Text('No upcoming events yet.'),
+              );
             }
 
             return Column(
               children: events.map((event) {
-                final going = rsvps.contains(event.id);
+                final isGoing = event.attendeeIds.contains(userId);
 
                 return AppCard(
                   child: ListTile(
@@ -55,18 +57,30 @@ class _EventsScreenState extends State<EventsScreen> {
                       event.title,
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
-                    subtitle: Text('${event.when}\n${event.location}'),
+                    subtitle: Text(
+                      '${event.when}\n${event.location}\n${event.rsvpCount} going',
+                    ),
                     isThreeLine: true,
                     trailing: FilledButton.tonalIcon(
-                      onPressed: () => setState(
-                        () => going
-                            ? rsvps.remove(event.id)
-                            : rsvps.add(event.id),
-                      ),
+                      onPressed: () {
+                        final service = ref.read(eventServiceProvider);
+
+                        if (isGoing) {
+                          service.cancelRsvp(
+                            eventId: event.id,
+                            userId: userId,
+                          );
+                        } else {
+                          service.rsvp(
+                            eventId: event.id,
+                            userId: userId,
+                          );
+                        }
+                      },
                       icon: Icon(
-                        going ? Icons.check_rounded : Icons.add_rounded,
+                        isGoing ? Icons.check_rounded : Icons.add_rounded,
                       ),
-                      label: Text(going ? 'Going' : 'RSVP'),
+                      label: Text(isGoing ? 'Going' : 'RSVP'),
                     ),
                   ),
                 );
