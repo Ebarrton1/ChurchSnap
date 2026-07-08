@@ -10,6 +10,8 @@ class ChurchEvent {
   final bool published;
   final DateTime? startDate;
   final DateTime? endDate;
+  final int rsvpCount;
+  final List<String> attendeeIds;
 
   const ChurchEvent({
     this.id = '',
@@ -20,6 +22,8 @@ class ChurchEvent {
     this.published = true,
     this.startDate,
     this.endDate,
+    this.rsvpCount = 0,
+    this.attendeeIds = const [],
   });
 
   factory ChurchEvent.fromMap(String id, Map<String, dynamic> map) {
@@ -31,6 +35,8 @@ class ChurchEvent {
       published: map['published'] as bool? ?? true,
       startDate: (map['startDate'] as Timestamp?)?.toDate(),
       endDate: (map['endDate'] as Timestamp?)?.toDate(),
+      rsvpCount: map['rsvpCount'] as int? ?? 0,
+      attendeeIds: List<String>.from(map['attendeeIds'] ?? const []),
     );
   }
 
@@ -42,6 +48,8 @@ class ChurchEvent {
       'published': published,
       'startDate': startDate == null ? null : Timestamp.fromDate(startDate!),
       'endDate': endDate == null ? null : Timestamp.fromDate(endDate!),
+      'rsvpCount': rsvpCount,
+      'attendeeIds': attendeeIds,
     };
   }
 }
