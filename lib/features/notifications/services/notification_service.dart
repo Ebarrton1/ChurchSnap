@@ -1,3 +1,6 @@
+import 'dart:developer' as developer;
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 class NotificationService {
@@ -11,20 +14,31 @@ class NotificationService {
     await _messaging.requestPermission();
 
     final token = await _messaging.getToken();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
 
     if (token != null) {
-      // TODO:
-      // Save token to:
-      // churches/demo-church/members/{uid}/fcmToken
-      print('FCM Token: $token');
+      developer.log(
+        'FCM token received: $token',
+        name: 'ChurchSnap.Notifications',
+      );
+    }
+
+    if (userId != null) {
+      developer.log(
+        'Signed-in user ready for FCM token save: $userId',
+        name: 'ChurchSnap.Notifications',
+      );
     }
 
     FirebaseMessaging.onMessage.listen((message) {
-      print('Foreground notification: ${message.notification?.title}');
+      developer.log(
+        'Foreground notification: ${message.notification?.title}',
+        name: 'ChurchSnap.Notifications',
+      );
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      print('Notification tapped');
+      developer.log('Notification tapped', name: 'ChurchSnap.Notifications');
     });
   }
 }
