@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/volunteers/models/volunteer_assignment.dart';
 import '../../features/volunteers/providers/volunteer_providers.dart';
+import '../../features/members/models/church_member.dart';
+import '../../features/members/providers/member_providers.dart';
+import '../../features/ministries/models/ministry.dart';
+import '../../features/ministries/providers/ministry_providers.dart';
 
 class AdminVolunteerScheduleScreen extends ConsumerWidget {
   const AdminVolunteerScheduleScreen({super.key});
@@ -63,10 +67,10 @@ class AdminVolunteerScheduleScreen extends ConsumerWidget {
   }
 
   void _showAssignmentDialog(BuildContext context, WidgetRef ref) {
-    final ministryController = TextEditingController();
-    final memberController = TextEditingController();
     final roleController = TextEditingController();
 
+    Ministry? selectedMinistry;
+    ChurchMember? selectedMember;
     DateTime? servingDate;
 
     showDialog<void>(
@@ -79,18 +83,56 @@ class AdminVolunteerScheduleScreen extends ConsumerWidget {
               content: SingleChildScrollView(
                 child: Column(
                   children: [
-                    TextField(
-                      controller: ministryController,
-                      decoration: const InputDecoration(
-                        labelText: 'Ministry name',
-                      ),
+                    StreamBuilder<List<Ministry>>(
+                      stream: ref
+                          .read(ministryServiceProvider)
+                          .watchMinistries(),
+                      builder: (context, snapshot) {
+                        final ministries = snapshot.data ?? [];
+
+                        return DropdownButtonFormField<Ministry>(
+                          value: selectedMinistry,
+                          decoration: const InputDecoration(
+                            labelText: 'Ministry',
+                          ),
+                          items: ministries
+                              .map(
+                                (ministry) => DropdownMenuItem(
+                                  value: ministry,
+                                  child: Text(ministry.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            setDialogState(() => selectedMinistry = value);
+                          },
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: memberController,
-                      decoration: const InputDecoration(
-                        labelText: 'Volunteer name',
-                      ),
+                    StreamBuilder<List<ChurchMember>>(
+                      stream: ref.read(memberServiceProvider).watchMembers(),
+                      builder: (context, snapshot) {
+                        final members = snapshot.data ?? [];
+
+                        return DropdownButtonFormField<ChurchMember>(
+                          value: selectedMember,
+                          decoration: const InputDecoration(
+                            labelText: 'Volunteer',
+                          ),
+                          items: members
+                              .map(
+                                (member) => DropdownMenuItem(
+                                  value: member,
+                                  child: Text(member.displayName),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            setDialogState(() => selectedMember = value);
+                          },
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -136,14 +178,18 @@ class AdminVolunteerScheduleScreen extends ConsumerWidget {
                 ),
                 FilledButton(
                   onPressed: () async {
+                    if (selectedMinistry == null || selectedMember == null) {
+                      return;
+                    }
+
                     await ref
                         .read(volunteerServiceProvider)
                         .addAssignment(
                           VolunteerAssignment(
-                            ministryId: '',
-                            ministryName: ministryController.text.trim(),
-                            memberId: '',
-                            memberName: memberController.text.trim(),
+                            ministryId: selectedMinistry!.id,
+                            ministryName: selectedMinistry!.name,
+                            memberId: selectedMember!.id,
+                            memberName: selectedMember!.displayName,
                             role: roleController.text.trim().isEmpty
                                 ? 'Volunteer'
                                 : roleController.text.trim(),
@@ -163,8 +209,6 @@ class AdminVolunteerScheduleScreen extends ConsumerWidget {
         );
       },
     ).whenComplete(() {
-      ministryController.dispose();
-      memberController.dispose();
       roleController.dispose();
     });
   }
