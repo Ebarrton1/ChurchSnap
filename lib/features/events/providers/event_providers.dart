@@ -8,7 +8,5 @@ final eventRepositoryProvider = Provider<EventRepository>(
 );
 
 final eventServiceProvider = Provider<EventService>(
-  (ref) => EventService(
-    ref.read(eventRepositoryProvider),
-  ),
+  (ref) => EventService(ref.read(eventRepositoryProvider)),
 );

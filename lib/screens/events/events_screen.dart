@@ -32,17 +32,13 @@ class EventsScreen extends ConsumerWidget {
             }
 
             if (snapshot.hasError) {
-              return const AppCard(
-                child: Text('Unable to load events.'),
-              );
+              return const AppCard(child: Text('Unable to load events.'));
             }
 
             final events = snapshot.data ?? <ChurchEvent>[];
 
             if (events.isEmpty) {
-              return const AppCard(
-                child: Text('No upcoming events yet.'),
-              );
+              return const AppCard(child: Text('No upcoming events yet.'));
             }
 
             return Column(
@@ -66,15 +62,9 @@ class EventsScreen extends ConsumerWidget {
                         final service = ref.read(eventServiceProvider);
 
                         if (isGoing) {
-                          service.cancelRsvp(
-                            eventId: event.id,
-                            userId: userId,
-                          );
+                          service.cancelRsvp(eventId: event.id, userId: userId);
                         } else {
-                          service.rsvp(
-                            eventId: event.id,
-                            userId: userId,
-                          );
+                          service.rsvp(eventId: event.id, userId: userId);
                         }
                       },
                       icon: Icon(

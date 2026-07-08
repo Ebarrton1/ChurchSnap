@@ -14,63 +14,63 @@ class AdminEventsScreen extends ConsumerWidget {
     final repository = EventRepository();
 
     return Material(
-  child: ChurchSnapScreen(
-      title: 'Events',
-      subtitle: 'Manage church events.',
-      children: [
-        FilledButton.icon(
-          onPressed: () => _showEventDialog(context, ref),
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('Add Event'),
-        ),
-        const SizedBox(height: 16),
-        StreamBuilder<List<ChurchEvent>>(
-          stream: repository.watchPublishedEvents(),
-          builder: (context, snapshot) {
-            final events = snapshot.data ?? <ChurchEvent>[];
+      child: ChurchSnapScreen(
+        title: 'Events',
+        subtitle: 'Manage church events.',
+        children: [
+          FilledButton.icon(
+            onPressed: () => _showEventDialog(context, ref),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Add Event'),
+          ),
+          const SizedBox(height: 16),
+          StreamBuilder<List<ChurchEvent>>(
+            stream: repository.watchPublishedEvents(),
+            builder: (context, snapshot) {
+              final events = snapshot.data ?? <ChurchEvent>[];
 
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const AppCard(
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-
-            if (events.isEmpty) {
-              return const AppCard(child: Text('No events yet.'));
-            }
-
-            return Column(
-              children: events.map((event) {
-                return AppCard(
-                  child: ListTile(
-                    leading: CircleAvatar(child: Icon(event.icon)),
-                    title: Text(event.title),
-                    subtitle: Text('${event.when}\n${event.location}'),
-                    isThreeLine: true,
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _showEventDialog(context, ref, event: event);
-                        }
-                        if (value == 'delete') {
-                          ref
-                              .read(adminEventServiceProvider)
-                              .deleteEvent(event.id);
-                        }
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        PopupMenuItem(value: 'delete', child: Text('Delete')),
-                      ],
-                    ),
-                  ),
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const AppCard(
+                  child: Center(child: CircularProgressIndicator()),
                 );
-              }).toList(),
-            );
-          },
-        ),
-      ],
-     ),
+              }
+
+              if (events.isEmpty) {
+                return const AppCard(child: Text('No events yet.'));
+              }
+
+              return Column(
+                children: events.map((event) {
+                  return AppCard(
+                    child: ListTile(
+                      leading: CircleAvatar(child: Icon(event.icon)),
+                      title: Text(event.title),
+                      subtitle: Text('${event.when}\n${event.location}'),
+                      isThreeLine: true,
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            _showEventDialog(context, ref, event: event);
+                          }
+                          if (value == 'delete') {
+                            ref
+                                .read(adminEventServiceProvider)
+                                .deleteEvent(event.id);
+                          }
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
