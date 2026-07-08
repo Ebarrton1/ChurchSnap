@@ -5,6 +5,7 @@ import 'admin_announcements_screen.dart';
 import 'admin_events_screen.dart';
 import 'admin_attendance_screen.dart';
 import 'admin_members_screen.dart';
+import 'admin_ministries_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -92,6 +93,23 @@ class AdminDashboardScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const AdminMembersScreen()),
+              );
+            },
+          ),
+        ),
+
+        AppCard(
+          child: ListTile(
+            leading: const Icon(Icons.groups_rounded),
+            title: const Text('Ministries'),
+            subtitle: const Text('Manage ministries and volunteer teams'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AdminMinistriesScreen(),
+                ),
               );
             },
           ),
