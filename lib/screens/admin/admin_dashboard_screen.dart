@@ -6,6 +6,7 @@ import 'admin_attendance_screen.dart';
 import 'admin_events_screen.dart';
 import 'admin_members_screen.dart';
 import 'admin_ministries_screen.dart';
+import 'admin_media_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -49,11 +50,13 @@ class AdminDashboardScreen extends StatelessWidget {
           icon: Icons.play_circle_fill_rounded,
           title: 'Sermons',
         ),
-        const _ComingSoonCard(
+
+        _AdminNavCard(
           icon: Icons.video_library_rounded,
           title: 'Media',
+          subtitle: 'Videos, podcasts, photos and documents',
+          screen: const AdminMediaScreen(),
         ),
-
         const SectionTitle(title: 'People'),
         _AdminNavCard(
           icon: Icons.people_rounded,
