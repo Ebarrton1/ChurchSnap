@@ -22,14 +22,14 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
   int selectedIndex = 0;
 
   List<Widget> get pages => [
-    const HomeScreen(),
-    const SermonsScreen(),
-    const EventsScreen(),
-    const PrayerScreen(),
-    const GivingScreen(),
-    ProfileScreen(authController: widget.authController),
-    if (widget.authController.isAdmin) const AdminDashboardScreen(),
-  ];
+  const HomeScreen(),
+  const SermonsScreen(),
+  const EventsScreen(),
+  const PrayerScreen(),
+  const GivingScreen(),
+  ProfileScreen(authController: widget.authController),
+  const AdminDashboardScreen(),
+];
 
   @override
   Widget build(BuildContext context) {
@@ -69,12 +69,11 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
             selectedIcon: Icon(Icons.person_rounded),
             label: 'Profile',
           ),
-          if (widget.authController.isAdmin)
-            const NavigationDestination(
-              icon: Icon(Icons.admin_panel_settings_outlined),
-              selectedIcon: Icon(Icons.admin_panel_settings_rounded),
-              label: 'Admin',
-            ),
+          const NavigationDestination(
+  icon: Icon(Icons.admin_panel_settings_outlined),
+  selectedIcon: Icon(Icons.admin_panel_settings_rounded),
+  label: 'Admin',
+),
         ],
       ),
     );
