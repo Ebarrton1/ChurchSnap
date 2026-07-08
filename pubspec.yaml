@@ -40,7 +40,6 @@ dependencies:
   flutter_riverpod: ^3.3.2
   firebase_messaging: ^16.4.1
   firebase_storage: ^13.4.3
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
