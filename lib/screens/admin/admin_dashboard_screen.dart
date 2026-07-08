@@ -4,6 +4,7 @@ import '../../core/widgets/churchsnap_screen.dart';
 import 'admin_announcements_screen.dart';
 import 'admin_events_screen.dart';
 import 'admin_attendance_screen.dart';
+import 'admin_members_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -83,10 +84,16 @@ class AdminDashboardScreen extends StatelessWidget {
 
         AppCard(
           child: ListTile(
-            leading: const Icon(Icons.volunteer_activism_rounded),
-            title: const Text('Giving'),
-            subtitle: const Text('Coming soon'),
+            leading: const Icon(Icons.people_rounded),
+            title: const Text('Members'),
+            subtitle: const Text('Manage church members'),
             trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminMembersScreen()),
+              );
+            },
           ),
         ),
 
