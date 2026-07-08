@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import 'admin_announcements_screen.dart';
 import 'admin_events_screen.dart';
+import 'admin_attendance_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -40,6 +41,23 @@ class AdminDashboardScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const AdminEventsScreen()),
+              );
+            },
+          ),
+        ),
+
+        AppCard(
+          child: ListTile(
+            leading: const Icon(Icons.how_to_reg_rounded),
+            title: const Text('Attendance'),
+            subtitle: const Text('View event check-ins'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AdminAttendanceScreen(),
+                ),
               );
             },
           ),
