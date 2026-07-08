@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class ChurchEvent {
@@ -8,6 +9,7 @@ class ChurchEvent {
   final IconData icon;
   final bool published;
   final DateTime? startDate;
+  final DateTime? endDate;
 
   const ChurchEvent({
     this.id = '',
@@ -17,20 +19,18 @@ class ChurchEvent {
     this.icon = Icons.event_rounded,
     this.published = true,
     this.startDate,
+    this.endDate,
   });
 
   factory ChurchEvent.fromMap(String id, Map<String, dynamic> map) {
-    final startDate = map['startDate'] == null
-        ? null
-        : map['startDate'].toDate() as DateTime;
-
     return ChurchEvent(
       id: id,
       title: map['title'] as String? ?? '',
       when: map['when'] as String? ?? '',
       location: map['location'] as String? ?? '',
       published: map['published'] as bool? ?? true,
-      startDate: startDate,
+      startDate: (map['startDate'] as Timestamp?)?.toDate(),
+      endDate: (map['endDate'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -40,7 +40,8 @@ class ChurchEvent {
       'when': when,
       'location': location,
       'published': published,
-      'startDate': startDate,
+      'startDate': startDate == null ? null : Timestamp.fromDate(startDate!),
+      'endDate': endDate == null ? null : Timestamp.fromDate(endDate!),
     };
   }
 }
