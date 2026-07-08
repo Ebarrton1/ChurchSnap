@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import 'admin_announcements_screen.dart';
-import 'admin_events_screen.dart';
 import 'admin_attendance_screen.dart';
+import 'admin_events_screen.dart';
 import 'admin_members_screen.dart';
 import 'admin_ministries_screen.dart';
 
@@ -14,116 +14,169 @@ class AdminDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChurchSnapScreen(
       title: 'Admin Dashboard',
-      subtitle: 'Manage ChurchSnap content.',
+      subtitle: 'Manage ChurchSnap content and people.',
       children: [
-        AppCard(
-          child: ListTile(
-            leading: const Icon(Icons.campaign_rounded),
-            title: const Text('Announcements'),
-            subtitle: const Text('Publish church announcements'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AdminAnnouncementsScreen(),
-                ),
-              );
-            },
-          ),
+        const SectionTitle(title: 'Overview'),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 1.65,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          children: const [
+            _StatCard(label: 'Members', value: 'Live'),
+            _StatCard(label: 'Attendance', value: 'Live'),
+            _StatCard(label: 'Events', value: 'Live'),
+            _StatCard(label: 'Ministries', value: 'Live'),
+          ],
         ),
 
-        AppCard(
-          child: ListTile(
-            leading: const Icon(Icons.event_rounded),
-            title: const Text('Events'),
-            subtitle: const Text('Manage church events'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdminEventsScreen()),
-              );
-            },
-          ),
+        const SectionTitle(title: 'Content'),
+        _AdminNavCard(
+          icon: Icons.campaign_rounded,
+          title: 'Announcements',
+          subtitle: 'Publish church announcements',
+          screen: AdminAnnouncementsScreen(),
+        ),
+        _AdminNavCard(
+          icon: Icons.event_rounded,
+          title: 'Events',
+          subtitle: 'Manage church events',
+          screen: AdminEventsScreen(),
+        ),
+        const _ComingSoonCard(
+          icon: Icons.play_circle_fill_rounded,
+          title: 'Sermons',
+        ),
+        const _ComingSoonCard(
+          icon: Icons.video_library_rounded,
+          title: 'Media',
         ),
 
-        AppCard(
-          child: ListTile(
-            leading: const Icon(Icons.how_to_reg_rounded),
-            title: const Text('Attendance'),
-            subtitle: const Text('View event check-ins'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AdminAttendanceScreen(),
-                ),
-              );
-            },
-          ),
+        const SectionTitle(title: 'People'),
+        _AdminNavCard(
+          icon: Icons.people_rounded,
+          title: 'Members',
+          subtitle: 'Manage church members',
+          screen: AdminMembersScreen(),
+        ),
+        _AdminNavCard(
+          icon: Icons.how_to_reg_rounded,
+          title: 'Attendance',
+          subtitle: 'View event check-ins',
+          screen: AdminAttendanceScreen(),
+        ),
+        _AdminNavCard(
+          icon: Icons.groups_rounded,
+          title: 'Ministries',
+          subtitle: 'Manage ministries and volunteer teams',
+          screen: AdminMinistriesScreen(),
+        ),
+        const _ComingSoonCard(
+          icon: Icons.volunteer_activism_rounded,
+          title: 'Volunteers',
         ),
 
-        AppCard(
-          child: ListTile(
-            leading: const Icon(Icons.play_circle_fill_rounded),
-            title: const Text('Sermons'),
-            subtitle: const Text('Coming soon'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-          ),
+        const SectionTitle(title: 'Care'),
+        const _ComingSoonCard(
+          icon: Icons.favorite_rounded,
+          title: 'Prayer Requests',
         ),
 
-        AppCard(
-          child: ListTile(
-            leading: const Icon(Icons.favorite_rounded),
-            title: const Text('Prayer Requests'),
-            subtitle: const Text('Coming soon'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-          ),
+        const SectionTitle(title: 'Finance'),
+        const _ComingSoonCard(
+          icon: Icons.volunteer_activism_rounded,
+          title: 'Giving',
         ),
 
-        AppCard(
-          child: ListTile(
-            leading: const Icon(Icons.people_rounded),
-            title: const Text('Members'),
-            subtitle: const Text('Manage church members'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdminMembersScreen()),
-              );
-            },
-          ),
+        const SectionTitle(title: 'Operations'),
+        const _ComingSoonCard(
+          icon: Icons.notifications_active_rounded,
+          title: 'Notifications',
         ),
-
-        AppCard(
-          child: ListTile(
-            leading: const Icon(Icons.groups_rounded),
-            title: const Text('Ministries'),
-            subtitle: const Text('Manage ministries and volunteer teams'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AdminMinistriesScreen(),
-                ),
-              );
-            },
-          ),
+        const _ComingSoonCard(
+          icon: Icons.qr_code_scanner_rounded,
+          title: 'QR Check-In',
         ),
-
-        AppCard(
-          child: ListTile(
-            leading: const Icon(Icons.people_rounded),
-            title: const Text('Members'),
-            subtitle: const Text('Coming soon'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-          ),
+        const _ComingSoonCard(
+          icon: Icons.calendar_month_rounded,
+          title: 'Calendar',
         ),
       ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatCard({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 6),
+          Text(label),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminNavCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget screen;
+
+  const _AdminNavCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.screen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+        },
+      ),
+    );
+  }
+}
+
+class _ComingSoonCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+
+  const _ComingSoonCard({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: const Text('Coming soon'),
+        trailing: const Icon(Icons.chevron_right_rounded),
+      ),
     );
   }
 }
