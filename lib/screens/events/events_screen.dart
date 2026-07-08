@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../../features/check_in/models/check_in_record.dart';
+import '../../features/check_in/providers/check_in_providers.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
 import '../../features/events/providers/event_providers.dart';
@@ -57,20 +58,55 @@ class EventsScreen extends ConsumerWidget {
                       '${event.when}\n${event.location}\n${event.rsvpCount} going',
                     ),
                     isThreeLine: true,
-                    trailing: FilledButton.tonalIcon(
-                      onPressed: () {
-                        final service = ref.read(eventServiceProvider);
+                    trailing: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FilledButton.tonalIcon(
+                          onPressed: () {
+                            final service = ref.read(eventServiceProvider);
 
-                        if (isGoing) {
-                          service.cancelRsvp(eventId: event.id, userId: userId);
-                        } else {
-                          service.rsvp(eventId: event.id, userId: userId);
-                        }
-                      },
-                      icon: Icon(
-                        isGoing ? Icons.check_rounded : Icons.add_rounded,
-                      ),
-                      label: Text(isGoing ? 'Going' : 'RSVP'),
+                            if (isGoing) {
+                              service.cancelRsvp(
+                                eventId: event.id,
+                                userId: userId,
+                              );
+                            } else {
+                              service.rsvp(eventId: event.id, userId: userId);
+                            }
+                          },
+                          icon: Icon(
+                            isGoing ? Icons.check_rounded : Icons.add_rounded,
+                          ),
+                          label: Text(isGoing ? 'Going' : 'RSVP'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () async {
+                            await ref
+                                .read(checkInServiceProvider)
+                                .checkIn(
+                                  CheckInRecord(
+                                    eventId: event.id,
+                                    userId: userId,
+                                    displayName:
+                                        authController
+                                            ?.currentUser
+                                            ?.displayName ??
+                                        'Guest',
+                                  ),
+                                );
+
+                            if (!context.mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Checked in successfully.'),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.how_to_reg_rounded),
+                          label: const Text('Check In'),
+                        ),
+                      ],
                     ),
                   ),
                 );
