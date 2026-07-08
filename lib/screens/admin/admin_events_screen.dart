@@ -13,7 +13,8 @@ class AdminEventsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = EventRepository();
 
-    return ChurchSnapScreen(
+    return Material(
+  child: ChurchSnapScreen(
       title: 'Events',
       subtitle: 'Manage church events.',
       children: [
@@ -69,6 +70,7 @@ class AdminEventsScreen extends ConsumerWidget {
           },
         ),
       ],
+     ),
     );
   }
 
