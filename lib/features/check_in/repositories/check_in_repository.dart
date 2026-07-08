@@ -26,4 +26,19 @@ class CheckInRepository {
               .toList(),
         );
   }
+
+  Stream<List<CheckInRecord>> watchAllRecentCheckIns() {
+    return _firestore
+        .collection('churches')
+        .doc('demo-church')
+        .collection('eventCheckIns')
+        .orderBy('checkedInAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => CheckInRecord.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
 }

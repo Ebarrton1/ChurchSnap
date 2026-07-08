@@ -47,64 +47,109 @@ class EventsScreen extends ConsumerWidget {
                 final isGoing = event.attendeeIds.contains(userId);
 
                 return AppCard(
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(child: Icon(event.icon)),
-                    title: Text(
-                      event.title,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    subtitle: Text(
-                      '${event.when}\n${event.location}\n${event.rsvpCount} going',
-                    ),
-                    isThreeLine: true,
-                    trailing: Column(
-                      mainAxisSize: MainAxisSize.min,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        FilledButton.tonalIcon(
-                          onPressed: () {
-                            final service = ref.read(eventServiceProvider);
-
-                            if (isGoing) {
-                              service.cancelRsvp(
-                                eventId: event.id,
-                                userId: userId,
-                              );
-                            } else {
-                              service.rsvp(eventId: event.id, userId: userId);
-                            }
-                          },
-                          icon: Icon(
-                            isGoing ? Icons.check_rounded : Icons.add_rounded,
-                          ),
-                          label: Text(isGoing ? 'Going' : 'RSVP'),
-                        ),
-                        TextButton.icon(
-                          onPressed: () async {
-                            await ref
-                                .read(checkInServiceProvider)
-                                .checkIn(
-                                  CheckInRecord(
-                                    eventId: event.id,
-                                    userId: userId,
-                                    displayName:
-                                        authController
-                                            ?.currentUser
-                                            ?.displayName ??
-                                        'Guest',
+                        Row(
+                          children: [
+                            CircleAvatar(child: Icon(event.icon)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    event.title,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
-                                );
-
-                            if (!context.mounted) return;
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Checked in successfully.'),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${event.when}\n${event.location}\n${event.rsvpCount} going',
+                                  ),
+                                ],
                               ),
-                            );
-                          },
-                          icon: const Icon(Icons.how_to_reg_rounded),
-                          label: const Text('Check In'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.tonalIcon(
+                                onPressed: () {
+                                  final service = ref.read(
+                                    eventServiceProvider,
+                                  );
+
+                                  if (isGoing) {
+                                    service.cancelRsvp(
+                                      eventId: event.id,
+                                      userId: userId,
+                                    );
+                                  } else {
+                                    service.rsvp(
+                                      eventId: event.id,
+                                      userId: userId,
+                                    );
+                                  }
+                                },
+                                icon: Icon(
+                                  isGoing
+                                      ? Icons.check_rounded
+                                      : Icons.add_rounded,
+                                ),
+                                label: Text(isGoing ? 'Going' : 'RSVP'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () async {
+                                  try {
+                                    await ref
+                                        .read(checkInServiceProvider)
+                                        .checkIn(
+                                          CheckInRecord(
+                                            eventId: event.id,
+                                            userId: userId,
+                                            displayName:
+                                                authController
+                                                    ?.currentUser
+                                                    ?.displayName ??
+                                                'Guest',
+                                          ),
+                                        );
+
+                                    if (!context.mounted) return;
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Checked in successfully.',
+                                        ),
+                                      ),
+                                    );
+                                  } catch (error) {
+                                    if (!context.mounted) return;
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Check-in failed: $error',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.how_to_reg_rounded),
+                                label: const Text('Check In'),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
