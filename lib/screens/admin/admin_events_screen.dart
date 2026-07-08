@@ -78,6 +78,7 @@ class AdminEventsScreen extends ConsumerWidget {
     ChurchEvent? event,
   }) {
     final titleController = TextEditingController(text: event?.title ?? '');
+    DateTime? selectedStartDate = event?.startDate;
     final whenController = TextEditingController(text: event?.when ?? '');
     final locationController = TextEditingController(
       text: event?.location ?? '',
@@ -97,7 +98,43 @@ class AdminEventsScreen extends ConsumerWidget {
                 ),
                 TextField(
                   controller: whenController,
-                  decoration: const InputDecoration(labelText: 'When'),
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'When',
+                    suffixIcon: Icon(Icons.calendar_month_rounded),
+                  ),
+                  onTap: () async {
+                    final now = DateTime.now();
+
+                    final pickedDate = await showDatePicker(
+                      context: dialogContext,
+                      initialDate: selectedStartDate ?? now,
+                      firstDate: DateTime(now.year - 1),
+                      lastDate: DateTime(now.year + 5),
+                    );
+
+                    if (pickedDate == null) return;
+
+                    final pickedTime = await showTimePicker(
+                      context: dialogContext,
+                      initialTime: TimeOfDay.fromDateTime(
+                        selectedStartDate ?? now,
+                      ),
+                    );
+
+                    if (pickedTime == null) return;
+
+                    selectedStartDate = DateTime(
+                      pickedDate.year,
+                      pickedDate.month,
+                      pickedDate.day,
+                      pickedTime.hour,
+                      pickedTime.minute,
+                    );
+
+                    whenController.text =
+                        '${pickedDate.month}/${pickedDate.day}/${pickedDate.year} • ${pickedTime.format(dialogContext)}';
+                  },
                 ),
                 TextField(
                   controller: locationController,
@@ -119,7 +156,7 @@ class AdminEventsScreen extends ConsumerWidget {
                   when: whenController.text.trim(),
                   location: locationController.text.trim(),
                   published: true,
-                  startDate: event?.startDate,
+                  startDate: selectedStartDate,
                 );
 
                 if (event == null) {
