@@ -8,6 +8,7 @@ import '../profile/profile_screen.dart';
 import '../sermons/sermons_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
 import '../admin/admin_dashboard_screen.dart';
+import '../media/media_screen.dart';
 
 class ChurchSnapShell extends StatefulWidget {
   final AuthController authController;
@@ -48,6 +49,12 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
             icon: Icon(Icons.play_circle_outline_rounded),
             selectedIcon: Icon(Icons.play_circle_fill_rounded),
             label: 'Sermons',
+          ),
+          const MediaScreen(),
+          const NavigationDestination(
+            icon: Icon(Icons.video_library_outlined),
+            selectedIcon: Icon(Icons.video_library_rounded),
+            label: 'Media',
           ),
           const NavigationDestination(
             icon: Icon(Icons.event_outlined),
