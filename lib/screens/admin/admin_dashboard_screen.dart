@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import 'admin_announcements_screen.dart';
+import 'admin_events_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -28,14 +29,22 @@ class AdminDashboardScreen extends StatelessWidget {
             },
           ),
         ),
+
         AppCard(
           child: ListTile(
             leading: const Icon(Icons.event_rounded),
             title: const Text('Events'),
-            subtitle: const Text('Coming soon'),
+            subtitle: const Text('Manage church events'),
             trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminEventsScreen()),
+              );
+            },
           ),
         ),
+
         AppCard(
           child: ListTile(
             leading: const Icon(Icons.play_circle_fill_rounded),
@@ -44,6 +53,7 @@ class AdminDashboardScreen extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right_rounded),
           ),
         ),
+
         AppCard(
           child: ListTile(
             leading: const Icon(Icons.favorite_rounded),
@@ -52,10 +62,20 @@ class AdminDashboardScreen extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right_rounded),
           ),
         ),
+
         AppCard(
           child: ListTile(
             leading: const Icon(Icons.volunteer_activism_rounded),
             title: const Text('Giving'),
+            subtitle: const Text('Coming soon'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+          ),
+        ),
+
+        AppCard(
+          child: ListTile(
+            leading: const Icon(Icons.people_rounded),
+            title: const Text('Members'),
             subtitle: const Text('Coming soon'),
             trailing: const Icon(Icons.chevron_right_rounded),
           ),
