@@ -9,6 +9,7 @@ import 'admin_ministries_screen.dart';
 import 'admin_media_screen.dart';
 import '../../features/dashboard/providers/dashboard_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'admin_role_management_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -88,6 +89,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           subtitle: 'Manage church members',
           screen: AdminMembersScreen(),
         ),
+         _AdminNavCard(
+  icon: Icons.admin_panel_settings_rounded,
+  title: 'Roles & Permissions',
+  subtitle: 'Manage user roles and access',
+  screen: const AdminRoleManagementScreen(),
+),
         _AdminNavCard(
           icon: Icons.how_to_reg_rounded,
           title: 'Attendance',
