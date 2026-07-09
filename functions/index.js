@@ -1,51 +1,50 @@
-const { setGlobalOptions } = require("firebase-functions");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const logger = require("firebase-functions/logger");
+const {setGlobalOptions} = require("firebase-functions");
+const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-setGlobalOptions({ maxInstances: 10 });
+setGlobalOptions({maxInstances: 10});
 
-exports.sendAnnouncementNotification = onDocumentCreated(
-  "churches/{churchId}/announcements/{announcementId}",
+exports.sendNotificationOnCreate = onDocumentCreated(
+  "churches/{churchId}/notifications/{notificationId}",
   async (event) => {
     const snapshot = event.data;
 
     if (!snapshot) {
-      logger.info("No announcement data.");
       return;
     }
 
-    const announcement = snapshot.data();
+    const notification = snapshot.data();
     const churchId = event.params.churchId;
 
-    if (announcement.published !== true) {
-      logger.info("Announcement is not published.");
-      return;
-    }
+    const title = notification.title || "ChurchSnap";
+    const body = notification.body || "";
+    const targetRole = notification.targetRole || "all";
 
-    const title = announcement.title || "New Church Announcement";
-    const body = announcement.message || "Open ChurchSnap for the latest update.";
-
-    const membersSnapshot = await admin
+    let membersQuery = admin
       .firestore()
       .collection("churches")
       .doc(churchId)
-      .collection("members")
-      .get();
+      .collection("members");
 
-    const tokens = [];
+    if (targetRole !== "all") {
+      membersQuery = membersQuery.where("role", "==", targetRole);
+    }
 
-    membersSnapshot.forEach((doc) => {
-      const token = doc.data().fcmToken;
-      if (token) {
-        tokens.push(token);
-      }
-    });
+    const membersSnapshot = await membersQuery.get();
+
+    const tokens = membersSnapshot.docs
+      .map((doc) => doc.data().fcmToken)
+      .filter((token) => typeof token === "string" && token.length > 0);
 
     if (tokens.length === 0) {
-      logger.info("No FCM tokens found.");
+      await snapshot.ref.update({
+        sent: false,
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        sendResult: "No device tokens found",
+      });
+
       return;
     }
 
@@ -56,15 +55,17 @@ exports.sendAnnouncementNotification = onDocumentCreated(
         body,
       },
       data: {
-        type: "announcement",
+        type: notification.type || "announcement",
+        notificationId: event.params.notificationId,
         churchId,
-        announcementId: event.params.announcementId,
       },
     });
 
-    logger.info("Announcement notification sent.", {
+    await snapshot.ref.update({
+      sent: true,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
       successCount: response.successCount,
       failureCount: response.failureCount,
     });
-  }
+  },
 );
