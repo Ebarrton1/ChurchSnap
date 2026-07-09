@@ -7,29 +7,53 @@ import 'admin_events_screen.dart';
 import 'admin_members_screen.dart';
 import 'admin_ministries_screen.dart';
 import 'admin_media_screen.dart';
+import '../../features/dashboard/providers/dashboard_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ChurchSnapScreen(
       title: 'Admin Dashboard',
       subtitle: 'Manage ChurchSnap content and people.',
       children: [
-        const SectionTitle(title: 'Overview'),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.65,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          children: const [
-            _StatCard(label: 'Members', value: 'Live'),
-            _StatCard(label: 'Attendance', value: 'Live'),
-            _StatCard(label: 'Events', value: 'Live'),
-            _StatCard(label: 'Ministries', value: 'Live'),
+        const SectionTitle(title: 'Church Overview'),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _DashboardStatCard(
+              title: 'Members',
+              icon: Icons.people_rounded,
+              value: ref.watch(memberCountProvider).value ?? 0,
+            ),
+            _DashboardStatCard(
+              title: 'Events',
+              icon: Icons.event_rounded,
+              value: ref.watch(memberCountProvider).value ?? 0,
+            ),
+            _DashboardStatCard(
+              title: 'Small Groups',
+              icon: Icons.groups_rounded,
+              value: ref.watch(memberCountProvider).value ?? 0,
+            ),
+            _DashboardStatCard(
+              title: 'Ministries',
+              icon: Icons.church_rounded,
+              value: ref.watch(memberCountProvider).value ?? 0,
+            ),
+            _DashboardStatCard(
+              title: 'Media',
+              icon: Icons.video_library_rounded,
+              value: ref.watch(mediaCountProvider).value ?? 0,
+            ),
+            _DashboardStatCard(
+              title: 'Check-ins',
+              icon: Icons.how_to_reg_rounded,
+              value: ref.watch(checkInCountProvider).value ?? 0,
+            ),
           ],
         ),
 
@@ -111,26 +135,34 @@ class AdminDashboardScreen extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
+class _DashboardStatCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final int value;
 
-  const _StatCard({required this.label, required this.value});
+  const _DashboardStatCard({
+    required this.title,
+    required this.icon,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      margin: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(label),
-        ],
+    return SizedBox(
+      width: 170,
+      child: AppCard(
+        child: Column(
+          children: [
+            Icon(icon, size: 34),
+            const SizedBox(height: 12),
+            Text(
+              '$value',
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(title),
+          ],
+        ),
       ),
     );
   }
