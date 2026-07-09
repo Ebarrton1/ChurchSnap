@@ -17,9 +17,7 @@ class AdminSmallGroupsScreen extends ConsumerWidget {
       subtitle: 'Manage church small groups.',
       children: [
         FilledButton.icon(
-          onPressed: () {
-            // We'll implement the creation dialog next.
-          },
+          onPressed: () => _showCreateGroupDialog(context, ref),
           icon: const Icon(Icons.add_rounded),
           label: const Text('Create Group'),
         ),
@@ -66,5 +64,80 @@ class AdminSmallGroupsScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  void _showCreateGroupDialog(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final locationController = TextEditingController();
+    final capacityController = TextEditingController(text: '12');
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Create Small Group'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Group Name'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Meeting Location',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: capacityController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Capacity'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final group = SmallGroup(
+                  name: nameController.text.trim(),
+                  description: descriptionController.text.trim(),
+                  leaderId: '',
+                  leaderName: 'To Be Assigned',
+                  location: locationController.text.trim(),
+                  capacity: int.tryParse(capacityController.text) ?? 12,
+                );
+
+                await ref.read(smallGroupServiceProvider).addGroup(group);
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        );
+      },
+    ).whenComplete(() {
+      nameController.dispose();
+      descriptionController.dispose();
+      locationController.dispose();
+      capacityController.dispose();
+    });
   }
 }
