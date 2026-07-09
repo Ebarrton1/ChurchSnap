@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
-
-import '../state/auth_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 import '../../notifications/repositories/notification_repository.dart';
 import '../../notifications/services/notification_service.dart';
+import '../state/auth_controller.dart';
 
 class LoginScreen extends StatefulWidget {
   final AuthController authController;
@@ -140,24 +139,26 @@ class _LoginScreenState extends State<LoginScreen> {
             TextButton(
               onPressed: auth.status == AuthStatus.loading
                   ? null
-                  : () async {
-                      final ok = await widget.authController.sendPasswordReset(
-                        emailController.text,
-                      );
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            ok
-                                ? 'Password reset email preview sent.'
-                                : 'Enter your email first.',
-                          ),
-                        ),
-                      );
-                    },
+                  : _sendPasswordReset,
               child: const Text('Forgot password?'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendPasswordReset() async {
+    final ok = await widget.authController.sendPasswordReset(
+      emailController.text,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok ? 'Password reset email preview sent.' : 'Enter your email first.',
         ),
       ),
     );

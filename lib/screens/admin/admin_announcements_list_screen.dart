@@ -20,7 +20,7 @@ class AdminAnnouncementsListScreen extends ConsumerWidget {
         announcementsAsync.when(
           loading: () =>
               const AppCard(child: Center(child: CircularProgressIndicator())),
-          error: (_, __) =>
+          error: (_, _) =>
               const AppCard(child: Text('Unable to load announcements.')),
           data: (announcements) {
             if (announcements.isEmpty) {
@@ -97,7 +97,7 @@ class AdminAnnouncementsListScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: tag,
+                  initialValue: tag,
                   items: const [
                     DropdownMenuItem(value: 'General', child: Text('General')),
                     DropdownMenuItem(value: 'Events', child: Text('Events')),

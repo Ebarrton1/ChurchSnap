@@ -94,7 +94,7 @@ class AdminNotificationsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: targetRole,
+                      initialValue: targetRole,
                       decoration: const InputDecoration(labelText: 'Audience'),
                       items: const [
                         DropdownMenuItem(value: 'all', child: Text('All')),
@@ -127,7 +127,7 @@ class AdminNotificationsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: type,
+                      initialValue: type,
                       decoration: const InputDecoration(labelText: 'Type'),
                       items: const [
                         DropdownMenuItem(

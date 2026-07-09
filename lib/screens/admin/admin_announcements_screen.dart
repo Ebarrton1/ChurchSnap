@@ -45,7 +45,7 @@ class _AdminAnnouncementsScreenState
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _tag,
+          initialValue: _tag,
           decoration: const InputDecoration(labelText: 'Category'),
           items: const [
             DropdownMenuItem(value: 'General', child: Text('General')),

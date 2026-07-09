@@ -91,7 +91,7 @@ class AdminVolunteerScheduleScreen extends ConsumerWidget {
                         final ministries = snapshot.data ?? [];
 
                         return DropdownButtonFormField<Ministry>(
-                          value: selectedMinistry,
+                          initialValue: selectedMinistry,
                           decoration: const InputDecoration(
                             labelText: 'Ministry',
                           ),
@@ -116,7 +116,7 @@ class AdminVolunteerScheduleScreen extends ConsumerWidget {
                         final members = snapshot.data ?? [];
 
                         return DropdownButtonFormField<ChurchMember>(
-                          value: selectedMember,
+                          initialValue: selectedMember,
                           decoration: const InputDecoration(
                             labelText: 'Volunteer',
                           ),

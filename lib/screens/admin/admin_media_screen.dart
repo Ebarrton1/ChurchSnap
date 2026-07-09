@@ -114,7 +114,7 @@ class AdminMediaScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: mediaType,
+                      initialValue: mediaType,
                       decoration: const InputDecoration(
                         labelText: 'Media Type',
                       ),
@@ -136,7 +136,7 @@ class AdminMediaScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: category,
+                      initialValue: category,
                       decoration: const InputDecoration(labelText: 'Category'),
                       items: const [
                         DropdownMenuItem(

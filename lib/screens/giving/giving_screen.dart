@@ -33,7 +33,7 @@ class _GivingScreenState extends State<GivingScreen> {
         ),
         const SizedBox(height: 18),
         DropdownButtonFormField<String>(
-          value: fund,
+          initialValue: fund,
           decoration: const InputDecoration(
             labelText: 'Fund',
             border: OutlineInputBorder(),
