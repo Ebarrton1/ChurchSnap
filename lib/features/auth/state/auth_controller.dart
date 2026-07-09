@@ -4,6 +4,7 @@ import '../../../core/services/service_result.dart';
 import '../models/churchsnap_user.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/firebase/firebase_auth_repository_stub.dart';
+import '../../../core/auth/app_roles.dart';
 
 enum AuthStatus { authenticated, unauthenticated, loading }
 
@@ -26,7 +27,7 @@ class AuthController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isSignedIn =>
       _status == AuthStatus.authenticated && _currentUser != null;
-  bool get isAdmin => _currentUser?.isAdmin ?? false;
+  bool get isAdmin => AppRoles.canAccessAdmin(_currentUser?.role ?? '');
 
   Future<bool> signIn(String email, String password) async {
     _setLoading();
