@@ -89,12 +89,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           subtitle: 'Manage church members',
           screen: AdminMembersScreen(),
         ),
-         _AdminNavCard(
-  icon: Icons.admin_panel_settings_rounded,
-  title: 'Roles & Permissions',
-  subtitle: 'Manage user roles and access',
-  screen: const AdminRoleManagementScreen(),
-),
+        _AdminNavCard(
+          icon: Icons.admin_panel_settings_rounded,
+          title: 'Roles & Permissions',
+          subtitle: 'Manage user roles and access',
+          screen: const AdminRoleManagementScreen(),
+        ),
         _AdminNavCard(
           icon: Icons.how_to_reg_rounded,
           title: 'Attendance',
