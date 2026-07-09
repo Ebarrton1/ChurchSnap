@@ -30,7 +30,8 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
     const PrayerScreen(),
     const GivingScreen(),
     ProfileScreen(authController: widget.authController),
-    const AdminDashboardScreen(),
+
+    if (widget.authController.isAdmin) const AdminDashboardScreen(),
   ];
 
   @override
@@ -77,11 +78,12 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
             selectedIcon: Icon(Icons.person_rounded),
             label: 'Profile',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.admin_panel_settings_outlined),
-            selectedIcon: Icon(Icons.admin_panel_settings_rounded),
-            label: 'Admin',
-          ),
+          if (widget.authController.isAdmin)
+            const NavigationDestination(
+              icon: Icon(Icons.admin_panel_settings_outlined),
+              selectedIcon: Icon(Icons.admin_panel_settings_rounded),
+              label: 'Admin',
+            ),
         ],
       ),
     );
