@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../models/app_notification.dart';
 import '../repositories/notification_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NotificationService {
   NotificationService(this._repository);
@@ -21,13 +22,24 @@ class NotificationService {
     return _repository.deleteNotification(id);
   }
 
-  Future<void> initializeMessaging() async {
+  Future<void> initializeMessaging({
+    required String userId,
+    String churchId = 'demo-church',
+  }) async {
     await _messaging.requestPermission();
 
     final token = await _messaging.getToken();
 
-    if (token != null) {
-      // TODO: Save token to current member profile.
+    if (token != null && userId.isNotEmpty) {
+      await FirebaseFirestore.instance
+          .collection('churches')
+          .doc(churchId)
+          .collection('members')
+          .doc(userId)
+          .set({
+            'fcmToken': token,
+            'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
     }
 
     FirebaseMessaging.onMessage.listen((message) {
