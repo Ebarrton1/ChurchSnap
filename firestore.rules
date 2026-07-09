@@ -6,11 +6,73 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function memberDoc(churchId) {
+      return get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
+    }
+
+    function userRole(churchId) {
+      return signedIn() ? memberDoc(churchId).data.role : '';
+    }
+
+    function isAdmin(churchId) {
+      return userRole(churchId) == 'admin' || userRole(churchId) == 'pastor';
+    }
+
+    function isLeader(churchId) {
+      return isAdmin(churchId) ||
+        userRole(churchId) == 'ministryLeader' ||
+        userRole(churchId) == 'groupLeader';
+    }
+
     match /churches/{churchId} {
       allow read: if signedIn();
 
+      match /members/{memberId} {
+        allow read: if signedIn();
+        allow create: if signedIn() && memberId == request.auth.uid;
+        allow update: if isAdmin(churchId) || memberId == request.auth.uid;
+        allow delete: if isAdmin(churchId);
+      }
+
+      match /announcements/{id} {
+        allow read: if signedIn();
+        allow write: if isAdmin(churchId);
+      }
+
+      match /events/{id} {
+        allow read: if signedIn();
+        allow write: if isAdmin(churchId);
+      }
+
+      match /eventCheckIns/{id} {
+        allow read: if signedIn();
+        allow create: if signedIn();
+        allow update, delete: if isAdmin(churchId);
+      }
+
+      match /media/{id} {
+        allow read: if signedIn();
+        allow write: if isAdmin(churchId);
+      }
+
+      match /ministries/{id} {
+        allow read: if signedIn();
+        allow write: if isAdmin(churchId) || userRole(churchId) == 'ministryLeader';
+      }
+
+      match /small_groups/{id} {
+        allow read: if signedIn();
+        allow write: if isAdmin(churchId) || userRole(churchId) == 'groupLeader';
+      }
+
+      match /volunteer_assignments/{id} {
+        allow read: if signedIn();
+        allow write: if isAdmin(churchId) || userRole(churchId) == 'ministryLeader';
+      }
+
       match /{document=**} {
-        allow read, write: if signedIn();
+        allow read: if signedIn();
+        allow write: if isAdmin(churchId);
       }
     }
   }
