@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../state/auth_controller.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../notifications/repositories/notification_repository.dart';
+import '../../notifications/services/notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final AuthController authController;
@@ -173,6 +177,17 @@ class _LoginScreenState extends State<LoginScreen> {
           );
 
     if (!mounted || !ok) return;
+
+    final user = widget.authController.currentUser;
+
+    if (user != null) {
+      await NotificationService(
+        NotificationRepository(FirebaseFirestore.instance),
+      ).initializeMessaging(userId: user.id, churchId: 'demo-church');
+    }
+
+    if (!mounted) return;
+
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Signed in successfully.')));
