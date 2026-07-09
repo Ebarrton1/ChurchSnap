@@ -1,63 +1,41 @@
-import 'dart:developer' as developer;
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import '../models/app_notification.dart';
+import '../repositories/notification_repository.dart';
+
 class NotificationService {
-  NotificationService._();
+  NotificationService(this._repository);
 
-  static final NotificationService instance = NotificationService._();
-
+  final NotificationRepository _repository;
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> initialize() async {
+  Stream<List<AppNotification>> watchNotifications() {
+    return _repository.watchNotifications();
+  }
+
+  Future<void> sendNotification(AppNotification notification) {
+    return _repository.addNotification(notification);
+  }
+
+  Future<void> deleteNotification(String id) {
+    return _repository.deleteNotification(id);
+  }
+
+  Future<void> initializeMessaging() async {
     await _messaging.requestPermission();
 
     final token = await _messaging.getToken();
-    await _saveToken(token);
 
-    FirebaseMessaging.instance.onTokenRefresh.listen(_saveToken);
+    if (token != null) {
+      // TODO: Save token to current member profile.
+    }
 
     FirebaseMessaging.onMessage.listen((message) {
-      developer.log(
-        'Foreground notification: ${message.notification?.title}',
-        name: 'ChurchSnap.Notifications',
-      );
+      // TODO: Show in-app notification.
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      developer.log('Notification tapped', name: 'ChurchSnap.Notifications');
+      // TODO: Navigate based on notification type.
     });
-  }
-
-  Future<void> _saveToken(String? token) async {
-    if (token == null) return;
-
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      developer.log(
-        'No signed-in user available for FCM token save.',
-        name: 'ChurchSnap.Notifications',
-      );
-      return;
-    }
-
-    await _firestore
-        .collection('churches')
-        .doc('demo-church')
-        .collection('members')
-        .doc(user.uid)
-        .set({
-          'fcmToken': token,
-          'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-
-    developer.log(
-      'FCM token saved for user ${user.uid}',
-      name: 'ChurchSnap.Notifications',
-    );
   }
 }
