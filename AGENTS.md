@@ -43,8 +43,18 @@ details in `docs/FIREBASE_SETUP.md`.
   expected, not an environment failure.
 
 ### Cloud Functions backend (`functions/`) — optional
-- Only powers push-notification fan-out; the app runs fine without it.
-- `package.json` declares `"node": "24"` and scripts wrap the Firebase CLI
-  (`firebase emulators:start`). The VM's system Node is v22 and `firebase-tools` is not installed,
-  so running the functions emulator requires installing those first. `npm install` (in `functions/`)
-  still works for dependency setup.
+- Only powers push-notification fan-out (`sendNotificationOnCreate`); the app runs fine without it.
+- `package.json` declares `"node": "24"`. The VM has **Node 24 installed via nvm** (`nvm use 24`,
+  set as default) and **`firebase-tools` installed globally** under that Node. The base image also
+  has a system Node v22 at `/exec-daemon/node` that can shadow nvm on non-login shells — if `node`
+  reports v22, prepend `~/.nvm/versions/node/v24.18.0/bin` to `PATH` (or run `nvm use 24`).
+- Run the emulators offline with a demo project (needs Java, which is installed):
+  `firebase emulators:start --only functions,firestore --project demo-churchsnap`
+  (Functions on `:5001`, Firestore on `:8080`, Emulator UI on `:4000`).
+- Trigger the function by creating a Firestore doc at
+  `churches/{churchId}/notifications/{id}` (e.g. via a `firebase-admin` script with
+  `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080`). The trigger fires correctly, but note a
+  **pre-existing app bug**: `index.js` uses `admin.firestore.FieldValue.serverTimestamp()`, which is
+  `undefined` inside the functions-emulator runtime and throws (the modular
+  `require("firebase-admin/firestore").FieldValue` would be needed). This is app code — do not fix as
+  part of environment setup.
