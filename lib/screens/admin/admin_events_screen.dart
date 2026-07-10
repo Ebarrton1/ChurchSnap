@@ -115,7 +115,9 @@ class AdminEventsScreen extends ConsumerWidget {
                       lastDate: DateTime(now.year + 5),
                     );
 
-                    if (pickedDate == null) return;
+                    if (pickedDate == null || !dialogContext.mounted) {
+                      return;
+                    }
 
                     final pickedTime = await showTimePicker(
                       context: dialogContext,
@@ -124,7 +126,11 @@ class AdminEventsScreen extends ConsumerWidget {
                       ),
                     );
 
-                    if (pickedTime == null) return;
+                    if (pickedTime == null || !dialogContext.mounted) {
+                      return;
+                    }
+
+                    final formattedTime = pickedTime.format(dialogContext);
 
                     selectedStartDate = DateTime(
                       pickedDate.year,
@@ -135,7 +141,8 @@ class AdminEventsScreen extends ConsumerWidget {
                     );
 
                     whenController.text =
-                        '${pickedDate.month}/${pickedDate.day}/${pickedDate.year} • ${pickedTime.format(dialogContext)}';
+                        '${pickedDate.month}/${pickedDate.day}/${pickedDate.year} • '
+                        '$formattedTime';
                   },
                 ),
                 TextField(

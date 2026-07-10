@@ -82,32 +82,35 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          22,
-          8,
-          22,
-          MediaQuery.of(context).viewInsets.bottom + 28,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              minLines: 3,
-              maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: 'Prayer request',
-                border: OutlineInputBorder(),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            22,
+            8,
+            22,
+            MediaQuery.of(sheetContext).viewInsets.bottom + 28,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                minLines: 3,
+                maxLines: 6,
+                decoration: const InputDecoration(
+                  labelText: 'Prayer request',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () async {
-                  final text = controller.text.trim();
-                  if (text.isNotEmpty) {
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () async {
+                    final text = controller.text.trim();
+
+                    if (text.isEmpty) return;
+
                     await ref
                         .read(prayerServiceProvider)
                         .submitPrayerRequest(
@@ -118,17 +121,17 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> {
                           ),
                         );
 
-                    if (!mounted) return;
+                    if (!sheetContext.mounted) return;
 
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text('Submit'),
+                    Navigator.pop(sheetContext);
+                  },
+                  child: const Text('Submit'),
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     ).whenComplete(controller.dispose);
   }
 }

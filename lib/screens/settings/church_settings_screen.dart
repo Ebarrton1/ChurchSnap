@@ -21,16 +21,23 @@ class ChurchSettingsScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
-              ...WorshipDay.values.map(
-                (day) => RadioListTile<WorshipDay>(
-                  value: day,
+              AbsorbPointer(
+                child: RadioGroup<WorshipDay>(
                   groupValue: churchConfig.worshipDay,
-                  onChanged: null,
-                  title: Text(day.name),
+                  onChanged: (_) {},
+                  child: Column(
+                    children: WorshipDay.values.map((day) {
+                      return RadioListTile<WorshipDay>(
+                        value: day,
+                        title: Text(day.name),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
               const Text(
-                'This is wired as a read-only starter. Connect it to Firebase/Firestore in v2.1.',
+                'This is wired as a read-only starter. Connect it to '
+                'Firebase/Firestore in v2.1.',
               ),
             ],
           ),
