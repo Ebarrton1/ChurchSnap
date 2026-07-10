@@ -2,82 +2,216 @@ import 'package:flutter/material.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
+import 'my_qr_code_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
-  final AuthController authController;
-
   const ProfileScreen({super.key, required this.authController});
+
+  final AuthController authController;
 
   @override
   Widget build(BuildContext context) {
-    final user = authController.currentUser;
+    final member = authController.currentUser;
+
+    if (member == null) {
+      return ChurchSnapScreen(
+        title: 'Profile',
+        subtitle: 'Your ChurchSnap account',
+        children: const [
+          AppCard(
+            child: ListTile(
+              leading: Icon(Icons.person_outline_rounded),
+              title: Text('No member profile available'),
+              subtitle: Text('Sign in to view your profile.'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final displayName = member.displayName.trim().isEmpty
+        ? 'ChurchSnap Member'
+        : member.displayName.trim();
+
+    final initial = displayName.isNotEmpty
+        ? displayName.substring(0, 1).toUpperCase()
+        : '?';
 
     return ChurchSnapScreen(
-      title: 'Profile',
-      subtitle: 'Your ChurchSnap member hub.',
+      title: 'My Profile',
+      subtitle: 'Your ChurchSnap member account',
       children: [
         AppCard(
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 52,
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                displayName,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(member.email, textAlign: TextAlign.center),
+              const SizedBox(height: 14),
+              Chip(
+                avatar: const Icon(Icons.verified_user_rounded, size: 18),
+                label: Text(_formatRole(member.role)),
+              ),
+            ],
+          ),
+        ),
+        const SectionTitle(title: 'Member Details'),
+        AppCard(
+          child: Column(
+            children: [
+              _ProfileDetailTile(
+                icon: Icons.badge_rounded,
+                label: 'Member ID',
+                value: member.id,
+              ),
+              const Divider(),
+              _ProfileDetailTile(
+                icon: Icons.email_rounded,
+                label: 'Email',
+                value: member.email,
+              ),
+              const Divider(),
+              _ProfileDetailTile(
+                icon: Icons.security_rounded,
+                label: 'Role',
+                value: _formatRole(member.role),
+              ),
+            ],
+          ),
+        ),
+        const SectionTitle(title: 'Quick Actions'),
+        AppCard(
           child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const CircleAvatar(
-              radius: 28,
-              child: Icon(Icons.person_rounded),
+            leading: const CircleAvatar(child: Icon(Icons.qr_code_rounded)),
+            title: const Text(
+              'My QR Code',
+              style: TextStyle(fontWeight: FontWeight.w800),
             ),
-            title: Text(user?.displayName ?? 'ChurchSnap Member'),
-            subtitle: Text(
-              '${user?.role ?? 'member'} • ${user?.churchId ?? 'demo-church'}',
+            subtitle: const Text('Show your personal code when checking in'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MyQrCodeScreen(
+                    memberId: member.id,
+                    memberName: displayName,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const AppCard(
+          child: ListTile(
+            leading: CircleAvatar(child: Icon(Icons.history_rounded)),
+            title: Text(
+              'Attendance History',
+              style: TextStyle(fontWeight: FontWeight.w800),
             ),
+            subtitle: Text('View your previous event check-ins'),
+            trailing: Chip(label: Text('Coming soon')),
+          ),
+        ),
+        const AppCard(
+          child: ListTile(
+            leading: CircleAvatar(child: Icon(Icons.favorite_rounded)),
+            title: Text(
+              'My Prayer Requests',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: Text('Review prayer requests you have submitted'),
+            trailing: Chip(label: Text('Coming soon')),
+          ),
+        ),
+        const AppCard(
+          child: ListTile(
+            leading: CircleAvatar(child: Icon(Icons.receipt_long_rounded)),
+            title: Text(
+              'Giving History',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: Text('Review contributions and statements'),
+            trailing: Chip(label: Text('Coming soon')),
           ),
         ),
         const SectionTitle(title: 'Account'),
         AppCard(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.email_rounded),
-                title: Text(user?.email ?? 'No email'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.verified_user_rounded),
-                title: const Text('Role'),
-                trailing: Text(user?.role ?? 'member'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.admin_panel_settings_rounded),
-                title: const Text('Admin access'),
-                trailing: Text(authController.isAdmin ? 'Enabled' : 'No'),
-              ),
-            ],
+          child: ListTile(
+            leading: const Icon(Icons.logout_rounded),
+            title: const Text(
+              'Sign Out',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: const Text('Sign out of your ChurchSnap account'),
+            onTap: () async {
+              await authController.signOut();
+            },
           ),
-        ),
-        const SectionTitle(title: 'Activity'),
-        const AppCard(
-          child: Column(
-            children: [
-              ListTile(
-                leading: Icon(Icons.bookmark_rounded),
-                title: Text('Saved sermons'),
-                trailing: Text('3'),
-              ),
-              ListTile(
-                leading: Icon(Icons.event_available_rounded),
-                title: Text('Upcoming RSVPs'),
-                trailing: Text('2'),
-              ),
-              ListTile(
-                leading: Icon(Icons.volunteer_activism_rounded),
-                title: Text('Volunteer interests'),
-                trailing: Text('4'),
-              ),
-            ],
-          ),
-        ),
-        FilledButton.icon(
-          onPressed: authController.signOut,
-          icon: const Icon(Icons.logout_rounded),
-          label: const Text('Sign Out'),
         ),
       ],
+    );
+  }
+
+  static String _formatRole(String role) {
+    switch (role) {
+      case 'ministryLeader':
+        return 'Ministry Leader';
+      case 'groupLeader':
+        return 'Group Leader';
+      case 'admin':
+        return 'Administrator';
+      case 'pastor':
+        return 'Pastor';
+      case 'volunteer':
+        return 'Volunteer';
+      case 'visitor':
+        return 'Visitor';
+      default:
+        return 'Member';
+    }
+  }
+}
+
+class _ProfileDetailTile extends StatelessWidget {
+  const _ProfileDetailTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(label),
+      subtitle: Text(
+        value,
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
     );
   }
 }
