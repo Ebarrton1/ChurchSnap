@@ -5,10 +5,7 @@ import '../../features/attendance/models/attendance_record.dart';
 import '../../features/attendance/repositories/attendance_history_repository.dart';
 
 class AttendanceHistoryScreen extends StatelessWidget {
-  const AttendanceHistoryScreen({
-    super.key,
-    required this.memberId,
-  });
+  const AttendanceHistoryScreen({super.key, required this.memberId});
 
   final String memberId;
 
@@ -63,16 +60,14 @@ class AttendanceHistoryScreen extends StatelessWidget {
                     ),
                     title: Text(
                       record.eventTitle,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
                       checkedIn == null
                           ? 'Date unavailable'
                           : '${checkedIn.month}/${checkedIn.day}/${checkedIn.year}'
-                            '  ${checkedIn.hour.toString().padLeft(2, '0')}:'
-                            '${checkedIn.minute.toString().padLeft(2, '0')}',
+                                '  ${checkedIn.hour.toString().padLeft(2, '0')}:'
+                                '${checkedIn.minute.toString().padLeft(2, '0')}',
                     ),
                     trailing: Chip(
                       label: Text(record.checkInMethod.toUpperCase()),
