@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/providers/repository_providers.dart';
 import '../../../models/sermon.dart';
+import '../repositories/sermon_repository.dart';
 import '../services/sermon_service.dart';
+
+final sermonRepositoryProvider = Provider<SermonRepository>((ref) {
+  return SermonRepository();
+});
 
 final sermonServiceProvider = Provider<SermonService>((ref) {
   return SermonService(ref.watch(sermonRepositoryProvider));
