@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
 import 'my_qr_code_screen.dart';
+import 'attendance_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, required this.authController});
@@ -120,15 +121,23 @@ class ProfileScreen extends StatelessWidget {
             },
           ),
         ),
-        const AppCard(
+        AppCard(
           child: ListTile(
-            leading: CircleAvatar(child: Icon(Icons.history_rounded)),
-            title: Text(
+            leading: const CircleAvatar(child: Icon(Icons.history_rounded)),
+            title: const Text(
               'Attendance History',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
-            subtitle: Text('View your previous event check-ins'),
-            trailing: Chip(label: Text('Coming soon')),
+            subtitle: const Text('View your previous event check-ins'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AttendanceHistoryScreen(memberId: member.id),
+                ),
+              );
+            },
           ),
         ),
         const AppCard(
