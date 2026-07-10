@@ -11,6 +11,7 @@ import '../../features/dashboard/providers/dashboard_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'admin_role_management_screen.dart';
 import 'admin_notifications_screen.dart';
+import 'admin_qr_scanner_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -131,9 +132,11 @@ class AdminDashboardScreen extends ConsumerWidget {
           subtitle: 'Create and manage church notifications',
           screen: const AdminNotificationsScreen(),
         ),
-        const _ComingSoonCard(
+        _AdminNavCard(
           icon: Icons.qr_code_scanner_rounded,
           title: 'QR Check-In',
+          subtitle: 'Scan member QR codes and record attendance',
+          screen: const AdminQrScannerScreen(),
         ),
         const _ComingSoonCard(
           icon: Icons.calendar_month_rounded,
