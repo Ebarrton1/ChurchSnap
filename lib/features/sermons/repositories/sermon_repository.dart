@@ -15,7 +15,7 @@ class SermonRepository {
 
   Stream<List<Sermon>> watchPublishedSermons() {
     return _repository.watchPublished(
-      dateField: 'sermonDate',
+      dateField: 'publishedAt',
       descending: true,
     );
   }
