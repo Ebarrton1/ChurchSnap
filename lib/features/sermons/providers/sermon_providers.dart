@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/sermon.dart';
 import '../repositories/sermon_repository.dart';
 import '../services/sermon_service.dart';
+import '../repositories/sermon_bookmark_repository.dart';
 
 final sermonRepositoryProvider = Provider<SermonRepository>((ref) {
   return SermonRepository();
@@ -17,4 +18,13 @@ final sermonsProvider = StreamProvider<List<Sermon>>((ref) {
 
 final adminSermonsProvider = StreamProvider<List<Sermon>>((ref) {
   return ref.watch(sermonServiceProvider).watchAllSermons();
+});
+
+final sermonBookmarkRepositoryProvider = Provider<SermonBookmarkRepository>((
+  ref,
+) {
+  return SermonBookmarkRepository();
+});
+final sermonBookmarkIdsProvider = StreamProvider<Set<String>>((ref) {
+  return ref.watch(sermonBookmarkRepositoryProvider).watchBookmarkedSermonIds();
 });
