@@ -5,12 +5,12 @@ import '../../../models/sermon.dart';
 
 class SermonRepository {
   SermonRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
-        _repository = FirestoreCollectionRepository<Sermon>(
-          firestore: firestore,
-          collectionPath: 'churches/demo-church/sermons',
-          fromMap: Sermon.fromMap,
-        );
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _repository = FirestoreCollectionRepository<Sermon>(
+        firestore: firestore,
+        collectionPath: 'churches/demo-church/sermons',
+        fromMap: Sermon.fromMap,
+      );
 
   final FirebaseFirestore _firestore;
   final FirestoreCollectionRepository<Sermon> _repository;
@@ -32,11 +32,9 @@ class SermonRepository {
         .orderBy('sermonDate', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((document) {
-                return Sermon.fromMap(document.id, document.data());
-              })
-              .toList(),
+          (snapshot) => snapshot.docs.map((document) {
+            return Sermon.fromMap(document.id, document.data());
+          }).toList(),
         );
   }
 
@@ -69,9 +67,7 @@ class SermonRepository {
       throw ArgumentError('A sermon ID is required.');
     }
 
-    await _collection.doc(sermonId).update({
-      'published': published,
-    });
+    await _collection.doc(sermonId).update({'published': published});
   }
 
   Future<void> setFeatured(String sermonId) async {
@@ -86,14 +82,10 @@ class SermonRepository {
     final batch = _firestore.batch();
 
     for (final document in featuredSermons.docs) {
-      batch.update(document.reference, {
-        'featured': false,
-      });
+      batch.update(document.reference, {'featured': false});
     }
 
-    batch.update(_collection.doc(sermonId), {
-      'featured': true,
-    });
+    batch.update(_collection.doc(sermonId), {'featured': true});
 
     await batch.commit();
   }

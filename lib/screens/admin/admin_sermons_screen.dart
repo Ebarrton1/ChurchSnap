@@ -9,7 +9,7 @@ class AdminSermonsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sermonsAsync = ref.watch(sermonsProvider);
+    final sermonsAsync = ref.watch(adminSermonsProvider);
 
     return ChurchSnapScreen(
       title: 'Manage Sermons',
