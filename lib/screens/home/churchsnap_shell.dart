@@ -23,7 +23,7 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
   int selectedIndex = 0;
 
   List<Widget> get pages => [
-    const HomeScreen(),
+    HomeScreen(authController: widget.authController),
     const SermonsScreen(),
     const MediaScreen(),
     EventsScreen(authController: widget.authController),

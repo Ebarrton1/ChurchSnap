@@ -10,14 +10,30 @@ import '../giving/giving_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../sermons/sermon_detail_screen.dart';
 import '../sermons/sermons_screen.dart';
+import '../../features/auth/state/auth_controller.dart';
 
 class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.authController});
+
+  final AuthController authController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final member = authController.currentUser;
+    final displayName = member?.displayName.trim() ?? '';
+
+    final firstName = displayName.isEmpty
+        ? ''
+        : displayName.split(RegExp(r'\s+')).first;
+
+    final greeting = _timeBasedGreeting();
+
+    final personalizedTitle = firstName.isEmpty
+        ? greeting
+        : '$greeting, $firstName';
+
     return ChurchSnapScreen(
-      title: churchConfig.welcomeGreeting,
+      title: personalizedTitle,
       subtitle: 'Stay connected with your church family.',
       children: [
         const _HeroWorshipCard(),
@@ -45,6 +61,20 @@ class HomeScreen extends ConsumerWidget {
       ],
     );
   }
+}
+
+String _timeBasedGreeting() {
+  final hour = DateTime.now().hour;
+
+  if (hour < 12) {
+    return 'Good morning';
+  }
+
+  if (hour < 17) {
+    return 'Good afternoon';
+  }
+
+  return 'Good evening';
 }
 
 class _HeroWorshipCard extends StatelessWidget {
