@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../core/auth/app_roles.dart';
 import '../../../core/services/service_result.dart';
@@ -6,15 +6,11 @@ import '../models/churchsnap_user.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/firebase/firebase_auth_repository_stub.dart';
 
-enum AuthStatus {
-  authenticated,
-  unauthenticated,
-  loading,
-}
+enum AuthStatus { authenticated, unauthenticated, loading }
 
 class AuthController extends ChangeNotifier {
   AuthController({AuthRepository? repository})
-      : _repository = repository ?? FirebaseAuthRepository() {
+    : _repository = repository ?? FirebaseAuthRepository() {
     _restoreSession();
   }
 
@@ -57,10 +53,7 @@ class AuthController extends ChangeNotifier {
   Future<bool> signIn(String email, String password) async {
     _setLoading();
 
-    final result = await _repository.signInWithEmail(
-      email,
-      password,
-    );
+    final result = await _repository.signInWithEmail(email, password);
 
     return _handleAuthResult(result);
   }

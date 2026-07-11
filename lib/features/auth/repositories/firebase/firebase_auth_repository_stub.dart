@@ -1,4 +1,4 @@
-﻿// This file documents the production Firebase implementation target.
+// This file documents the production Firebase implementation target.
 // Keep this stub until you run `flutterfire configure` and add Firebase packages.
 //
 // Planned packages:
@@ -207,4 +207,3 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 }
-

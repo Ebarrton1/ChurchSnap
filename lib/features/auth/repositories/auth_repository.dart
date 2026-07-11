@@ -1,4 +1,4 @@
-﻿import '../../../core/services/service_result.dart';
+import '../../../core/services/service_result.dart';
 import '../models/churchsnap_user.dart';
 
 abstract class AuthRepository {
@@ -18,4 +18,3 @@ abstract class AuthRepository {
   Future<ServiceResult<void>> sendPasswordReset(String email);
   Future<ServiceResult<void>> signOut();
 }
-

@@ -15,8 +15,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController(text: 'member@churchsnap.app');
-  final passwordController = TextEditingController(text: 'password');
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
   final nameController = TextEditingController();
   final churchIdController = TextEditingController(text: 'demo-church');
   bool isCreatingAccount = false;
@@ -184,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (user != null) {
       await NotificationService(
         NotificationRepository(FirebaseFirestore.instance),
-      ).initializeMessaging(userId: user.id, churchId: 'demo-church');
+      ).initializeMessaging(userId: user.id, churchId: user.churchId);
     }
 
     if (!mounted) return;
