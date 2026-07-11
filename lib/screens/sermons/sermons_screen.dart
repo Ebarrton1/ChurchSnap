@@ -15,8 +15,6 @@ class SermonsScreen extends ConsumerStatefulWidget {
 
 class _SermonsScreenState extends ConsumerState<SermonsScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final Set<String> _savedSermons = {};
-
   String _searchQuery = '';
 
   @override
@@ -28,6 +26,13 @@ class _SermonsScreenState extends ConsumerState<SermonsScreen> {
   @override
   Widget build(BuildContext context) {
     final sermonsAsync = ref.watch(sermonsProvider);
+    final bookmarkIds = ref
+        .watch(sermonBookmarkIdsProvider)
+        .when(
+          data: (ids) => ids,
+          loading: () => <String>{},
+          error: (_, _) => const <String>{},
+        );
 
     return ChurchSnapScreen(
       title: 'Sermons',
@@ -46,7 +51,6 @@ class _SermonsScreenState extends ConsumerState<SermonsScreen> {
                       tooltip: 'Clear search',
                       onPressed: () {
                         _searchController.clear();
-
                         setState(() {
                           _searchQuery = '';
                         });
@@ -66,7 +70,7 @@ class _SermonsScreenState extends ConsumerState<SermonsScreen> {
         sermonsAsync.when(
           loading: () =>
               const AppCard(child: Center(child: CircularProgressIndicator())),
-          error: (error, stackTrace) => AppCard(
+          error: (error, _) => AppCard(
             child: ListTile(
               leading: const Icon(Icons.error_outline_rounded),
               title: const Text('Unable to load sermons'),
@@ -81,12 +85,10 @@ class _SermonsScreenState extends ConsumerState<SermonsScreen> {
                         first.sermonDate ??
                         first.createdAt ??
                         DateTime.fromMillisecondsSinceEpoch(0);
-
                     final secondDate =
                         second.sermonDate ??
                         second.createdAt ??
                         DateTime.fromMillisecondsSinceEpoch(0);
-
                     return secondDate.compareTo(firstDate);
                   });
 
@@ -94,14 +96,12 @@ class _SermonsScreenState extends ConsumerState<SermonsScreen> {
               if (_searchQuery.isEmpty) {
                 return true;
               }
-
               final searchableText = [
                 sermon.title,
                 sermon.speaker,
                 sermon.scripture,
                 sermon.description,
               ].join(' ').toLowerCase();
-
               return searchableText.contains(_searchQuery);
             }).toList();
 
@@ -142,24 +142,14 @@ class _SermonsScreenState extends ConsumerState<SermonsScreen> {
                 ),
                 const SectionTitle(title: 'Recent Sermons'),
                 ...filteredSermons.map((sermon) {
-                  final sermonKey = sermon.id.isEmpty
-                      ? sermon.title
-                      : sermon.id;
-
-                  final isSaved = _savedSermons.contains(sermonKey);
-
+                  final sermonId = sermon.id.trim();
+                  final isSaved =
+                      sermonId.isNotEmpty && bookmarkIds.contains(sermonId);
                   return _SermonCard(
                     sermon: sermon,
                     isSaved: isSaved,
-                    onSave: () {
-                      setState(() {
-                        if (isSaved) {
-                          _savedSermons.remove(sermonKey);
-                        } else {
-                          _savedSermons.add(sermonKey);
-                        }
-                      });
-                    },
+                    canSave: sermonId.isNotEmpty,
+                    onSave: () => _setBookmark(sermon, bookmarked: !isSaved),
                     onOpen: () => _openSermon(sermon),
                   );
                 }),
@@ -172,28 +162,38 @@ class _SermonsScreenState extends ConsumerState<SermonsScreen> {
   }
 
   Future<void> _openSermon(Sermon sermon) async {
-    final sermonKey = sermon.id.isEmpty ? sermon.title : sermon.id;
-
     await Navigator.push<void>(
       context,
-      MaterialPageRoute(
-        builder: (_) => SermonDetailScreen(
-          sermon: sermon,
-          initiallySaved: _savedSermons.contains(sermonKey),
-          onSavedChanged: (isSaved) {
-            if (!mounted) return;
-
-            setState(() {
-              if (isSaved) {
-                _savedSermons.add(sermonKey);
-              } else {
-                _savedSermons.remove(sermonKey);
-              }
-            });
-          },
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => SermonDetailScreen(sermon: sermon)),
     );
+  }
+
+  Future<void> _setBookmark(Sermon sermon, {required bool bookmarked}) async {
+    final sermonId = sermon.id.trim();
+    if (sermonId.isEmpty) {
+      _showMessage(
+        'This sermon cannot be saved because it does not have an ID.',
+      );
+      return;
+    }
+    try {
+      await ref
+          .read(sermonBookmarkRepositoryProvider)
+          .setBookmarked(
+            sermonId: sermonId,
+            sermonTitle: sermon.title,
+            bookmarked: bookmarked,
+          );
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage('Unable to update saved sermon: $error');
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -251,8 +251,7 @@ class _FeaturedSermonCard extends StatelessWidget {
           Text(
             sermon.speaker.isEmpty
                 ? sermon.scripture
-                : '${sermon.speaker}'
-                      '${sermon.scripture.isEmpty ? '' : ' • ${sermon.scripture}'}',
+                : '${sermon.speaker}${sermon.scripture.isEmpty ? '' : ' • ${sermon.scripture}'}',
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -273,12 +272,14 @@ class _SermonCard extends StatelessWidget {
   const _SermonCard({
     required this.sermon,
     required this.isSaved,
+    required this.canSave,
     required this.onSave,
     required this.onOpen,
   });
 
   final Sermon sermon;
   final bool isSaved;
+  final bool canSave;
   final VoidCallback onSave;
   final VoidCallback onOpen;
 
@@ -300,8 +301,12 @@ class _SermonCard extends StatelessWidget {
         ),
         subtitle: details.isEmpty ? null : Text(details),
         trailing: IconButton(
-          tooltip: isSaved ? 'Remove bookmark' : 'Save sermon',
-          onPressed: onSave,
+          tooltip: canSave
+              ? isSaved
+                    ? 'Remove bookmark'
+                    : 'Save sermon'
+              : 'Sermon cannot be saved',
+          onPressed: canSave ? onSave : null,
           icon: Icon(
             isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
           ),
