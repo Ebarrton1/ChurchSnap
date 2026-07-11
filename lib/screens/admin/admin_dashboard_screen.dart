@@ -15,7 +15,9 @@ import 'admin_qr_scanner_screen.dart';
 import 'admin_sermons_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
-  const AdminDashboardScreen({super.key});
+  const AdminDashboardScreen({super.key, required this.churchId});
+
+  final String churchId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -72,7 +74,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           icon: Icons.event_rounded,
           title: 'Events',
           subtitle: 'Manage church events',
-          screen: AdminEventsScreen(),
+          screen: AdminEventsScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.play_circle_fill_rounded,

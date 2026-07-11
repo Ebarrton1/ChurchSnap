@@ -22,16 +22,23 @@ class ChurchSnapShell extends StatefulWidget {
 class _ChurchSnapShellState extends State<ChurchSnapShell> {
   int selectedIndex = 0;
 
+  String get _churchId {
+    final churchId = widget.authController.currentUser?.churchId.trim() ?? '';
+
+    return churchId.isEmpty ? 'demo-church' : churchId;
+  }
+
   List<Widget> get pages => [
     HomeScreen(authController: widget.authController),
-    const SermonsScreen(),
+    SermonsScreen(churchId: _churchId),
     const MediaScreen(),
     EventsScreen(authController: widget.authController),
-    const PrayerScreen(),
+    PrayerScreen(churchId: _churchId),
     const GivingScreen(),
     ProfileScreen(authController: widget.authController),
 
-    if (widget.authController.isAdmin) const AdminDashboardScreen(),
+    if (widget.authController.isAdmin)
+      AdminDashboardScreen(churchId: _churchId),
   ];
 
   @override

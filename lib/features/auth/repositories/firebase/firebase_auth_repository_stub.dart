@@ -144,7 +144,19 @@ class FirebaseAuthRepository implements AuthRepository {
     final snapshot = await memberRef.get();
 
     if (snapshot.exists && snapshot.data() != null) {
-      return ChurchSnapUser.fromMap(snapshot.data()!);
+      final data = snapshot.data()!;
+
+      return ChurchSnapUser(
+        id: user.uid,
+        churchId: defaultChurchId,
+        displayName:
+            data['displayName'] as String? ??
+            user.displayName ??
+            'ChurchSnap Member',
+        email: data['email'] as String? ?? user.email ?? '',
+        role: data['role'] as String? ?? 'member',
+        isEmailVerified: data['isEmailVerified'] as bool? ?? user.emailVerified,
+      );
     }
 
     final appUser = ChurchSnapUser(

@@ -7,16 +7,18 @@ import '../../features/events/repositories/event_repository.dart';
 import '../../models/church_event.dart';
 
 class AdminEventsScreen extends ConsumerWidget {
-  const AdminEventsScreen({super.key});
+  const AdminEventsScreen({super.key, required this.churchId});
+
+  final String churchId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repository = EventRepository();
+    final repository = EventRepository(churchId: churchId);
 
     return Material(
       child: ChurchSnapScreen(
         title: 'Events',
-        subtitle: 'Manage church events.',
+        subtitle: 'Manage church events for $churchId.',
         children: [
           FilledButton.icon(
             onPressed: () => _showEventDialog(context, ref),
@@ -54,7 +56,9 @@ class AdminEventsScreen extends ConsumerWidget {
                           }
                           if (value == 'delete') {
                             ref
-                                .read(adminEventServiceProvider)
+                                .read(
+                                  adminEventServiceByChurchProvider(churchId),
+                                )
                                 .deleteEvent(event.id);
                           }
                         },
@@ -76,121 +80,273 @@ class AdminEventsScreen extends ConsumerWidget {
 
   void _showEventDialog(
     BuildContext context,
-    WidgetRef ref, {
+    WidgetRef _, {
     ChurchEvent? event,
   }) {
-    final titleController = TextEditingController(text: event?.title ?? '');
-    DateTime? selectedStartDate = event?.startDate;
-    final whenController = TextEditingController(text: event?.when ?? '');
-    final locationController = TextEditingController(
-      text: event?.location ?? '',
-    );
-
     showDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(event == null ? 'Add Event' : 'Edit Event'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title'),
+      builder: (_) => _EventDialog(event: event, churchId: churchId),
+    );
+  }
+}
+
+class _EventDialog extends ConsumerStatefulWidget {
+  const _EventDialog({this.event, required this.churchId});
+
+  final ChurchEvent? event;
+  final String churchId;
+
+  @override
+  ConsumerState<_EventDialog> createState() => _EventDialogState();
+}
+
+class _EventDialogState extends ConsumerState<_EventDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _locationController;
+
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
+
+  bool _isSaving = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final existingStartDate = widget.event?.startDate;
+
+    _titleController = TextEditingController(text: widget.event?.title ?? '');
+
+    _locationController = TextEditingController(
+      text: widget.event?.location ?? '',
+    );
+
+    if (existingStartDate != null) {
+      _selectedDate = DateTime(
+        existingStartDate.year,
+        existingStartDate.month,
+        existingStartDate.day,
+      );
+
+      _selectedTime = TimeOfDay.fromDateTime(existingStartDate);
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final event = widget.event;
+
+    return AlertDialog(
+      title: Text(event == null ? 'Add Event' : 'Edit Event'),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _titleController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Event title',
+                  prefixIcon: Icon(Icons.event_rounded),
                 ),
-                TextField(
-                  controller: whenController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: 'When',
-                    suffixIcon: Icon(Icons.calendar_month_rounded),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _isSaving ? null : _selectDate,
+                icon: const Icon(Icons.calendar_month_rounded),
+                label: Text(
+                  _selectedDate == null
+                      ? 'Select date'
+                      : _formatDate(_selectedDate!),
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _isSaving ? null : _selectTime,
+                icon: const Icon(Icons.schedule_rounded),
+                label: Text(
+                  _selectedTime == null
+                      ? 'Select time'
+                      : _selectedTime!.format(context),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _locationController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Location',
+                  prefixIcon: Icon(Icons.location_on_rounded),
+                ),
+              ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
                   ),
-                  onTap: () async {
-                    final now = DateTime.now();
-
-                    final pickedDate = await showDatePicker(
-                      context: dialogContext,
-                      initialDate: selectedStartDate ?? now,
-                      firstDate: DateTime(now.year - 1),
-                      lastDate: DateTime(now.year + 5),
-                    );
-
-                    if (pickedDate == null || !dialogContext.mounted) {
-                      return;
-                    }
-
-                    final pickedTime = await showTimePicker(
-                      context: dialogContext,
-                      initialTime: TimeOfDay.fromDateTime(
-                        selectedStartDate ?? now,
-                      ),
-                    );
-
-                    if (pickedTime == null || !dialogContext.mounted) {
-                      return;
-                    }
-
-                    final formattedTime = pickedTime.format(dialogContext);
-
-                    selectedStartDate = DateTime(
-                      pickedDate.year,
-                      pickedDate.month,
-                      pickedDate.day,
-                      pickedTime.hour,
-                      pickedTime.minute,
-                    );
-
-                    whenController.text =
-                        '${pickedDate.month}/${pickedDate.day}/${pickedDate.year} • '
-                        '$formattedTime';
-                  },
-                ),
-                TextField(
-                  controller: locationController,
-                  decoration: const InputDecoration(labelText: 'Location'),
                 ),
               ],
-            ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final updated = ChurchEvent(
-                  id: event?.id ?? '',
-                  title: titleController.text.trim(),
-                  when: whenController.text.trim(),
-                  location: locationController.text.trim(),
-                  published: true,
-                  startDate: selectedStartDate,
-                );
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving
+              ? null
+              : () {
+                  Navigator.of(context).pop();
+                },
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: _isSaving ? null : _saveEvent,
+          icon: _isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.save_rounded),
+          label: Text(_isSaving ? 'Saving...' : 'Save'),
+        ),
+      ],
+    );
+  }
 
-                if (event == null) {
-                  await ref
-                      .read(adminEventServiceProvider)
-                      .publishEvent(updated);
-                } else {
-                  await ref
-                      .read(adminEventServiceProvider)
-                      .updateEvent(event.id, updated);
-                }
+  Future<void> _selectDate() async {
+    final now = DateTime.now();
 
-                if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    ).whenComplete(() {
-      titleController.dispose();
-      whenController.dispose();
-      locationController.dispose();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 10),
+      helpText: 'Select event date',
+    );
+
+    if (!mounted || pickedDate == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedDate = pickedDate;
+      _errorMessage = null;
     });
+  }
+
+  Future<void> _selectTime() async {
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+      helpText: 'Select event time',
+    );
+
+    if (!mounted || pickedTime == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedTime = pickedTime;
+      _errorMessage = null;
+    });
+  }
+
+  Future<void> _saveEvent() async {
+    final title = _titleController.text.trim();
+    final location = _locationController.text.trim();
+
+    if (title.isEmpty) {
+      setState(() {
+        _errorMessage = 'Enter an event title.';
+      });
+      return;
+    }
+
+    if (_selectedDate == null) {
+      setState(() {
+        _errorMessage = 'Select an event date.';
+      });
+      return;
+    }
+
+    if (_selectedTime == null) {
+      setState(() {
+        _errorMessage = 'Select an event time.';
+      });
+      return;
+    }
+
+    final startDate = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      _selectedTime!.hour,
+      _selectedTime!.minute,
+    );
+
+    final existingEvent = widget.event;
+
+    final updatedEvent = ChurchEvent(
+      id: existingEvent?.id ?? '',
+      title: title,
+      when: '${_formatDate(startDate)} • ${_selectedTime!.format(context)}',
+      location: location,
+      published: existingEvent?.published ?? true,
+      startDate: startDate,
+      endDate: existingEvent?.endDate,
+      rsvpCount: existingEvent?.rsvpCount ?? 0,
+      attendeeIds: existingEvent?.attendeeIds ?? const [],
+    );
+
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final service = ref.read(
+        adminEventServiceByChurchProvider(widget.churchId),
+      );
+
+      if (existingEvent == null) {
+        await service.publishEvent(updatedEvent);
+      } else {
+        await service.updateEvent(existingEvent.id, updatedEvent);
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSaving = false;
+        _errorMessage = 'Unable to save event: $error';
+      });
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.month}/${date.day}/${date.year}';
   }
 }

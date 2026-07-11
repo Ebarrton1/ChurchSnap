@@ -14,3 +14,8 @@ final adminAnnouncementServiceProvider = Provider<AdminAnnouncementService>((
 final adminEventServiceProvider = Provider<AdminEventService>((ref) {
   return AdminEventService(EventRepository());
 });
+
+final adminEventServiceByChurchProvider =
+    Provider.family<AdminEventService, String>((ref, churchId) {
+      return AdminEventService(EventRepository(churchId: churchId));
+    });

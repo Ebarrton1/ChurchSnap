@@ -7,7 +7,9 @@ import '../../models/sermon.dart';
 import 'sermon_detail_screen.dart';
 
 class SermonsScreen extends ConsumerStatefulWidget {
-  const SermonsScreen({super.key});
+  const SermonsScreen({super.key, required this.churchId});
+
+  final String churchId;
 
   @override
   ConsumerState<SermonsScreen> createState() => _SermonsScreenState();
@@ -25,9 +27,9 @@ class _SermonsScreenState extends ConsumerState<SermonsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sermonsAsync = ref.watch(sermonsProvider);
+    final sermonsAsync = ref.watch(sermonsByChurchProvider(widget.churchId));
     final bookmarkIds = ref
-        .watch(sermonBookmarkIdsProvider)
+        .watch(sermonBookmarkIdsByChurchProvider(widget.churchId))
         .when(
           data: (ids) => ids,
           loading: () => <String>{},
@@ -178,7 +180,7 @@ class _SermonsScreenState extends ConsumerState<SermonsScreen> {
     }
     try {
       await ref
-          .read(sermonBookmarkRepositoryProvider)
+          .read(sermonBookmarkRepositoryByChurchProvider(widget.churchId))
           .setBookmarked(
             sermonId: sermonId,
             sermonTitle: sermon.title,

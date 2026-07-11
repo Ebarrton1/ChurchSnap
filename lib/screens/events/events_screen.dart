@@ -15,12 +15,16 @@ class EventsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repository = EventRepository();
+    final churchId =
+        authController?.currentUser?.churchId.trim().isNotEmpty == true
+        ? authController!.currentUser!.churchId.trim()
+        : 'demo-church';
+    final repository = EventRepository(churchId: churchId);
     final userId = authController?.currentUser?.id ?? 'guest';
 
     return ChurchSnapScreen(
       title: 'Events',
-      subtitle: 'RSVP and stay connected with church life.',
+      subtitle: 'RSVP and stay connected with church life. Church: $churchId',
       children: [
         const SectionTitle(title: 'Upcoming'),
         StreamBuilder<List<ChurchEvent>>(
@@ -33,13 +37,17 @@ class EventsScreen extends ConsumerWidget {
             }
 
             if (snapshot.hasError) {
-              return const AppCard(child: Text('Unable to load events.'));
+              return AppCard(
+                child: Text('Unable to load events: ${snapshot.error}'),
+              );
             }
 
             final events = snapshot.data ?? <ChurchEvent>[];
 
             if (events.isEmpty) {
-              return const AppCard(child: Text('No upcoming events yet.'));
+              return AppCard(
+                child: Text('No upcoming events found for church: $churchId'),
+              );
             }
 
             return Column(
@@ -80,20 +88,42 @@ class EventsScreen extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: FilledButton.tonalIcon(
-                                onPressed: () {
+                                onPressed: () async {
                                   final service = ref.read(
-                                    eventServiceProvider,
+                                    eventServiceByChurchProvider(churchId),
                                   );
 
-                                  if (isGoing) {
-                                    service.cancelRsvp(
-                                      eventId: event.id,
-                                      userId: userId,
+                                  try {
+                                    if (isGoing) {
+                                      await service.cancelRsvp(
+                                        eventId: event.id,
+                                        userId: userId,
+                                      );
+                                    } else {
+                                      await service.rsvp(
+                                        eventId: event.id,
+                                        userId: userId,
+                                      );
+                                    }
+
+                                    if (!context.mounted) return;
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          isGoing
+                                              ? 'RSVP removed.'
+                                              : 'RSVP confirmed.',
+                                        ),
+                                      ),
                                     );
-                                  } else {
-                                    service.rsvp(
-                                      eventId: event.id,
-                                      userId: userId,
+                                  } catch (error) {
+                                    if (!context.mounted) return;
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('RSVP failed: $error'),
+                                      ),
                                     );
                                   }
                                 },

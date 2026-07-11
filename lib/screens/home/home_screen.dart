@@ -20,6 +20,8 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final member = authController.currentUser;
+    final rawChurchId = member?.churchId.trim() ?? '';
+    final churchId = rawChurchId.isEmpty ? 'demo-church' : rawChurchId;
     final displayName = member?.displayName.trim() ?? '';
 
     final firstName = displayName.isEmpty
@@ -41,12 +43,12 @@ class HomeScreen extends ConsumerWidget {
           title: 'Quick Actions',
           subtitle: 'Everything you need, one tap away',
         ),
-        const _QuickActionsGrid(),
+        _QuickActionsGrid(churchId: churchId),
         const _HomeSectionHeader(
           title: 'Featured Message',
           subtitle: 'Watch or listen to the latest sermon',
         ),
-        const _FeaturedSermonSection(),
+        _FeaturedSermonSection(churchId: churchId),
         const _HomeSectionHeader(
           title: 'This Weekend',
           subtitle: 'Plan your worship experience',
@@ -256,7 +258,9 @@ class _HomeSectionHeader extends StatelessWidget {
 }
 
 class _QuickActionsGrid extends StatelessWidget {
-  const _QuickActionsGrid();
+  const _QuickActionsGrid({required this.churchId});
+
+  final String churchId;
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +277,7 @@ class _QuickActionsGrid extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const PrayerScreen()),
+            MaterialPageRoute(builder: (_) => PrayerScreen(churchId: churchId)),
           );
         },
       ),
@@ -288,7 +292,9 @@ class _QuickActionsGrid extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const SermonsScreen()),
+            MaterialPageRoute(
+              builder: (_) => SermonsScreen(churchId: churchId),
+            ),
           );
         },
       ),
@@ -393,11 +399,13 @@ class _QuickAction {
 }
 
 class _FeaturedSermonSection extends ConsumerWidget {
-  const _FeaturedSermonSection();
+  const _FeaturedSermonSection({required this.churchId});
+
+  final String churchId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sermonsAsync = ref.watch(sermonsProvider);
+    final sermonsAsync = ref.watch(sermonsByChurchProvider(churchId));
     return sermonsAsync.when(
       loading: () =>
           const AppCard(child: Center(child: CircularProgressIndicator())),
@@ -501,7 +509,7 @@ class _FeaturedHomeSermonCard extends StatelessWidget {
               [
                 if (sermon.speaker.isNotEmpty) sermon.speaker,
                 if (sermon.scripture.isNotEmpty) sermon.scripture,
-              ].join(' • '),
+              ].join(' â€¢ '),
             ),
           ],
           const SizedBox(height: 16),
@@ -538,7 +546,7 @@ class _WeekendScheduleCard extends StatelessWidget {
             icon: Icons.wb_twilight_rounded,
             title: 'Sabbath Worship',
             day: 'Saturday',
-            details: 'Sabbath School 9:45 AM • Worship 11:00 AM',
+            details: 'Sabbath School 9:45 AM â€¢ Worship 11:00 AM',
           ),
           Divider(height: 28),
           _ScheduleTile(

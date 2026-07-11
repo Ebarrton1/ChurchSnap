@@ -6,7 +6,9 @@ import '../../features/prayer/providers/prayer_providers.dart';
 import '../../models/prayer_request.dart';
 
 class PrayerScreen extends ConsumerStatefulWidget {
-  const PrayerScreen({super.key});
+  const PrayerScreen({super.key, required this.churchId});
+
+  final String churchId;
 
   @override
   ConsumerState<PrayerScreen> createState() => _PrayerScreenState();
@@ -15,7 +17,7 @@ class PrayerScreen extends ConsumerStatefulWidget {
 class _PrayerScreenState extends ConsumerState<PrayerScreen> {
   @override
   Widget build(BuildContext context) {
-    final prayers = ref.watch(prayerRequestsProvider);
+    final prayers = ref.watch(prayerRequestsByChurchProvider(widget.churchId));
 
     return ChurchSnapScreen(
       title: 'Prayer',
@@ -112,7 +114,7 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> {
                     if (text.isEmpty) return;
 
                     await ref
-                        .read(prayerServiceProvider)
+                        .read(prayerServiceByChurchProvider(widget.churchId))
                         .submitPrayerRequest(
                           PrayerRequest(
                             name: 'Anonymous',

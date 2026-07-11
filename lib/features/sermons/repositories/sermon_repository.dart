@@ -1,24 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/repositories/firestore_collection_repository.dart';
+import '../../../firebase/firebase_paths.dart';
 import '../../../models/sermon.dart';
 
 class SermonRepository {
-  SermonRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance,
-      _repository = FirestoreCollectionRepository<Sermon>(
-        firestore: firestore,
-        collectionPath: 'churches/demo-church/sermons',
-        fromMap: Sermon.fromMap,
-      );
+  SermonRepository({
+    FirebaseFirestore? firestore,
+    this.churchId = 'demo-church',
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _repository = FirestoreCollectionRepository<Sermon>(
+         firestore: firestore,
+         collectionPath: FirebasePaths.sermons(churchId),
+         fromMap: Sermon.fromMap,
+       );
 
   final FirebaseFirestore _firestore;
   final FirestoreCollectionRepository<Sermon> _repository;
+  final String churchId;
 
-  CollectionReference<Map<String, dynamic>> get _collection => _firestore
-      .collection('churches')
-      .doc('demo-church')
-      .collection('sermons');
+  CollectionReference<Map<String, dynamic>> get _collection =>
+      _firestore.collection(FirebasePaths.sermons(churchId));
 
   Stream<List<Sermon>> watchPublishedSermons() {
     return _repository.watchPublished(

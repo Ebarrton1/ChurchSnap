@@ -1,62 +1,59 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../core/repositories/firestore_collection_repository.dart';
+import '../../../firebase/firebase_paths.dart';
 import '../../../models/church_event.dart';
 
 class EventRepository {
-  EventRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance,
-      _repository = FirestoreCollectionRepository<ChurchEvent>(
-        firestore: firestore,
-        collectionPath: 'churches/demo-church/events',
-        fromMap: ChurchEvent.fromMap,
-      );
+  EventRepository({FirebaseFirestore? firestore, this.churchId = 'demo-church'})
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
-  final FirestoreCollectionRepository<ChurchEvent> _repository;
+  final String churchId;
+
+  CollectionReference<Map<String, dynamic>> get _collection =>
+      _firestore.collection(FirebasePaths.events(churchId));
 
   Stream<List<ChurchEvent>> watchPublishedEvents() {
-    return _repository.watchPublished(
-      dateField: 'startDate',
-      descending: false,
-    );
+    return _collection.snapshots().map((snapshot) {
+      final events = snapshot.docs
+          .where((document) {
+            return document.data()['published'] != false;
+          })
+          .map((document) {
+            return ChurchEvent.fromMap(document.id, document.data());
+          })
+          .toList();
+
+      events.sort((first, second) {
+        final firstDate =
+            first.startDate ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final secondDate =
+            second.startDate ?? DateTime.fromMillisecondsSinceEpoch(0);
+
+        return firstDate.compareTo(secondDate);
+      });
+
+      return events;
+    });
   }
 
   Future<void> addEvent(ChurchEvent event) {
-    return _firestore
-        .collection('churches')
-        .doc('demo-church')
-        .collection('events')
-        .add(event.toMap());
+    return _collection.add(event.toMap());
   }
 
   Future<void> updateEvent(String id, ChurchEvent event) {
-    return _firestore
-        .collection('churches')
-        .doc('demo-church')
-        .collection('events')
-        .doc(id)
-        .update(event.toMap());
+    return _collection.doc(id).update(event.toMap());
   }
 
   Future<void> deleteEvent(String id) {
-    return _firestore
-        .collection('churches')
-        .doc('demo-church')
-        .collection('events')
-        .doc(id)
-        .delete();
+    return _collection.doc(id).delete();
   }
 
   Future<void> rsvpToEvent({required String eventId, required String userId}) {
-    final eventRef = _firestore
-        .collection('churches')
-        .doc('demo-church')
-        .collection('events')
-        .doc(eventId);
+    final eventReference = _collection.doc(eventId);
 
     return _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(eventRef);
+      final snapshot = await transaction.get(eventReference);
       final data = snapshot.data() ?? {};
 
       final attendeeIds = List<String>.from(data['attendeeIds'] ?? const []);
@@ -65,7 +62,7 @@ class EventRepository {
         attendeeIds.add(userId);
       }
 
-      transaction.update(eventRef, {
+      transaction.update(eventReference, {
         'attendeeIds': attendeeIds,
         'rsvpCount': attendeeIds.length,
       });
@@ -73,21 +70,17 @@ class EventRepository {
   }
 
   Future<void> cancelRsvp({required String eventId, required String userId}) {
-    final eventRef = _firestore
-        .collection('churches')
-        .doc('demo-church')
-        .collection('events')
-        .doc(eventId);
+    final eventReference = _collection.doc(eventId);
 
     return _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(eventRef);
+      final snapshot = await transaction.get(eventReference);
       final data = snapshot.data() ?? {};
 
       final attendeeIds = List<String>.from(data['attendeeIds'] ?? const []);
 
       attendeeIds.remove(userId);
 
-      transaction.update(eventRef, {
+      transaction.update(eventReference, {
         'attendeeIds': attendeeIds,
         'rsvpCount': attendeeIds.length,
       });

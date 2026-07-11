@@ -83,7 +83,38 @@ service cloud.firestore {
         allow read: if signedIn()
           || resource.data.published == true;
 
-        allow create, update, delete: if isAdmin(churchId);
+        allow create, delete: if isAdmin(churchId);
+
+        allow update: if isAdmin(churchId)
+          || (
+            signedIn()
+            && memberExists(churchId)
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['attendeeIds', 'rsvpCount'])
+            && request.resource.data.get('rsvpCount', 0)
+              == request.resource.data.get('attendeeIds', []).size()
+            && (
+              (
+                !(request.auth.uid in resource.data.get('attendeeIds', []))
+                && request.auth.uid
+                  in request.resource.data.get('attendeeIds', [])
+                && request.resource.data.get('attendeeIds', []).size()
+                  == resource.data.get('attendeeIds', []).size() + 1
+                && request.resource.data.get('attendeeIds', [])
+                  .hasAll(resource.data.get('attendeeIds', []))
+              )
+              || (
+                request.auth.uid
+                  in resource.data.get('attendeeIds', [])
+                && !(request.auth.uid
+                  in request.resource.data.get('attendeeIds', []))
+                && request.resource.data.get('attendeeIds', []).size() + 1
+                  == resource.data.get('attendeeIds', []).size()
+                && resource.data.get('attendeeIds', [])
+                  .hasAll(request.resource.data.get('attendeeIds', []))
+              )
+            )
+          );
       }
 
       match /sermons/{sermonId} {
@@ -168,4 +199,3 @@ service cloud.firestore {
     }
   }
 }
-
