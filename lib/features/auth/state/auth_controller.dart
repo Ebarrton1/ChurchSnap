@@ -1,23 +1,25 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 
+import '../../../core/auth/app_roles.dart';
 import '../../../core/services/service_result.dart';
 import '../models/churchsnap_user.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/firebase/firebase_auth_repository_stub.dart';
-import '../../../core/auth/app_roles.dart';
 
-enum AuthStatus { authenticated, unauthenticated, loading }
+enum AuthStatus {
+  authenticated,
+  unauthenticated,
+  loading,
+}
 
 class AuthController extends ChangeNotifier {
   AuthController({AuthRepository? repository})
-    : _repository = repository ?? FirebaseAuthRepository() {
-    _currentUser = _repository.currentUser;
-    _status = _currentUser == null
-        ? AuthStatus.unauthenticated
-        : AuthStatus.authenticated;
+      : _repository = repository ?? FirebaseAuthRepository() {
+    _restoreSession();
   }
 
   final AuthRepository _repository;
+
   ChurchSnapUser? _currentUser;
   AuthStatus _status = AuthStatus.loading;
   String? _errorMessage;
@@ -25,13 +27,41 @@ class AuthController extends ChangeNotifier {
   ChurchSnapUser? get currentUser => _currentUser;
   AuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
+
   bool get isSignedIn =>
       _status == AuthStatus.authenticated && _currentUser != null;
+
   bool get isAdmin => AppRoles.canAccessAdmin(_currentUser?.role ?? '');
+
+  Future<void> _restoreSession() async {
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+
+    try {
+      final restoredUser = await _repository.restoreCurrentUser();
+
+      _currentUser = restoredUser;
+      _status = restoredUser == null
+          ? AuthStatus.unauthenticated
+          : AuthStatus.authenticated;
+    } catch (error) {
+      _currentUser = null;
+      _status = AuthStatus.unauthenticated;
+      _errorMessage = 'Unable to restore your ChurchSnap session.';
+      debugPrint('Session restoration failed: $error');
+    }
+
+    notifyListeners();
+  }
 
   Future<bool> signIn(String email, String password) async {
     _setLoading();
-    final result = await _repository.signInWithEmail(email, password);
+
+    final result = await _repository.signInWithEmail(
+      email,
+      password,
+    );
+
     return _handleAuthResult(result);
   }
 
@@ -42,32 +72,40 @@ class AuthController extends ChangeNotifier {
     required String churchId,
   }) async {
     _setLoading();
+
     final result = await _repository.createAccount(
       displayName: displayName,
       email: email,
       password: password,
       churchId: churchId,
     );
+
     return _handleAuthResult(result);
   }
 
   Future<bool> sendPasswordReset(String email) async {
     _setLoading();
+
     final result = await _repository.sendPasswordReset(email);
+
     _status = _currentUser == null
         ? AuthStatus.unauthenticated
         : AuthStatus.authenticated;
     _errorMessage = result.isSuccess ? null : result.errorMessage;
+
     notifyListeners();
     return result.isSuccess;
   }
 
   Future<void> signOut() async {
     _setLoading();
+
     await _repository.signOut();
+
     _currentUser = null;
     _status = AuthStatus.unauthenticated;
     _errorMessage = null;
+
     notifyListeners();
   }
 
@@ -80,8 +118,10 @@ class AuthController extends ChangeNotifier {
       role: 'visitor',
       isEmailVerified: false,
     );
+
     _status = AuthStatus.authenticated;
     _errorMessage = null;
+
     notifyListeners();
   }
 
@@ -96,12 +136,15 @@ class AuthController extends ChangeNotifier {
       _currentUser = result.data;
       _status = AuthStatus.authenticated;
       _errorMessage = null;
+
       notifyListeners();
       return true;
     }
+
     _currentUser = null;
     _status = AuthStatus.unauthenticated;
     _errorMessage = result.errorMessage ?? 'Authentication failed.';
+
     notifyListeners();
     return false;
   }

@@ -54,12 +54,15 @@ service cloud.firestore {
           && memberId == request.auth.uid
           && request.resource.data.role in ['member', 'visitor'];
 
-        allow update: if isAdmin(churchId)
-          || (
-            signedIn()
-            && memberId == request.auth.uid
-            && request.resource.data.role == resource.data.role
-          );
+        allow update: if (
+          isAdmin(churchId)
+          && memberId != request.auth.uid
+        )
+        || (
+          signedIn()
+          && memberId == request.auth.uid
+          && request.resource.data.role == resource.data.role
+        );
 
         allow delete: if isAdmin(churchId);
 
@@ -165,3 +168,4 @@ service cloud.firestore {
     }
   }
 }
+

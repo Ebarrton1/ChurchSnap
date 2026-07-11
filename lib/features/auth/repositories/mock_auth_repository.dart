@@ -1,4 +1,4 @@
-import '../../../core/services/service_result.dart';
+﻿import '../../../core/services/service_result.dart';
 import '../models/churchsnap_user.dart';
 import 'auth_repository.dart';
 
@@ -7,6 +7,11 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   ChurchSnapUser? get currentUser => _currentUser;
+
+  @override
+  Future<ChurchSnapUser?> restoreCurrentUser() async {
+    return _currentUser;
+  }
 
   @override
   Future<ServiceResult<ChurchSnapUser>> signInWithEmail(
@@ -65,3 +70,4 @@ class MockAuthRepository implements AuthRepository {
     return ServiceResult.success(null);
   }
 }
+

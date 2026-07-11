@@ -1,4 +1,4 @@
-// This file documents the production Firebase implementation target.
+﻿// This file documents the production Firebase implementation target.
 // Keep this stub until you run `flutterfire configure` and add Firebase packages.
 //
 // Planned packages:
@@ -41,6 +41,17 @@ class FirebaseAuthRepository implements AuthRepository {
       role: 'member',
       isEmailVerified: user.emailVerified,
     );
+  }
+
+  @override
+  Future<ChurchSnapUser?> restoreCurrentUser() async {
+    final firebaseUser = _auth.currentUser;
+
+    if (firebaseUser == null) {
+      return null;
+    }
+
+    return _loadOrCreateUser(firebaseUser);
   }
 
   @override
@@ -96,9 +107,8 @@ class FirebaseAuthRepository implements AuthRepository {
         isEmailVerified: user.emailVerified,
       );
 
-      await _saveUser(appUser);
-
-      return ServiceResult.success(appUser);
+      final savedUser = await _saveUser(appUser);
+      return ServiceResult.success(savedUser);
     } on FirebaseAuthException catch (e) {
       return ServiceResult.failure(_friendlyError(e));
     } catch (_) {
@@ -146,15 +156,34 @@ class FirebaseAuthRepository implements AuthRepository {
       isEmailVerified: user.emailVerified,
     );
 
-    await _saveUser(appUser);
-    return appUser;
+    final savedUser = await _saveUser(appUser);
+    return savedUser;
   }
 
-  Future<void> _saveUser(ChurchSnapUser user) async {
-    await _firestore
+  Future<ChurchSnapUser> _saveUser(ChurchSnapUser user) async {
+    final memberReference = _firestore
         .collection(FirebasePaths.members(user.churchId))
-        .doc(user.id)
-        .set(user.toMap(), SetOptions(merge: true));
+        .doc(user.id);
+
+    final memberSnapshot = await memberReference.get();
+    final existingData = memberSnapshot.data();
+
+    final savedRole = memberSnapshot.exists
+        ? (existingData?['role'] as String?) ?? user.role
+        : user.role;
+
+    final savedUser = ChurchSnapUser(
+      id: user.id,
+      churchId: user.churchId,
+      displayName: user.displayName,
+      email: user.email,
+      role: savedRole,
+      isEmailVerified: user.isEmailVerified,
+    );
+
+    await memberReference.set(savedUser.toMap(), SetOptions(merge: true));
+
+    return savedUser;
   }
 
   String _friendlyError(FirebaseAuthException e) {
@@ -178,3 +207,4 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 }
+
