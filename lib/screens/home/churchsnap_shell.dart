@@ -63,9 +63,17 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
             selectedIcon: Icon(Icons.event_rounded),
             label: 'Events',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.favorite_border_rounded),
-            selectedIcon: Icon(Icons.favorite_rounded),
+          NavigationDestination(
+            icon: Image.asset(
+              'assets/icons/prayer_hands.png',
+              width: 26,
+              height: 26,
+            ),
+            selectedIcon: Image.asset(
+              'assets/icons/prayer_hands.png',
+              width: 28,
+              height: 28,
+            ),
             label: 'Prayer',
           ),
           const NavigationDestination(
