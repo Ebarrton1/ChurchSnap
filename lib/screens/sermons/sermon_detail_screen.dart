@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../models/sermon.dart';
 import 'sermon_audio_player_screen.dart';
+import 'sermon_video_player_screen.dart';
 
 class SermonDetailScreen extends StatefulWidget {
   const SermonDetailScreen({
@@ -119,7 +120,14 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
             icon: Icons.play_circle_fill_rounded,
             title: 'Watch Sermon',
             subtitle: 'Open the sermon video',
-            onTap: () => _launchUrl(sermon.videoUrl),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SermonVideoPlayerScreen(sermon: sermon),
+                ),
+              );
+            },
           ),
         if (sermon.audioUrl.isNotEmpty)
           _ActionCard(
