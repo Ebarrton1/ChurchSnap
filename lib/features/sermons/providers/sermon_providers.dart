@@ -3,6 +3,7 @@ import '../../../models/sermon.dart';
 import '../repositories/sermon_repository.dart';
 import '../services/sermon_service.dart';
 import '../repositories/sermon_bookmark_repository.dart';
+import '../repositories/sermon_download_repository.dart';
 
 final sermonRepositoryProvider = Provider<SermonRepository>((ref) {
   return SermonRepository();
@@ -25,6 +26,13 @@ final sermonBookmarkRepositoryProvider = Provider<SermonBookmarkRepository>((
 ) {
   return SermonBookmarkRepository();
 });
+
 final sermonBookmarkIdsProvider = StreamProvider<Set<String>>((ref) {
   return ref.watch(sermonBookmarkRepositoryProvider).watchBookmarkedSermonIds();
+});
+
+final sermonDownloadRepositoryProvider = Provider<SermonDownloadRepository>((
+  ref,
+) {
+  return SermonDownloadRepository();
 });
