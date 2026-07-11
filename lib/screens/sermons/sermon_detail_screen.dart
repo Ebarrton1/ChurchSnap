@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../models/sermon.dart';
+import 'sermon_audio_player_screen.dart';
 
 class SermonDetailScreen extends StatefulWidget {
   const SermonDetailScreen({
@@ -125,7 +126,14 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
             icon: Icons.headphones_rounded,
             title: 'Listen to Audio',
             subtitle: 'Open the audio recording',
-            onTap: () => _launchUrl(sermon.audioUrl),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SermonAudioPlayerScreen(sermon: sermon),
+                ),
+              );
+            },
           ),
         if (sermon.notesUrl.isNotEmpty)
           _ActionCard(
