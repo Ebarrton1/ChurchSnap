@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'admin_role_management_screen.dart';
 import 'admin_notifications_screen.dart';
 import 'admin_qr_scanner_screen.dart';
+import 'admin_sermons_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -73,9 +74,11 @@ class AdminDashboardScreen extends ConsumerWidget {
           subtitle: 'Manage church events',
           screen: AdminEventsScreen(),
         ),
-        const _ComingSoonCard(
+        _AdminNavCard(
           icon: Icons.play_circle_fill_rounded,
           title: 'Sermons',
+          subtitle: 'Publish and manage church sermons',
+          screen: const AdminSermonsScreen(),
         ),
 
         _AdminNavCard(
