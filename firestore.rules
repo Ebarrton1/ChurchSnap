@@ -2,77 +2,165 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
     function signedIn() {
       return request.auth != null;
     }
 
-    function memberDoc(churchId) {
-      return get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
-    }
-
-    function userRole(churchId) {
-      return signedIn() ? memberDoc(churchId).data.role : '';
+    function memberExists(churchId) {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
+        );
     }
 
     function isAdmin(churchId) {
-      return userRole(churchId) == 'admin' || userRole(churchId) == 'pastor';
+      return memberExists(churchId)
+        && (
+          get(
+            /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
+          ).data.role == 'admin'
+          ||
+          get(
+            /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
+          ).data.role == 'pastor'
+        );
     }
 
     function isLeader(churchId) {
-      return isAdmin(churchId) ||
-        userRole(churchId) == 'ministryLeader' ||
-        userRole(churchId) == 'groupLeader';
+      return isAdmin(churchId)
+        || (
+          memberExists(churchId)
+          && (
+            get(
+              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
+            ).data.role == 'ministryLeader'
+            ||
+            get(
+              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
+            ).data.role == 'groupLeader'
+          )
+        );
     }
 
     match /churches/{churchId} {
-      allow read: if signedIn();
+      allow read: if true;
+      allow create, update, delete: if isAdmin(churchId);
 
       match /members/{memberId} {
         allow read: if signedIn();
-        allow create: if signedIn() && memberId == request.auth.uid;
-        allow update: if isAdmin(churchId) || memberId == request.auth.uid;
+
+        allow create: if signedIn()
+          && memberId == request.auth.uid
+          && request.resource.data.role in ['member', 'visitor'];
+
+        allow update: if isAdmin(churchId)
+          || (
+            signedIn()
+            && memberId == request.auth.uid
+            && request.resource.data.role == resource.data.role
+          );
+
         allow delete: if isAdmin(churchId);
+
+        match /sermonBookmarks/{sermonId} {
+          allow read, create, update, delete: if signedIn()
+            && memberId == request.auth.uid;
+        }
       }
 
-      match /announcements/{id} {
-        allow read: if signedIn();
-        allow write: if isAdmin(churchId);
+      match /announcements/{announcementId} {
+        allow read: if signedIn()
+          || resource.data.published == true;
+
+        allow create, update, delete: if isAdmin(churchId);
       }
 
-      match /events/{id} {
-        allow read: if signedIn();
-        allow write: if isAdmin(churchId);
+      match /events/{eventId} {
+        allow read: if signedIn()
+          || resource.data.published == true;
+
+        allow create, update, delete: if isAdmin(churchId);
       }
 
-      match /eventCheckIns/{id} {
-        allow read: if signedIn();
+      match /sermons/{sermonId} {
+        allow read: if resource.data.published == true
+          || isAdmin(churchId);
+
+        allow create, update, delete: if isAdmin(churchId);
+      }
+
+      match /prayer_requests/{prayerId} {
+        allow read: if resource.data.published == true
+          || isLeader(churchId);
+
         allow create: if signedIn();
+        allow update, delete: if isLeader(churchId);
+      }
+
+      match /media/{mediaId} {
+        allow read: if signedIn()
+          || resource.data.published == true;
+
+        allow create, update, delete: if isAdmin(churchId);
+      }
+
+      match /eventCheckIns/{checkInId} {
+        allow read, create: if signedIn();
         allow update, delete: if isAdmin(churchId);
       }
 
-      match /media/{id} {
-        allow read: if signedIn();
-        allow write: if isAdmin(churchId);
+      match /attendance/{attendanceId} {
+        allow read, create: if signedIn();
+        allow update, delete: if isAdmin(churchId);
       }
 
-      match /ministries/{id} {
+      match /notifications/{notificationId} {
         allow read: if signedIn();
-        allow write: if isAdmin(churchId) || userRole(churchId) == 'ministryLeader';
+        allow create, update, delete: if isAdmin(churchId);
       }
 
-      match /small_groups/{id} {
+      match /ministries/{ministryId} {
         allow read: if signedIn();
-        allow write: if isAdmin(churchId) || userRole(churchId) == 'groupLeader';
+        allow create, update, delete: if isAdmin(churchId)
+          || (
+            memberExists(churchId)
+            && get(
+              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
+            ).data.role == 'ministryLeader'
+          );
       }
 
-      match /volunteer_assignments/{id} {
+      match /small_groups/{groupId} {
         allow read: if signedIn();
-        allow write: if isAdmin(churchId) || userRole(churchId) == 'ministryLeader';
+        allow create, update, delete: if isAdmin(churchId)
+          || (
+            memberExists(churchId)
+            && get(
+              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
+            ).data.role == 'groupLeader'
+          );
       }
 
-      match /{document=**} {
+      match /volunteer_assignments/{assignmentId} {
         allow read: if signedIn();
-        allow write: if isAdmin(churchId);
+        allow create, update, delete: if isAdmin(churchId)
+          || (
+            memberExists(churchId)
+            && get(
+              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
+            ).data.role == 'ministryLeader'
+          );
+      }
+
+      match /giving/{givingId} {
+        allow read, create: if signedIn();
+        allow update, delete: if isAdmin(churchId);
+      }
+
+      match /donations/{donationId} {
+        allow read, create: if signedIn();
+        allow update, delete: if isAdmin(churchId);
       }
     }
   }

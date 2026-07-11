@@ -10,6 +10,7 @@ class MediaRepository {
 
   Stream<List<MediaItem>> watchMedia() {
     return _media
+        .where('published', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
