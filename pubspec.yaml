@@ -1,32 +1,37 @@
-name: churchsnap  
-description: "A newly created Flutter project."  
-publish_to: 'none'  
-version: 1.0.0+1  
-environment:  
-  sdk: ^3.12.2  
-dependencies:  
-  flutter:  
-    sdk: flutter  
-  cupertino_icons: ^1.0.8  
-  firebase_core: ^4.11.0  
-  firebase_auth: ^6.5.4  
-  cloud_firestore: ^6.6.0  
-  flutter_riverpod: ^3.3.2  
-  firebase_messaging: ^16.4.1  
-  firebase_storage: ^13.4.3  
-  url_launcher: ^6.3.2  
-  qr_flutter: ^4.1.0  
-  mobile_scanner: ^7.2.0  
-  just_audio: ^0.10.6  
-  youtube_player_iframe: ^6.0.2  
+﻿name: churchsnap
+description: "A newly created Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  firebase_core: ^4.11.0
+  firebase_auth: ^6.5.4
+  cloud_firestore: ^6.6.0
+  flutter_riverpod: ^3.3.2
+  firebase_messaging: ^16.4.1
+  firebase_storage: ^13.4.3
+  url_launcher: ^6.3.2
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.2.0
+  just_audio: ^0.10.6
+  youtube_player_iframe: ^6.0.2
   dio: ^5.10.0
   path_provider: ^2.1.6
-dev_dependencies:  
-  flutter_test:  
-    sdk: flutter  
-  flutter_lints: ^6.0.0  
-  flutter_launcher_icons: ^0.14.4  
-flutter:  
-  uses-material-design: true  
-assets:  
-  - assets/icons/prayer_hands.png
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icons/

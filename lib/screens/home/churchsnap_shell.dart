@@ -63,17 +63,9 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
             selectedIcon: Icon(Icons.event_rounded),
             label: 'Events',
           ),
-          NavigationDestination(
-            icon: Image.asset(
-              'assets/icons/prayer_hands.png',
-              width: 26,
-              height: 26,
-            ),
-            selectedIcon: Image.asset(
-              'assets/icons/prayer_hands.png',
-              width: 28,
-              height: 28,
-            ),
+          const NavigationDestination(
+            icon: _PrayerNavigationIcon(selected: false),
+            selectedIcon: _PrayerNavigationIcon(selected: true),
             label: 'Prayer',
           ),
           const NavigationDestination(
@@ -93,6 +85,44 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
               label: 'Admin',
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _PrayerNavigationIcon extends StatelessWidget {
+  final bool selected;
+
+  const _PrayerNavigationIcon({required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    final iconSize = selected ? 31.0 : 29.0;
+
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: ClipRect(
+        child: Transform.scale(
+          scale: 1.6,
+          child: Image.asset(
+            'assets/icons/prayer_hands.png',
+            width: iconSize,
+            height: iconSize,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (context, error, stackTrace) {
+              debugPrint('Prayer icon failed to load: $error');
+
+              return Icon(
+                selected
+                    ? Icons.volunteer_activism_rounded
+                    : Icons.volunteer_activism_outlined,
+                size: iconSize,
+              );
+            },
+          ),
+        ),
       ),
     );
   }
