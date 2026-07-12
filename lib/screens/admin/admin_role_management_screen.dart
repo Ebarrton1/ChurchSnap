@@ -1,84 +1,88 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/auth/app_roles.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/members/models/church_member.dart';
 import '../../features/members/providers/member_providers.dart';
 
 class AdminRoleManagementScreen extends ConsumerWidget {
-  const AdminRoleManagementScreen({super.key});
+  const AdminRoleManagementScreen({super.key, required this.churchId});
+
+  final String churchId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final memberService = ref.read(memberServiceProvider);
+    final memberService = ref.read(memberServiceByChurchProvider(churchId));
 
-    return ChurchSnapScreen(
-      title: 'Role Management',
-      subtitle: 'Manage user access and permissions.',
-      children: [
-        StreamBuilder<List<ChurchMember>>(
-          stream: memberService.watchMembers(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const AppCard(
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
+    return Material(
+      child: ChurchSnapScreen(
+        title: 'Role Management',
+        subtitle: 'Manage user access and permissions.',
+        children: [
+          StreamBuilder<List<ChurchMember>>(
+            stream: memberService.watchMembers(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const AppCard(
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
 
-            final members = snapshot.data ?? [];
-
-            if (members.isEmpty) {
-              return const AppCard(child: Text('No members found.'));
-            }
-
-            return Column(
-              children: members.map((member) {
+              if (snapshot.hasError) {
                 return AppCard(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text(
-                        member.displayName.isNotEmpty
-                            ? member.displayName[0].toUpperCase()
-                            : '?',
-                      ),
-                    ),
-                    title: Text(member.displayName),
-                    subtitle: Text(member.email),
-                    trailing: DropdownButton<String>(
-                      value: member.role,
-                      items: const [
-                        DropdownMenuItem(
-                          value: AppRoles.member,
-                          child: Text('Member'),
-                        ),
-                        DropdownMenuItem(
-                          value: AppRoles.volunteer,
-                          child: Text('Volunteer'),
-                        ),
-                        DropdownMenuItem(
-                          value: AppRoles.groupLeader,
-                          child: Text('Group Leader'),
-                        ),
-                        DropdownMenuItem(
-                          value: AppRoles.ministryLeader,
-                          child: Text('Ministry Leader'),
-                        ),
-                        DropdownMenuItem(
-                          value: AppRoles.pastor,
-                          child: Text('Pastor'),
-                        ),
-                        DropdownMenuItem(
-                          value: AppRoles.admin,
-                          child: Text('Admin'),
-                        ),
-                      ],
-                      onChanged: (role) async {
-                        if (role == null) return;
+                  child: Text('Unable to load roles: ${snapshot.error}'),
+                );
+              }
 
-                        await ref
-                            .read(memberServiceProvider)
-                            .updateMember(
+              final members = snapshot.data ?? <ChurchMember>[];
+
+              if (members.isEmpty) {
+                return const AppCard(child: Text('No members found.'));
+              }
+
+              return Column(
+                children: members.map((member) {
+                  final roles = <String>[
+                    'member',
+                    'volunteer',
+                    'leader',
+                    'groupLeader',
+                    'ministryLeader',
+                    'pastor',
+                    'admin',
+                  ];
+
+                  if (!roles.contains(member.role)) {
+                    roles.insert(0, member.role);
+                  }
+
+                  return AppCard(
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        child: Text(
+                          member.displayName.isNotEmpty
+                              ? member.displayName[0].toUpperCase()
+                              : '?',
+                        ),
+                      ),
+                      title: Text(member.displayName),
+                      subtitle: Text(member.email),
+                      trailing: DropdownButton<String>(
+                        value: member.role,
+                        items: roles.map((role) {
+                          return DropdownMenuItem<String>(
+                            value: role,
+                            child: Text(_roleLabel(role)),
+                          );
+                        }).toList(),
+                        onChanged: (role) async {
+                          if (role == null || role == member.role) {
+                            return;
+                          }
+
+                          try {
+                            await memberService.updateMember(
                               ChurchMember(
                                 id: member.id,
                                 displayName: member.displayName,
@@ -89,15 +93,42 @@ class AdminRoleManagementScreen extends ConsumerWidget {
                                 isActive: member.isActive,
                               ),
                             );
-                      },
+                          } catch (error) {
+                            if (!context.mounted) {
+                              return;
+                            }
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Unable to update role: '
+                                  '$error',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
-            );
-          },
-        ),
-      ],
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
     );
+  }
+
+  String _roleLabel(String role) {
+    return switch (role) {
+      'groupLeader' => 'Group Leader',
+      'ministryLeader' => 'Ministry Leader',
+      'pastor' => 'Pastor',
+      'admin' => 'Admin',
+      'volunteer' => 'Volunteer',
+      'leader' => 'Leader',
+      _ => 'Member',
+    };
   }
 }

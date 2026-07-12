@@ -33,32 +33,37 @@ class AdminDashboardScreen extends ConsumerWidget {
             _DashboardStatCard(
               title: 'Members',
               icon: Icons.people_rounded,
-              value: ref.watch(memberCountProvider).value ?? 0,
+              value:
+                  ref.watch(memberCountByChurchProvider(churchId)).value ?? 0,
             ),
             _DashboardStatCard(
               title: 'Events',
               icon: Icons.event_rounded,
-              value: ref.watch(memberCountProvider).value ?? 0,
+              value: ref.watch(eventCountByChurchProvider(churchId)).value ?? 0,
             ),
             _DashboardStatCard(
               title: 'Small Groups',
               icon: Icons.groups_rounded,
-              value: ref.watch(memberCountProvider).value ?? 0,
+              value:
+                  ref.watch(smallGroupCountByChurchProvider(churchId)).value ??
+                  0,
             ),
             _DashboardStatCard(
               title: 'Ministries',
               icon: Icons.church_rounded,
-              value: ref.watch(memberCountProvider).value ?? 0,
+              value:
+                  ref.watch(ministryCountByChurchProvider(churchId)).value ?? 0,
             ),
             _DashboardStatCard(
               title: 'Media',
               icon: Icons.video_library_rounded,
-              value: ref.watch(mediaCountProvider).value ?? 0,
+              value: ref.watch(mediaCountByChurchProvider(churchId)).value ?? 0,
             ),
             _DashboardStatCard(
               title: 'Check-ins',
               icon: Icons.how_to_reg_rounded,
-              value: ref.watch(checkInCountProvider).value ?? 0,
+              value:
+                  ref.watch(checkInCountByChurchProvider(churchId)).value ?? 0,
             ),
           ],
         ),
@@ -94,13 +99,13 @@ class AdminDashboardScreen extends ConsumerWidget {
           icon: Icons.people_rounded,
           title: 'Members',
           subtitle: 'Manage church members',
-          screen: AdminMembersScreen(),
+          screen: AdminMembersScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.admin_panel_settings_rounded,
           title: 'Roles & Permissions',
           subtitle: 'Manage user roles and access',
-          screen: const AdminRoleManagementScreen(),
+          screen: AdminRoleManagementScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.how_to_reg_rounded,
@@ -112,7 +117,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           icon: Icons.groups_rounded,
           title: 'Ministries',
           subtitle: 'Manage ministries and volunteer teams',
-          screen: AdminMinistriesScreen(),
+          screen: AdminMinistriesScreen(churchId: churchId),
         ),
         const _ComingSoonCard(
           icon: Icons.volunteer_activism_rounded,

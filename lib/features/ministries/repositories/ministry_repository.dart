@@ -3,19 +3,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/ministry.dart';
 
 class MinistryRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  MinistryRepository({
+    FirebaseFirestore? firestore,
+    this.churchId = 'demo-church',
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  CollectionReference<Map<String, dynamic>> get _ministries => _firestore
-      .collection('churches')
-      .doc('demo-church')
-      .collection('ministries');
+  final FirebaseFirestore _firestore;
+  final String churchId;
+
+  CollectionReference<Map<String, dynamic>> get _ministries =>
+      _firestore.collection('churches').doc(churchId).collection('ministries');
 
   Stream<List<Ministry>> watchMinistries() {
-    return _ministries.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map((doc) => Ministry.fromMap(doc.id, doc.data()))
-          .toList(),
-    );
+    return _ministries.snapshots().map((snapshot) {
+      final ministries = snapshot.docs
+          .map((document) => Ministry.fromMap(document.id, document.data()))
+          .toList();
+
+      ministries.sort(
+        (first, second) =>
+            first.name.toLowerCase().compareTo(second.name.toLowerCase()),
+      );
+
+      return ministries;
+    });
   }
 
   Future<void> addMinistry(Ministry ministry) {

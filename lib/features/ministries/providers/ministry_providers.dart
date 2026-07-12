@@ -10,3 +10,15 @@ final ministryRepositoryProvider = Provider<MinistryRepository>(
 final ministryServiceProvider = Provider<MinistryService>(
   (ref) => MinistryService(ref.read(ministryRepositoryProvider)),
 );
+
+final ministryRepositoryByChurchProvider =
+    Provider.family<MinistryRepository, String>((ref, churchId) {
+      return MinistryRepository(churchId: churchId);
+    });
+
+final ministryServiceByChurchProvider =
+    Provider.family<MinistryService, String>((ref, churchId) {
+      return MinistryService(
+        ref.read(ministryRepositoryByChurchProvider(churchId)),
+      );
+    });

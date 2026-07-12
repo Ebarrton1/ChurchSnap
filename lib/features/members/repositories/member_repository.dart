@@ -3,19 +3,31 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/church_member.dart';
 
 class MemberRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  MemberRepository({
+    FirebaseFirestore? firestore,
+    this.churchId = 'demo-church',
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  CollectionReference<Map<String, dynamic>> get _members => _firestore
-      .collection('churches')
-      .doc('demo-church')
-      .collection('members');
+  final FirebaseFirestore _firestore;
+  final String churchId;
+
+  CollectionReference<Map<String, dynamic>> get _members =>
+      _firestore.collection('churches').doc(churchId).collection('members');
 
   Stream<List<ChurchMember>> watchMembers() {
-    return _members.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map((doc) => ChurchMember.fromMap(doc.id, doc.data()))
-          .toList(),
-    );
+    return _members.snapshots().map((snapshot) {
+      final members = snapshot.docs
+          .map((document) => ChurchMember.fromMap(document.id, document.data()))
+          .toList();
+
+      members.sort(
+        (first, second) => first.displayName.toLowerCase().compareTo(
+          second.displayName.toLowerCase(),
+        ),
+      );
+
+      return members;
+    });
   }
 
   Future<void> addMember(ChurchMember member) {

@@ -29,3 +29,62 @@ final mediaCountProvider = StreamProvider<int>((ref) {
 final checkInCountProvider = StreamProvider<int>((ref) {
   return ref.read(dashboardRepositoryProvider).watchCheckInCount();
 });
+
+final dashboardRepositoryByChurchProvider =
+    Provider.family<DashboardRepository, String>((ref, churchId) {
+      return DashboardRepository(churchId: churchId);
+    });
+
+final memberCountByChurchProvider = StreamProvider.family<int, String>((
+  ref,
+  churchId,
+) {
+  return ref
+      .read(dashboardRepositoryByChurchProvider(churchId))
+      .watchMemberCount();
+});
+
+final eventCountByChurchProvider = StreamProvider.family<int, String>((
+  ref,
+  churchId,
+) {
+  return ref
+      .read(dashboardRepositoryByChurchProvider(churchId))
+      .watchEventCount();
+});
+
+final smallGroupCountByChurchProvider = StreamProvider.family<int, String>((
+  ref,
+  churchId,
+) {
+  return ref
+      .read(dashboardRepositoryByChurchProvider(churchId))
+      .watchSmallGroupCount();
+});
+
+final ministryCountByChurchProvider = StreamProvider.family<int, String>((
+  ref,
+  churchId,
+) {
+  return ref
+      .read(dashboardRepositoryByChurchProvider(churchId))
+      .watchMinistryCount();
+});
+
+final mediaCountByChurchProvider = StreamProvider.family<int, String>((
+  ref,
+  churchId,
+) {
+  return ref
+      .read(dashboardRepositoryByChurchProvider(churchId))
+      .watchMediaCount();
+});
+
+final checkInCountByChurchProvider = StreamProvider.family<int, String>((
+  ref,
+  churchId,
+) {
+  return ref
+      .read(dashboardRepositoryByChurchProvider(churchId))
+      .watchCheckInCount();
+});

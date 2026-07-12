@@ -1,13 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DashboardRepository {
-  DashboardRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+  DashboardRepository({
+    FirebaseFirestore? firestore,
+    this.churchId = 'demo-church',
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
+  final String churchId;
 
   DocumentReference<Map<String, dynamic>> get _church =>
-      _firestore.collection('churches').doc('demo-church');
+      _firestore.collection('churches').doc(churchId);
 
   Stream<int> watchMemberCount() {
     return _church
@@ -19,9 +22,12 @@ class DashboardRepository {
   Stream<int> watchEventCount() {
     return _church
         .collection('events')
-        .where('published', isEqualTo: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.length);
+        .map(
+          (snapshot) => snapshot.docs.where((document) {
+            return document.data()['published'] != false;
+          }).length,
+        );
   }
 
   Stream<int> watchSmallGroupCount() {
