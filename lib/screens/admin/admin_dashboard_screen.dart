@@ -11,6 +11,7 @@ import '../../features/dashboard/providers/dashboard_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'admin_role_management_screen.dart';
 import 'admin_notifications_screen.dart';
+import 'admin_prayer_requests_screen.dart';
 import 'admin_qr_scanner_screen.dart';
 import 'admin_sermons_screen.dart';
 import 'admin_small_groups_screen.dart';
@@ -87,7 +88,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           icon: Icons.play_circle_fill_rounded,
           title: 'Sermons',
           subtitle: 'Publish and manage church sermons',
-          screen: const AdminSermonsScreen(),
+          screen: AdminSermonsScreen(churchId: churchId),
         ),
 
         _AdminNavCard(
@@ -135,9 +136,11 @@ class AdminDashboardScreen extends ConsumerWidget {
         ),
 
         const SectionTitle(title: 'Care'),
-        const _ComingSoonCard(
+        _AdminNavCard(
           icon: Icons.favorite_rounded,
           title: 'Prayer Requests',
+          subtitle: 'Review public and private requests',
+          screen: AdminPrayerRequestsScreen(churchId: churchId),
         ),
 
         const SectionTitle(title: 'Finance'),

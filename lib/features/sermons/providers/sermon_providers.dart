@@ -43,6 +43,13 @@ final sermonsByChurchProvider = StreamProvider.family<List<Sermon>, String>((
       .watchPublishedSermons();
 });
 
+final adminSermonsByChurchProvider =
+    StreamProvider.family<List<Sermon>, String>((ref, churchId) {
+      return ref
+          .watch(sermonServiceByChurchProvider(churchId))
+          .watchAllSermons();
+    });
+
 final sermonBookmarkRepositoryProvider = Provider<SermonBookmarkRepository>((
   ref,
 ) {

@@ -34,3 +34,10 @@ final prayerRequestsByChurchProvider =
           .watch(prayerServiceByChurchProvider(churchId))
           .watchPublishedPrayerRequests();
     });
+
+final adminPrayerRequestsByChurchProvider =
+    StreamProvider.family<List<PrayerRequest>, String>((ref, churchId) {
+      return ref
+          .watch(prayerServiceByChurchProvider(churchId))
+          .watchAllPrayerRequests();
+    });

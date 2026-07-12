@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
-import 'my_qr_code_screen.dart';
+import '../volunteers/my_schedule_screen.dart';
 import 'attendance_history_screen.dart';
+import 'my_qr_code_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, required this.authController});
@@ -37,6 +38,10 @@ class ProfileScreen extends StatelessWidget {
     final initial = displayName.isNotEmpty
         ? displayName.substring(0, 1).toUpperCase()
         : '?';
+
+    final rawChurchId = member.churchId.trim();
+
+    final churchId = rawChurchId.isEmpty ? 'demo-church' : rawChurchId;
 
     return ChurchSnapScreen(
       title: 'My Profile',
@@ -136,10 +141,30 @@ class ProfileScreen extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (_) => AttendanceHistoryScreen(
                     memberId: member.id,
-                    churchId: member.churchId.trim().isEmpty
-                        ? 'demo-church'
-                        : member.churchId.trim(),
+                    churchId: churchId,
                   ),
+                ),
+              );
+            },
+          ),
+        ),
+        AppCard(
+          child: ListTile(
+            leading: const CircleAvatar(
+              child: Icon(Icons.volunteer_activism_rounded),
+            ),
+            title: const Text(
+              'My Schedule',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: const Text('View your ministry volunteer assignments'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      MyScheduleScreen(authController: authController),
                 ),
               );
             },
