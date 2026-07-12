@@ -18,7 +18,7 @@ class AdminEventsScreen extends ConsumerWidget {
     return Material(
       child: ChurchSnapScreen(
         title: 'Events',
-        subtitle: 'Manage church events for $churchId.',
+        subtitle: 'Create and manage church events.',
         children: [
           FilledButton.icon(
             onPressed: () => _showEventDialog(context, ref),
@@ -27,7 +27,7 @@ class AdminEventsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           StreamBuilder<List<ChurchEvent>>(
-            stream: repository.watchPublishedEvents(),
+            stream: repository.watchAllEvents(),
             builder: (context, snapshot) {
               final events = snapshot.data ?? <ChurchEvent>[];
 
@@ -47,7 +47,11 @@ class AdminEventsScreen extends ConsumerWidget {
                     child: ListTile(
                       leading: CircleAvatar(child: Icon(event.icon)),
                       title: Text(event.title),
-                      subtitle: Text('${event.when}\n${event.location}'),
+                      subtitle: Text(
+                        '${event.when}\n'
+                        '${event.location}\n'
+                        '${event.published ? 'Published' : 'Draft'}',
+                      ),
                       isThreeLine: true,
                       trailing: PopupMenuButton<String>(
                         onSelected: (value) {
@@ -107,6 +111,8 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
 
+  bool _published = false;
+
   bool _isSaving = false;
   String? _errorMessage;
 
@@ -115,6 +121,8 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
     super.initState();
 
     final existingStartDate = widget.event?.startDate;
+
+    _published = widget.event?.published ?? false;
 
     _titleController = TextEditingController(text: widget.event?.title ?? '');
 
@@ -189,6 +197,39 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
                   labelText: 'Location',
                   prefixIcon: Icon(Icons.location_on_rounded),
                 ),
+              ),
+              const SizedBox(height: 18),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                'EVENT VISIBILITY',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+              ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                value: _published,
+                title: Text(
+                  _published ? 'Published' : 'Draft',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                subtitle: Text(
+                  _published
+                      ? 'Church members can see this event.'
+                      : 'Only administrators can see this event.',
+                ),
+                secondary: Icon(
+                  _published
+                      ? Icons.visibility_rounded
+                      : Icons.visibility_off_rounded,
+                ),
+                onChanged: _isSaving
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _published = value;
+                          _errorMessage = null;
+                        });
+                      },
               ),
               if (_errorMessage != null) ...[
                 const SizedBox(height: 16),
@@ -304,9 +345,10 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
     final updatedEvent = ChurchEvent(
       id: existingEvent?.id ?? '',
       title: title,
-      when: '${_formatDate(startDate)} • ${_selectedTime!.format(context)}',
+      when:
+          '${_formatDate(startDate)} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ ${_selectedTime!.format(context)}',
       location: location,
-      published: existingEvent?.published ?? true,
+      published: _published,
       startDate: startDate,
       endDate: existingEvent?.endDate,
       rsvpCount: existingEvent?.rsvpCount ?? 0,

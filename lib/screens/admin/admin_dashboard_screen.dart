@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import 'admin_announcements_screen.dart';
 import 'admin_attendance_screen.dart';
+import 'admin_calendar_screen.dart';
 import 'admin_events_screen.dart';
 import 'admin_members_screen.dart';
 import 'admin_ministries_screen.dart';
@@ -161,9 +162,11 @@ class AdminDashboardScreen extends ConsumerWidget {
           subtitle: 'Scan member QR codes and record attendance',
           screen: AdminQrScannerScreen(churchId: churchId),
         ),
-        const _ComingSoonCard(
+        _AdminNavCard(
           icon: Icons.calendar_month_rounded,
           title: 'Calendar',
+          subtitle: 'View church events by month',
+          screen: AdminCalendarScreen(churchId: churchId),
         ),
       ],
     );

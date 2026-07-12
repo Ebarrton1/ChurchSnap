@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../models/church_event.dart';
 import '../repositories/event_repository.dart';
 import '../services/event_service.dart';
 
@@ -22,3 +23,15 @@ final eventServiceByChurchProvider = Provider.family<EventService, String>((
 ) {
   return EventService(ref.watch(eventRepositoryByChurchProvider(churchId)));
 });
+
+final publishedEventsByChurchProvider =
+    StreamProvider.family<List<ChurchEvent>, String>((ref, churchId) {
+      return ref
+          .watch(eventServiceByChurchProvider(churchId))
+          .watchPublishedEvents();
+    });
+
+final adminEventsByChurchProvider =
+    StreamProvider.family<List<ChurchEvent>, String>((ref, churchId) {
+      return ref.watch(eventServiceByChurchProvider(churchId)).watchAllEvents();
+    });
