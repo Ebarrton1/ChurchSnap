@@ -183,7 +183,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (user != null) {
       await NotificationService(
-        NotificationRepository(FirebaseFirestore.instance),
+        NotificationRepository(
+          FirebaseFirestore.instance,
+          churchId: user.churchId,
+        ),
       ).initializeMessaging(userId: user.id, churchId: user.churchId);
     }
 

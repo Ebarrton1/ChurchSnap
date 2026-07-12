@@ -1,8 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../models/app_notification.dart';
 import '../repositories/notification_repository.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NotificationService {
   NotificationService(this._repository);
@@ -18,6 +18,22 @@ class NotificationService {
     return _repository.addNotification(notification);
   }
 
+  Future<void> updateNotification({
+    required String id,
+    required String title,
+    required String body,
+    required String type,
+    required String targetRole,
+  }) {
+    return _repository.updateNotification(
+      id: id,
+      title: title,
+      body: body,
+      type: type,
+      targetRole: targetRole,
+    );
+  }
+
   Future<void> deleteNotification(String id) {
     return _repository.deleteNotification(id);
   }
@@ -26,16 +42,20 @@ class NotificationService {
     required String userId,
     String churchId = 'demo-church',
   }) async {
+    final normalizedChurchId = churchId.trim().isEmpty
+        ? 'demo-church'
+        : churchId.trim();
+
     await _messaging.requestPermission();
 
     final token = await _messaging.getToken();
 
-    if (token != null && userId.isNotEmpty) {
+    if (token != null && userId.trim().isNotEmpty) {
       await FirebaseFirestore.instance
           .collection('churches')
-          .doc(churchId)
+          .doc(normalizedChurchId)
           .collection('members')
-          .doc(userId)
+          .doc(userId.trim())
           .set({
             'fcmToken': token,
             'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
@@ -43,11 +63,11 @@ class NotificationService {
     }
 
     FirebaseMessaging.onMessage.listen((message) {
-      // TODO: Show in-app notification.
+      // Future: show an in-app notification.
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      // TODO: Navigate based on notification type.
+      // Future: navigate based on notification type.
     });
   }
 }

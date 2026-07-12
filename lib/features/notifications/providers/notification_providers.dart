@@ -11,3 +11,18 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService(ref.read(notificationRepositoryProvider));
 });
+
+final notificationRepositoryByChurchProvider =
+    Provider.family<NotificationRepository, String>((ref, churchId) {
+      return NotificationRepository(
+        FirebaseFirestore.instance,
+        churchId: churchId,
+      );
+    });
+
+final notificationServiceByChurchProvider =
+    Provider.family<NotificationService, String>((ref, churchId) {
+      return NotificationService(
+        ref.read(notificationRepositoryByChurchProvider(churchId)),
+      );
+    });

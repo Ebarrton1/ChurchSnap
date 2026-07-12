@@ -150,7 +150,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           icon: Icons.notifications_active_rounded,
           title: 'Notifications',
           subtitle: 'Create and manage church notifications',
-          screen: const AdminNotificationsScreen(),
+          screen: AdminNotificationsScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.qr_code_scanner_rounded,
