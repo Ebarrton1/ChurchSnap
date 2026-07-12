@@ -7,62 +7,79 @@ import '../../features/volunteers/models/volunteer_assignment.dart';
 import '../../features/volunteers/providers/volunteer_providers.dart';
 
 class MyScheduleScreen extends ConsumerWidget {
-  final AuthController authController;
-
   const MyScheduleScreen({super.key, required this.authController});
+
+  final AuthController authController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userId = authController.currentUser?.id ?? '';
+    final currentUser = authController.currentUser;
+    final userId = currentUser?.id ?? '';
 
-    return ChurchSnapScreen(
-      title: 'My Schedule',
-      subtitle: 'Your upcoming volunteer assignments',
-      children: [
-        StreamBuilder<List<VolunteerAssignment>>(
-          stream: ref
-              .read(volunteerServiceProvider)
-              .watchAssignmentsForMember(userId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const AppCard(
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
+    final rawChurchId = currentUser?.churchId.trim() ?? '';
 
-            if (snapshot.hasError) {
-              return AppCard(child: Text('Error: ${snapshot.error}'));
-            }
+    final churchId = rawChurchId.isEmpty ? 'demo-church' : rawChurchId;
 
-            final assignments = snapshot.data ?? [];
+    final volunteerService = ref.read(
+      volunteerServiceByChurchProvider(churchId),
+    );
 
-            if (assignments.isEmpty) {
-              return const AppCard(
-                child: Text('You have no volunteer assignments.'),
-              );
-            }
+    return Material(
+      child: ChurchSnapScreen(
+        title: 'My Schedule',
+        subtitle: 'Your upcoming volunteer assignments',
+        children: [
+          StreamBuilder<List<VolunteerAssignment>>(
+            stream: volunteerService.watchAssignmentsForMember(userId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const AppCard(
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
 
-            return Column(
-              children: assignments.map((assignment) {
+              if (snapshot.hasError) {
                 return AppCard(
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.volunteer_activism_rounded),
-                    ),
-                    title: Text(assignment.ministryName),
-                    subtitle: Text(
-                      '${assignment.role}\n'
-                      '${assignment.servingDate?.month}/${assignment.servingDate?.day}/${assignment.servingDate?.year}',
-                    ),
-                    isThreeLine: true,
-                    trailing: Chip(label: Text(assignment.status)),
+                  child: Text(
+                    'Unable to load schedule: '
+                    '${snapshot.error}',
                   ),
                 );
-              }).toList(),
-            );
-          },
-        ),
-      ],
+              }
+
+              final assignments = snapshot.data ?? <VolunteerAssignment>[];
+
+              if (assignments.isEmpty) {
+                return const AppCard(
+                  child: Text('You have no volunteer assignments.'),
+                );
+              }
+
+              return Column(
+                children: assignments.map((assignment) {
+                  final date = assignment.servingDate;
+
+                  return AppCard(
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.volunteer_activism_rounded),
+                      ),
+                      title: Text(assignment.ministryName),
+                      subtitle: Text(
+                        '${assignment.role}\n'
+                        '${date == null ? 'Date not selected' : '${date.month}/${date.day}/${date.year}'}',
+                      ),
+                      isThreeLine: true,
+                      trailing: Chip(label: Text(assignment.status)),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

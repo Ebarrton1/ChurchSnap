@@ -10,3 +10,15 @@ final smallGroupRepositoryProvider = Provider<SmallGroupRepository>((ref) {
 final smallGroupServiceProvider = Provider<SmallGroupService>((ref) {
   return SmallGroupService(ref.read(smallGroupRepositoryProvider));
 });
+
+final smallGroupRepositoryByChurchProvider =
+    Provider.family<SmallGroupRepository, String>((ref, churchId) {
+      return SmallGroupRepository(churchId: churchId);
+    });
+
+final smallGroupServiceByChurchProvider =
+    Provider.family<SmallGroupService, String>((ref, churchId) {
+      return SmallGroupService(
+        ref.read(smallGroupRepositoryByChurchProvider(churchId)),
+      );
+    });

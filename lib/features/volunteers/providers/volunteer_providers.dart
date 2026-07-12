@@ -10,3 +10,15 @@ final volunteerRepositoryProvider = Provider<VolunteerRepository>((ref) {
 final volunteerServiceProvider = Provider<VolunteerService>((ref) {
   return VolunteerService(ref.read(volunteerRepositoryProvider));
 });
+
+final volunteerRepositoryByChurchProvider =
+    Provider.family<VolunteerRepository, String>((ref, churchId) {
+      return VolunteerRepository(churchId: churchId);
+    });
+
+final volunteerServiceByChurchProvider =
+    Provider.family<VolunteerService, String>((ref, churchId) {
+      return VolunteerService(
+        ref.read(volunteerRepositoryByChurchProvider(churchId)),
+      );
+    });

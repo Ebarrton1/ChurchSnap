@@ -13,6 +13,8 @@ import 'admin_role_management_screen.dart';
 import 'admin_notifications_screen.dart';
 import 'admin_qr_scanner_screen.dart';
 import 'admin_sermons_screen.dart';
+import 'admin_small_groups_screen.dart';
+import 'admin_volunteer_schedule_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key, required this.churchId});
@@ -119,9 +121,17 @@ class AdminDashboardScreen extends ConsumerWidget {
           subtitle: 'Manage ministries and volunteer teams',
           screen: AdminMinistriesScreen(churchId: churchId),
         ),
-        const _ComingSoonCard(
+        _AdminNavCard(
+          icon: Icons.group_work_rounded,
+          title: 'Small Groups',
+          subtitle: 'Manage church small groups',
+          screen: AdminSmallGroupsScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
           icon: Icons.volunteer_activism_rounded,
           title: 'Volunteers',
+          subtitle: 'Schedule ministry volunteers',
+          screen: AdminVolunteerScheduleScreen(churchId: churchId),
         ),
 
         const SectionTitle(title: 'Care'),

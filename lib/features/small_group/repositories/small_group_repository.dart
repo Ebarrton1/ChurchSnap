@@ -3,19 +3,32 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/small_group.dart';
 
 class SmallGroupRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  SmallGroupRepository({
+    FirebaseFirestore? firestore,
+    this.churchId = 'demo-church',
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firestore;
+  final String churchId;
 
   CollectionReference<Map<String, dynamic>> get _groups => _firestore
       .collection('churches')
-      .doc('demo-church')
+      .doc(churchId)
       .collection('small_groups');
 
   Stream<List<SmallGroup>> watchGroups() {
-    return _groups.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map((doc) => SmallGroup.fromMap(doc.id, doc.data()))
-          .toList(),
-    );
+    return _groups.snapshots().map((snapshot) {
+      final groups = snapshot.docs
+          .map((document) => SmallGroup.fromMap(document.id, document.data()))
+          .toList();
+
+      groups.sort(
+        (first, second) =>
+            first.name.toLowerCase().compareTo(second.name.toLowerCase()),
+      );
+
+      return groups;
+    });
   }
 
   Future<void> addGroup(SmallGroup group) {

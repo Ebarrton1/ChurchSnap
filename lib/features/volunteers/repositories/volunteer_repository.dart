@@ -3,34 +3,47 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/volunteer_assignment.dart';
 
 class VolunteerRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  VolunteerRepository({
+    FirebaseFirestore? firestore,
+    this.churchId = 'demo-church',
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firestore;
+  final String churchId;
 
   CollectionReference<Map<String, dynamic>> get _assignments => _firestore
       .collection('churches')
-      .doc('demo-church')
+      .doc(churchId)
       .collection('volunteer_assignments');
 
   Stream<List<VolunteerAssignment>> watchAssignments() {
-    return _assignments
-        .orderBy('servingDate')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => VolunteerAssignment.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+    return _assignments.snapshots().map((snapshot) {
+      final assignments = snapshot.docs
+          .map(
+            (document) =>
+                VolunteerAssignment.fromMap(document.id, document.data()),
+          )
+          .toList();
+
+      _sortAssignments(assignments);
+      return assignments;
+    });
   }
 
   Stream<List<VolunteerAssignment>> watchAssignmentsForMember(String memberId) {
-    return _assignments
-        .where('memberId', isEqualTo: memberId)
-        .orderBy('servingDate')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => VolunteerAssignment.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+    return _assignments.where('memberId', isEqualTo: memberId).snapshots().map((
+      snapshot,
+    ) {
+      final assignments = snapshot.docs
+          .map(
+            (document) =>
+                VolunteerAssignment.fromMap(document.id, document.data()),
+          )
+          .toList();
+
+      _sortAssignments(assignments);
+      return assignments;
+    });
   }
 
   Future<void> addAssignment(VolunteerAssignment assignment) {
@@ -43,5 +56,26 @@ class VolunteerRepository {
 
   Future<void> deleteAssignment(String id) {
     return _assignments.doc(id).delete();
+  }
+
+  void _sortAssignments(List<VolunteerAssignment> assignments) {
+    assignments.sort((first, second) {
+      final firstDate = first.servingDate;
+      final secondDate = second.servingDate;
+
+      if (firstDate == null && secondDate == null) {
+        return 0;
+      }
+
+      if (firstDate == null) {
+        return 1;
+      }
+
+      if (secondDate == null) {
+        return -1;
+      }
+
+      return firstDate.compareTo(secondDate);
+    });
   }
 }
