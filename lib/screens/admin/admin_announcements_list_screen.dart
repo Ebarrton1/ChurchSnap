@@ -7,15 +7,19 @@ import '../../features/admin/providers/admin_providers.dart';
 import '../../models/announcement.dart';
 
 class AdminAnnouncementsListScreen extends ConsumerWidget {
-  const AdminAnnouncementsListScreen({super.key});
+  const AdminAnnouncementsListScreen({super.key, required this.churchId});
+
+  final String churchId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final announcementsAsync = ref.watch(announcementsProvider);
+    final announcementsAsync = ref.watch(
+      announcementsByChurchProvider(churchId),
+    );
 
     return ChurchSnapScreen(
       title: 'Announcements',
-      subtitle: 'Manage published church announcements.',
+      subtitle: 'Manage published announcements for $churchId.',
       children: [
         announcementsAsync.when(
           loading: () =>
@@ -130,7 +134,7 @@ class AdminAnnouncementsListScreen extends ConsumerWidget {
                 );
 
                 await ref
-                    .read(adminAnnouncementServiceProvider)
+                    .read(adminAnnouncementServiceByChurchProvider(churchId))
                     .updateAnnouncement(announcement.id, updated);
 
                 if (dialogContext.mounted) {
@@ -154,7 +158,7 @@ class AdminAnnouncementsListScreen extends ConsumerWidget {
     Announcement announcement,
   ) async {
     await ref
-        .read(adminAnnouncementServiceProvider)
+        .read(adminAnnouncementServiceByChurchProvider(churchId))
         .deleteAnnouncement(announcement.id);
 
     if (context.mounted) {

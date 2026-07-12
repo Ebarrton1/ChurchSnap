@@ -26,12 +26,20 @@ class AttendanceRecord {
   }) {
     final checkedInAtValue = map['checkedInAt'];
 
+    final storedMemberId =
+        map['memberId'] as String? ?? map['userId'] as String? ?? '';
+
+    final storedMemberName =
+        map['memberName'] as String? ??
+        map['displayName'] as String? ??
+        'ChurchSnap Member';
+
     return AttendanceRecord(
       id: id,
       eventId: map['eventId'] as String? ?? '',
       eventTitle: eventTitle,
-      memberId: map['memberId'] as String? ?? '',
-      memberName: map['memberName'] as String? ?? '',
+      memberId: storedMemberId,
+      memberName: storedMemberName,
       checkInMethod: map['checkInMethod'] as String? ?? 'manual',
       checkedInAt: checkedInAtValue is Timestamp
           ? checkedInAtValue.toDate()

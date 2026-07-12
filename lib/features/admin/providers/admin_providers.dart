@@ -11,6 +11,13 @@ final adminAnnouncementServiceProvider = Provider<AdminAnnouncementService>((
   return AdminAnnouncementService(AnnouncementRepository());
 });
 
+final adminAnnouncementServiceByChurchProvider =
+    Provider.family<AdminAnnouncementService, String>((ref, churchId) {
+      return AdminAnnouncementService(
+        AnnouncementRepository(churchId: churchId),
+      );
+    });
+
 final adminEventServiceProvider = Provider<AdminEventService>((ref) {
   return AdminEventService(EventRepository());
 });

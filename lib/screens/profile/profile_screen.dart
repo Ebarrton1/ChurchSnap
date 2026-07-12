@@ -134,7 +134,12 @@ class ProfileScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => AttendanceHistoryScreen(memberId: member.id),
+                  builder: (_) => AttendanceHistoryScreen(
+                    memberId: member.id,
+                    churchId: member.churchId.trim().isEmpty
+                        ? 'demo-church'
+                        : member.churchId.trim(),
+                  ),
                 ),
               );
             },

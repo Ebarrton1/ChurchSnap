@@ -3,10 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/media_item.dart';
 
 class MediaRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  MediaRepository({FirebaseFirestore? firestore, this.churchId = 'demo-church'})
+    : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firestore;
+  final String churchId;
 
   CollectionReference<Map<String, dynamic>> get _media =>
-      _firestore.collection('churches').doc('demo-church').collection('media');
+      _firestore.collection('churches').doc(churchId).collection('media');
 
   Stream<List<MediaItem>> watchMedia() {
     return _media
@@ -15,7 +19,9 @@ class MediaRepository {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => MediaItem.fromMap(doc.id, doc.data()))
+              .map(
+                (document) => MediaItem.fromMap(document.id, document.data()),
+              )
               .toList(),
         );
   }

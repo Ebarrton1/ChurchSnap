@@ -7,15 +7,17 @@ import '../../features/media/providers/media_providers.dart';
 import 'media_detail_screen.dart';
 
 class MediaScreen extends ConsumerWidget {
-  const MediaScreen({super.key});
+  const MediaScreen({super.key, required this.churchId});
+
+  final String churchId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mediaService = ref.read(mediaServiceProvider);
+    final mediaService = ref.read(mediaServiceByChurchProvider(churchId));
 
     return ChurchSnapScreen(
       title: 'Media',
-      subtitle: 'Watch, listen, read and grow.',
+      subtitle: 'Watch, listen, read and grow with your church.',
       children: [
         StreamBuilder<List<MediaItem>>(
           stream: mediaService.watchMedia(),

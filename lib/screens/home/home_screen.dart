@@ -58,7 +58,7 @@ class HomeScreen extends ConsumerWidget {
           title: 'Announcements',
           subtitle: 'The latest news from your church',
         ),
-        const _LiveAnnouncements(),
+        _LiveAnnouncements(churchId: churchId),
         const SizedBox(height: 16),
       ],
     );
@@ -509,7 +509,7 @@ class _FeaturedHomeSermonCard extends StatelessWidget {
               [
                 if (sermon.speaker.isNotEmpty) sermon.speaker,
                 if (sermon.scripture.isNotEmpty) sermon.scripture,
-              ].join(' â€¢ '),
+              ].join(' Ã¢â‚¬Â¢ '),
             ),
           ],
           const SizedBox(height: 16),
@@ -546,7 +546,7 @@ class _WeekendScheduleCard extends StatelessWidget {
             icon: Icons.wb_twilight_rounded,
             title: 'Sabbath Worship',
             day: 'Saturday',
-            details: 'Sabbath School 9:45 AM â€¢ Worship 11:00 AM',
+            details: 'Sabbath School 9:45 AM Ã¢â‚¬Â¢ Worship 11:00 AM',
           ),
           Divider(height: 28),
           _ScheduleTile(
@@ -605,11 +605,15 @@ class _ScheduleTile extends StatelessWidget {
 }
 
 class _LiveAnnouncements extends ConsumerWidget {
-  const _LiveAnnouncements();
+  const _LiveAnnouncements({required this.churchId});
+
+  final String churchId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final announcementsAsync = ref.watch(announcementsProvider);
+    final announcementsAsync = ref.watch(
+      announcementsByChurchProvider(churchId),
+    );
     return announcementsAsync.when(
       loading: () =>
           const AppCard(child: Center(child: CircularProgressIndicator())),

@@ -68,7 +68,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           icon: Icons.campaign_rounded,
           title: 'Announcements',
           subtitle: 'Publish church announcements',
-          screen: AdminAnnouncementsScreen(),
+          screen: AdminAnnouncementsScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.event_rounded,
@@ -87,7 +87,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           icon: Icons.video_library_rounded,
           title: 'Media',
           subtitle: 'Videos, podcasts, photos and documents',
-          screen: const AdminMediaScreen(),
+          screen: AdminMediaScreen(churchId: churchId),
         ),
         const SectionTitle(title: 'People'),
         _AdminNavCard(
@@ -106,7 +106,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           icon: Icons.how_to_reg_rounded,
           title: 'Attendance',
           subtitle: 'View event check-ins',
-          screen: AdminAttendanceScreen(),
+          screen: AdminAttendanceScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.groups_rounded,
@@ -141,7 +141,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           icon: Icons.qr_code_scanner_rounded,
           title: 'QR Check-In',
           subtitle: 'Scan member QR codes and record attendance',
-          screen: const AdminQrScannerScreen(),
+          screen: AdminQrScannerScreen(churchId: churchId),
         ),
         const _ComingSoonCard(
           icon: Icons.calendar_month_rounded,

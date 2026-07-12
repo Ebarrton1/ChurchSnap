@@ -12,6 +12,18 @@ final mediaServiceProvider = Provider<MediaService>(
   (ref) => MediaService(ref.read(mediaRepositoryProvider)),
 );
 
+final mediaRepositoryByChurchProvider =
+    Provider.family<MediaRepository, String>((ref, churchId) {
+      return MediaRepository(churchId: churchId);
+    });
+
+final mediaServiceByChurchProvider = Provider.family<MediaService, String>((
+  ref,
+  churchId,
+) {
+  return MediaService(ref.read(mediaRepositoryByChurchProvider(churchId)));
+});
+
 final mediaStorageServiceProvider = Provider<MediaStorageService>(
   (ref) => MediaStorageService(),
 );

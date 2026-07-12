@@ -20,45 +20,68 @@ class AttendanceHistoryRepository {
       _firestore.collection('churches').doc(churchId).collection('events');
 
   Stream<List<AttendanceRecord>> watchMemberAttendance(String memberId) {
-    return _checkIns
-        .where('memberId', isEqualTo: memberId)
-        .snapshots()
-        .asyncMap((snapshot) async {
-          final records = await Future.wait<AttendanceRecord>(
-            snapshot.docs.map((document) async {
-              final data = document.data();
-              final eventId = data['eventId'] as String? ?? '';
+    final cleanMemberId = memberId.trim();
 
-              var eventTitle = 'Church Event';
+    if (cleanMemberId.isEmpty) {
+      return Stream.value(const <AttendanceRecord>[]);
+    }
 
-              if (eventId.isNotEmpty) {
-                final eventSnapshot = await _events.doc(eventId).get();
-                final eventData = eventSnapshot.data();
-                final storedTitle = eventData?['title'] as String?;
+    return _checkIns.snapshots().asyncMap((snapshot) async {
+      final matchingDocuments = snapshot.docs.where((document) {
+        final data = document.data();
 
-                if (storedTitle != null && storedTitle.trim().isNotEmpty) {
-                  eventTitle = storedTitle.trim();
-                }
+        final canonicalMemberId = (data['memberId'] as String?)?.trim();
+
+        final legacyUserId = (data['userId'] as String?)?.trim();
+
+        return canonicalMemberId == cleanMemberId ||
+            legacyUserId == cleanMemberId;
+      }).toList();
+
+      final records = await Future.wait<AttendanceRecord>(
+        matchingDocuments.map((document) async {
+          final data = document.data();
+
+          final eventId = data['eventId'] as String? ?? '';
+
+          var eventTitle = 'Church Event';
+
+          if (eventId.isNotEmpty) {
+            try {
+              final eventSnapshot = await _events.doc(eventId).get();
+
+              final eventData = eventSnapshot.data();
+
+              final storedTitle = eventData?['title'] as String?;
+
+              if (storedTitle != null && storedTitle.trim().isNotEmpty) {
+                eventTitle = storedTitle.trim();
               }
+            } on FirebaseException {
+              // Keep the fallback event title when
+              // the event document is unavailable.
+            }
+          }
 
-              return AttendanceRecord.fromMap(
-                document.id,
-                data,
-                eventTitle: eventTitle,
-              );
-            }),
+          return AttendanceRecord.fromMap(
+            document.id,
+            data,
+            eventTitle: eventTitle,
           );
+        }),
+      );
 
-          records.sort((first, second) {
-            final firstDate =
-                first.checkedInAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            final secondDate =
-                second.checkedInAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      records.sort((first, second) {
+        final firstDate =
+            first.checkedInAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
-            return secondDate.compareTo(firstDate);
-          });
+        final secondDate =
+            second.checkedInAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
-          return records;
-        });
+        return secondDate.compareTo(firstDate);
+      });
+
+      return records;
+    });
   }
 }

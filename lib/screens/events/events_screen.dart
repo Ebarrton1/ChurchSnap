@@ -141,7 +141,11 @@ class EventsScreen extends ConsumerWidget {
                                 onPressed: () async {
                                   try {
                                     await ref
-                                        .read(checkInServiceProvider)
+                                        .read(
+                                          checkInServiceByChurchProvider(
+                                            churchId,
+                                          ),
+                                        )
                                         .checkIn(
                                           CheckInRecord(
                                             eventId: event.id,
