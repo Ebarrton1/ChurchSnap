@@ -1,4 +1,4 @@
-package com.example.churchsnap
+package com.churchsnap.app
 
 import io.flutter.embedding.android.FlutterActivity
 
