@@ -72,6 +72,31 @@ service cloud.firestore {
         }
       }
 
+      match /memberPrivateProfiles/{memberId} {
+        allow read: if signedIn()
+          && (
+            memberId == request.auth.uid
+            || isAdmin(churchId)
+          );
+
+        allow create, update: if signedIn()
+          && (
+            memberId == request.auth.uid
+            || isAdmin(churchId)
+          )
+          && request.resource.data.keys().hasOnly([
+            'dateOfBirth',
+            'maritalStatus',
+            'gender',
+            'updatedAt'
+          ]);
+
+        allow delete: if signedIn()
+          && (
+            memberId == request.auth.uid
+            || isAdmin(churchId)
+          );
+      }
       match /announcements/{announcementId} {
         allow read: if signedIn()
           || resource.data.published == true;
