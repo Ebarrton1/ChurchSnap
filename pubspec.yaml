@@ -1,4 +1,4 @@
-﻿name: churchsnap
+name: churchsnap
 description: "A newly created Flutter project."
 publish_to: 'none'
 version: 1.0.0+1
@@ -35,3 +35,5 @@ flutter:
 
   assets:
     - assets/icons/
+
+    - assets/home/
