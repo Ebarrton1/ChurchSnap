@@ -7,40 +7,92 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function currentUserId() {
+      return request.auth.uid;
+    }
+
+    function memberPath(churchId, memberId) {
+      return /databases/$(database)/documents/churches/$(churchId)/members/$(memberId);
+    }
+
     function memberExists(churchId) {
-      return signedIn()
-        && exists(
-          /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
-        );
+      return signedIn() && exists(memberPath(churchId, currentUserId()));
+    }
+
+    function memberRole(churchId) {
+      return get(memberPath(churchId, currentUserId())).data.get('role', 'member');
+    }
+
+    function isActiveMember(churchId) {
+      return memberExists(churchId)
+        && get(memberPath(churchId, currentUserId())).data.get('isActive', true) == true;
+    }
+
+    function validRole(role) {
+      return role in [
+        'visitor',
+        'member',
+        'volunteer',
+        'groupLeader',
+        'ministryLeader',
+        'pastor',
+        'admin'
+      ];
     }
 
     function isAdmin(churchId) {
-      return memberExists(churchId)
-        && (
-          get(
-            /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
-          ).data.role == 'admin'
-          ||
-          get(
-            /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
-          ).data.role == 'pastor'
-        );
+      return isActiveMember(churchId)
+        && memberRole(churchId) in ['admin', 'pastor'];
+    }
+
+    function isMinistryLeader(churchId) {
+      return isActiveMember(churchId)
+        && memberRole(churchId) == 'ministryLeader';
+    }
+
+    function isGroupLeader(churchId) {
+      return isActiveMember(churchId)
+        && memberRole(churchId) == 'groupLeader';
     }
 
     function isLeader(churchId) {
       return isAdmin(churchId)
-        || (
-          memberExists(churchId)
-          && (
-            get(
-              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
-            ).data.role == 'ministryLeader'
-            ||
-            get(
-              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
-            ).data.role == 'groupLeader'
-          )
+        || isMinistryLeader(churchId)
+        || isGroupLeader(churchId);
+    }
+
+    function ministryExists(churchId, ministryId) {
+      return ministryId is string
+        && ministryId.size() > 0
+        && exists(
+          /databases/$(database)/documents/churches/$(churchId)/ministries/$(ministryId)
         );
+    }
+
+    function leadsMinistry(churchId, ministryId) {
+      return isMinistryLeader(churchId)
+        && ministryExists(churchId, ministryId)
+        && get(
+          /databases/$(database)/documents/churches/$(churchId)/ministries/$(ministryId)
+        ).data.get('leaderId', '') == currentUserId();
+    }
+
+    function ownsAttendanceRecord(data) {
+      return signedIn()
+        && (
+          data.get('memberId', '') == currentUserId()
+          || data.get('userId', '') == currentUserId()
+        );
+    }
+
+    function validSelfAttendanceRecord(data) {
+      return signedIn()
+        && (
+          data.get('memberId', '') == currentUserId()
+          || data.get('userId', '') == currentUserId()
+        )
+        && data.get('memberId', '') in ['', currentUserId()]
+        && data.get('userId', '') in ['', currentUserId()];
     }
 
     match /churches/{churchId} {
@@ -48,80 +100,135 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin(churchId);
 
       match /members/{memberId} {
-        allow read: if signedIn();
+        allow get: if signedIn()
+          && (
+            memberId == currentUserId()
+            || isActiveMember(churchId)
+          );
 
-        allow create: if signedIn()
-          && memberId == request.auth.uid
-          && request.resource.data.role in ['member', 'visitor'];
+        allow list: if isActiveMember(churchId);
 
-        allow update: if (
-          isAdmin(churchId)
-          && memberId != request.auth.uid
+        allow create: if (
+          signedIn()
+          && memberId == currentUserId()
+          && request.resource.data.get('id', memberId) == memberId
+          && request.resource.data.get('churchId', churchId) == churchId
+          && request.resource.data.get('role', 'member') in ['member', 'visitor']
+          && request.resource.data.get('isActive', true) == true
         )
         || (
-          signedIn()
-          && memberId == request.auth.uid
-          && request.resource.data.role == resource.data.role
+          isAdmin(churchId)
+          && validRole(request.resource.data.get('role', 'member'))
         );
 
-        allow delete: if isAdmin(churchId);
+        allow update: if (
+          signedIn()
+          && memberId == currentUserId()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'id',
+            'churchId',
+            'displayName',
+            'email',
+            'phone',
+            'photoUrl',
+            'role',
+            'isActive',
+            'isEmailVerified',
+            'fcmToken',
+            'fcmTokenUpdatedAt',
+            'updatedAt'
+          ])
+          && request.resource.data.get('id', memberId)
+            == resource.data.get('id', memberId)
+          && request.resource.data.get('id', memberId) == memberId
+          && request.resource.data.get('churchId', churchId)
+            == resource.data.get('churchId', churchId)
+          && request.resource.data.get('churchId', churchId) == churchId
+          && request.resource.data.get('role', 'member')
+            == resource.data.get('role', 'member')
+          && request.resource.data.get('isActive', true)
+            == resource.data.get('isActive', true)
+        )
+        || (
+          isAdmin(churchId)
+          && memberId != currentUserId()
+          && (
+            request.resource.data.get('role', 'member')
+              == resource.data.get('role', 'member')
+            || validRole(request.resource.data.get('role', 'member'))
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'displayName',
+            'email',
+            'phone',
+            'photoUrl',
+            'role',
+            'isActive',
+            'updatedAt'
+          ])
+        );
+
+        allow delete: if isAdmin(churchId)
+          && memberId != currentUserId();
 
         match /sermonBookmarks/{sermonId} {
-          allow read, create, update, delete: if signedIn()
-            && memberId == request.auth.uid;
+          allow read, create, update, delete: if isActiveMember(churchId)
+            && memberId == currentUserId();
         }
       }
 
       match /memberPrivateProfiles/{memberId} {
-        allow read: if signedIn()
-          && (
-            memberId == request.auth.uid
-            || isAdmin(churchId)
-          );
+        allow read: if (
+          isActiveMember(churchId)
+          && memberId == currentUserId()
+        )
+        || isAdmin(churchId);
 
-        allow create, update: if signedIn()
-          && (
-            memberId == request.auth.uid
-            || isAdmin(churchId)
+        allow create, update: if (
+          (
+            isActiveMember(churchId)
+            && memberId == currentUserId()
           )
-          && request.resource.data.keys().hasOnly([
-            'dateOfBirth',
-            'maritalStatus',
-            'gender',
-            'updatedAt'
-          ]);
+          || isAdmin(churchId)
+        )
+        && request.resource.data.keys().hasOnly([
+          'dateOfBirth',
+          'maritalStatus',
+          'gender',
+          'updatedAt'
+        ]);
 
-        allow delete: if signedIn()
-          && (
-            memberId == request.auth.uid
-            || isAdmin(churchId)
-          );
+        allow delete: if (
+          isActiveMember(churchId)
+          && memberId == currentUserId()
+        )
+        || isAdmin(churchId);
       }
+
       match /announcements/{announcementId} {
-        allow read: if signedIn()
-          || resource.data.published == true;
+        allow read: if resource.data.get('published', false) == true
+          || isActiveMember(churchId);
 
         allow create, update, delete: if isAdmin(churchId);
       }
 
       match /events/{eventId} {
-        allow read: if signedIn()
-          || resource.data.published == true;
+        allow read: if resource.data.get('published', false) == true
+          || isActiveMember(churchId);
 
         allow create, delete: if isAdmin(churchId);
 
         allow update: if isAdmin(churchId)
           || (
-            signedIn()
-            && memberExists(churchId)
+            isActiveMember(churchId)
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['attendeeIds', 'rsvpCount'])
             && request.resource.data.get('rsvpCount', 0)
               == request.resource.data.get('attendeeIds', []).size()
             && (
               (
-                !(request.auth.uid in resource.data.get('attendeeIds', []))
-                && request.auth.uid
+                !(currentUserId() in resource.data.get('attendeeIds', []))
+                && currentUserId()
                   in request.resource.data.get('attendeeIds', [])
                 && request.resource.data.get('attendeeIds', []).size()
                   == resource.data.get('attendeeIds', []).size() + 1
@@ -129,9 +236,9 @@ service cloud.firestore {
                   .hasAll(resource.data.get('attendeeIds', []))
               )
               || (
-                request.auth.uid
+                currentUserId()
                   in resource.data.get('attendeeIds', [])
-                && !(request.auth.uid
+                && !(currentUserId()
                   in request.resource.data.get('attendeeIds', []))
                 && request.resource.data.get('attendeeIds', []).size() + 1
                   == resource.data.get('attendeeIds', []).size()
@@ -143,72 +250,141 @@ service cloud.firestore {
       }
 
       match /sermons/{sermonId} {
-        allow read: if resource.data.published == true
+        allow read: if resource.data.get('published', false) == true
           || isAdmin(churchId);
 
         allow create, update, delete: if isAdmin(churchId);
       }
 
       match /prayer_requests/{prayerId} {
-        allow read: if resource.data.published == true
+        allow read: if resource.data.get('published', false) == true
           || isLeader(churchId);
 
-        allow create: if signedIn();
+        allow create: if isActiveMember(churchId);
         allow update, delete: if isLeader(churchId);
       }
 
       match /media/{mediaId} {
-        allow read: if signedIn()
-          || resource.data.published == true;
+        allow read: if resource.data.get('published', false) == true
+          || isActiveMember(churchId);
 
         allow create, update, delete: if isAdmin(churchId);
       }
 
       match /eventCheckIns/{checkInId} {
-        allow read, create: if signedIn();
+        allow read: if isAdmin(churchId)
+          || (
+            isActiveMember(churchId)
+            && ownsAttendanceRecord(resource.data)
+          );
+
+        allow create: if isAdmin(churchId)
+          || (
+            isActiveMember(churchId)
+            && validSelfAttendanceRecord(request.resource.data)
+          );
+
         allow update, delete: if isAdmin(churchId);
       }
 
       match /attendance/{attendanceId} {
-        allow read, create: if signedIn();
+        allow read: if isAdmin(churchId)
+          || (
+            isActiveMember(churchId)
+            && ownsAttendanceRecord(resource.data)
+          );
+
+        allow create: if isAdmin(churchId)
+          || (
+            isActiveMember(churchId)
+            && validSelfAttendanceRecord(request.resource.data)
+          );
+
         allow update, delete: if isAdmin(churchId);
       }
 
       match /notifications/{notificationId} {
-        allow read: if signedIn();
+        allow read: if isActiveMember(churchId);
         allow create, update, delete: if isAdmin(churchId);
       }
 
       match /ministries/{ministryId} {
-        allow read: if signedIn();
-        allow create, update, delete: if isAdmin(churchId)
+        allow read: if isActiveMember(churchId);
+
+        allow create: if isAdmin(churchId)
           || (
-            memberExists(churchId)
-            && get(
-              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
-            ).data.role == 'ministryLeader'
+            isMinistryLeader(churchId)
+            && request.resource.data.get('leaderId', '') == currentUserId()
+          );
+
+        allow update: if isAdmin(churchId)
+          || (
+            isMinistryLeader(churchId)
+            && resource.data.get('leaderId', '') == currentUserId()
+            && request.resource.data.get('leaderId', '') == currentUserId()
+          );
+
+        allow delete: if isAdmin(churchId)
+          || (
+            isMinistryLeader(churchId)
+            && resource.data.get('leaderId', '') == currentUserId()
           );
       }
 
       match /small_groups/{groupId} {
-        allow read: if signedIn();
-        allow create, update, delete: if isAdmin(churchId)
+        allow read: if isActiveMember(churchId);
+
+        allow create: if isAdmin(churchId)
           || (
-            memberExists(churchId)
-            && get(
-              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
-            ).data.role == 'groupLeader'
+            isGroupLeader(churchId)
+            && request.resource.data.get('leaderId', '') == currentUserId()
+          );
+
+        allow update: if isAdmin(churchId)
+          || (
+            isGroupLeader(churchId)
+            && resource.data.get('leaderId', '') == currentUserId()
+            && request.resource.data.get('leaderId', '') == currentUserId()
+          );
+
+        allow delete: if isAdmin(churchId)
+          || (
+            isGroupLeader(churchId)
+            && resource.data.get('leaderId', '') == currentUserId()
           );
       }
 
       match /volunteer_assignments/{assignmentId} {
-        allow read: if signedIn();
-        allow create, update, delete: if isAdmin(churchId)
+        allow read: if isAdmin(churchId)
           || (
-            memberExists(churchId)
-            && get(
-              /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
-            ).data.role == 'ministryLeader'
+            isActiveMember(churchId)
+            && resource.data.get('memberId', '') == currentUserId()
+          )
+          || leadsMinistry(
+            churchId,
+            resource.data.get('ministryId', '')
+          );
+
+        allow create: if isAdmin(churchId)
+          || leadsMinistry(
+            churchId,
+            request.resource.data.get('ministryId', '')
+          );
+
+        allow update: if isAdmin(churchId)
+          || (
+            leadsMinistry(
+              churchId,
+              resource.data.get('ministryId', '')
+            )
+            && request.resource.data.get('ministryId', '')
+              == resource.data.get('ministryId', '')
+          );
+
+        allow delete: if isAdmin(churchId)
+          || leadsMinistry(
+            churchId,
+            resource.data.get('ministryId', '')
           );
       }
 
@@ -220,8 +396,8 @@ service cloud.firestore {
       match /donations/{donationId} {
         allow read: if isAdmin(churchId)
           || (
-            signedIn()
-            && resource.data.memberId == request.auth.uid
+            isActiveMember(churchId)
+            && resource.data.get('memberId', '') == currentUserId()
           );
 
         allow create, update: if isAdmin(churchId);

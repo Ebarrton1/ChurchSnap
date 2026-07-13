@@ -149,6 +149,7 @@ class FirebaseAuthRepository implements AuthRepository {
         email: refreshedUser.email ?? normalizedEmail,
         role: 'member',
         isEmailVerified: refreshedUser.emailVerified,
+        isActive: true,
       );
 
       final savedUser = await _saveUser(appUser);
@@ -287,6 +288,7 @@ class FirebaseAuthRepository implements AuthRepository {
         email: data['email'] as String? ?? user.email ?? '',
         role: data['role'] as String? ?? 'member',
         isEmailVerified: user.emailVerified,
+        isActive: data['isActive'] as bool? ?? true,
       );
 
       await memberReference.set(savedUser.toMap(), SetOptions(merge: true));
@@ -301,6 +303,7 @@ class FirebaseAuthRepository implements AuthRepository {
       email: user.email ?? '',
       role: 'member',
       isEmailVerified: user.emailVerified,
+      isActive: true,
     );
 
     return _saveUser(appUser);
@@ -318,6 +321,10 @@ class FirebaseAuthRepository implements AuthRepository {
         ? (existingData?['role'] as String?) ?? user.role
         : user.role;
 
+    final savedIsActive = memberSnapshot.exists
+        ? (existingData?['isActive'] as bool?) ?? true
+        : user.isActive;
+
     final savedUser = ChurchSnapUser(
       id: user.id,
       churchId: user.churchId,
@@ -325,6 +332,7 @@ class FirebaseAuthRepository implements AuthRepository {
       email: user.email,
       role: savedRole,
       isEmailVerified: user.isEmailVerified,
+      isActive: savedIsActive,
     );
 
     await memberReference.set(savedUser.toMap(), SetOptions(merge: true));

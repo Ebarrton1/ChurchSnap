@@ -6,6 +6,7 @@ import '../../notifications/repositories/notification_repository.dart';
 import '../../notifications/services/notification_service.dart';
 import '../models/churchsnap_user.dart';
 import '../state/auth_controller.dart';
+import 'account_disabled_screen.dart';
 import 'email_verification_screen.dart';
 import 'login_screen.dart';
 
@@ -50,7 +51,13 @@ class _AuthGateState extends State<AuthGate> {
 
         final user = authController.currentUser!;
 
-        if (!_canEnterApp(user)) {
+        if (!user.isActive) {
+          _notificationUserId = null;
+          return AccountDisabledScreen(authController: authController);
+        }
+
+        if (!user.isEmailVerified) {
+          _notificationUserId = null;
           return EmailVerificationScreen(authController: authController);
         }
 
@@ -60,12 +67,10 @@ class _AuthGateState extends State<AuthGate> {
     );
   }
 
-  bool _canEnterApp(ChurchSnapUser user) {
-    return user.id == 'guest' || user.isEmailVerified;
-  }
-
   void _scheduleNotificationInitialization(ChurchSnapUser user) {
-    if (user.id == 'guest' || _notificationUserId == user.id) return;
+    if (_notificationUserId == user.id) {
+      return;
+    }
 
     _notificationUserId = user.id;
 
