@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../../../../core/services/service_result.dart';
 import '../../../../firebase/firebase_paths.dart';
@@ -41,6 +42,12 @@ class FirebaseAuthRepository implements AuthRepository {
 
     await refreshedUser.getIdToken(true);
 
+    if (refreshedUser.isAnonymous) {
+      final guest = ChurchSnapUser.guest(id: refreshedUser.uid);
+      _cachedUser = guest;
+      return guest;
+    }
+
     final appUser = await _loadOrCreateUser(refreshedUser);
     _cachedUser = appUser;
     return appUser;
@@ -58,6 +65,10 @@ class FirebaseAuthRepository implements AuthRepository {
     }
 
     try {
+      if (_auth.currentUser?.isAnonymous == true) {
+        await _auth.signOut();
+      }
+
       final credential = await _auth.signInWithEmailAndPassword(
         email: normalizedEmail,
         password: password,
@@ -122,6 +133,10 @@ class FirebaseAuthRepository implements AuthRepository {
     }
 
     try {
+      if (_auth.currentUser?.isAnonymous == true) {
+        await _auth.signOut();
+      }
+
       final credential = await _auth.createUserWithEmailAndPassword(
         email: normalizedEmail,
         password: password,
@@ -175,6 +190,48 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<ServiceResult<ChurchSnapUser>> continueAsGuest() async {
+    try {
+      final existingUser = _auth.currentUser;
+
+      if (existingUser != null && !existingUser.isAnonymous) {
+        return ServiceResult.failure(
+          'Sign out of the current account before entering guest mode.',
+        );
+      }
+
+      if (existingUser?.isAnonymous == true) {
+        final guest = ChurchSnapUser.guest(id: existingUser!.uid);
+        _cachedUser = guest;
+        return ServiceResult.success(guest);
+      }
+
+      final credential = await _auth.signInAnonymously();
+      final user = credential.user;
+
+      if (user == null) {
+        return ServiceResult.failure('Unable to start guest access.');
+      }
+
+      final guest = ChurchSnapUser.guest(id: user.uid);
+      _cachedUser = guest;
+      return ServiceResult.success(guest);
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'operation-not-allowed') {
+        return ServiceResult.failure(
+          'Guest access is not enabled in Firebase Authentication yet.',
+        );
+      }
+
+      return ServiceResult.failure(_friendlyError(error));
+    } catch (_) {
+      return ServiceResult.failure(
+        'Unable to start guest access. Please try again.',
+      );
+    }
+  }
+
+  @override
   Future<ServiceResult<void>> sendPasswordReset(String email) async {
     final normalizedEmail = email.trim();
 
@@ -199,6 +256,12 @@ class FirebaseAuthRepository implements AuthRepository {
 
       if (user == null) {
         return ServiceResult.failure('No signed-in account was found.');
+      }
+
+      if (user.isAnonymous) {
+        return ServiceResult.failure(
+          'Guest accounts do not use email verification.',
+        );
       }
 
       await user.reload();
@@ -243,6 +306,12 @@ class FirebaseAuthRepository implements AuthRepository {
 
       await refreshedUser.getIdToken(true);
 
+      if (refreshedUser.isAnonymous) {
+        final guest = ChurchSnapUser.guest(id: refreshedUser.uid);
+        _cachedUser = guest;
+        return ServiceResult.success(guest);
+      }
+
       final appUser = await _loadOrCreateUser(refreshedUser);
       _cachedUser = appUser;
 
@@ -259,6 +328,20 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<ServiceResult<void>> signOut() async {
     try {
+      final currentUser = _auth.currentUser;
+
+      if (currentUser != null) {
+        if (currentUser.isAnonymous) {
+          try {
+            await currentUser.delete();
+          } on FirebaseAuthException {
+            // Sign-out still proceeds if anonymous account cleanup fails.
+          }
+        } else {
+          await _removeCurrentMessagingToken(currentUser);
+        }
+      }
+
       await _auth.signOut();
       _cachedUser = null;
       return ServiceResult.success(null);
@@ -270,6 +353,10 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   Future<ChurchSnapUser> _loadOrCreateUser(User user) async {
+    if (user.isAnonymous) {
+      return ChurchSnapUser.guest(id: user.uid);
+    }
+
     final memberReference = _firestore
         .collection(FirebasePaths.members(defaultChurchId))
         .doc(user.uid);
@@ -338,6 +425,32 @@ class FirebaseAuthRepository implements AuthRepository {
     await memberReference.set(savedUser.toMap(), SetOptions(merge: true));
 
     return savedUser;
+  }
+
+  Future<void> _removeCurrentMessagingToken(User user) async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+
+      if (token != null && token.isNotEmpty) {
+        final memberReference = _firestore
+            .collection(FirebasePaths.members(defaultChurchId))
+            .doc(user.uid);
+
+        final memberSnapshot = await memberReference.get();
+        final savedToken = memberSnapshot.data()?['fcmToken'] as String?;
+
+        if (savedToken == token) {
+          await memberReference.update({
+            'fcmToken': FieldValue.delete(),
+            'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (_) {
+      // Notification cleanup is best-effort and must not block sign-out.
+    }
   }
 
   String _friendlyError(FirebaseAuthException error) {

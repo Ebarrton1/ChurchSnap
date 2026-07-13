@@ -19,7 +19,9 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   late final AuthController authController;
+
   String? _notificationUserId;
+  NotificationService? _notificationService;
 
   @override
   void initState() {
@@ -29,6 +31,7 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   void dispose() {
+    _notificationService?.dispose();
     authController.dispose();
     super.dispose();
   }
@@ -45,23 +48,28 @@ class _AuthGateState extends State<AuthGate> {
         }
 
         if (!authController.isSignedIn) {
-          _notificationUserId = null;
+          _clearNotificationService();
           return LoginScreen(authController: authController);
         }
 
         final user = authController.currentUser!;
 
-        if (!user.isActive) {
-          _notificationUserId = null;
+        if (!user.isGuest && !user.isActive) {
+          _clearNotificationService();
           return AccountDisabledScreen(authController: authController);
         }
 
-        if (!user.isEmailVerified) {
-          _notificationUserId = null;
+        if (!user.isGuest && !user.isEmailVerified) {
+          _clearNotificationService();
           return EmailVerificationScreen(authController: authController);
         }
 
-        _scheduleNotificationInitialization(user);
+        if (user.isGuest) {
+          _clearNotificationService();
+        } else {
+          _scheduleNotificationInitialization(user);
+        }
+
         return ChurchSnapShell(authController: authController);
       },
     );
@@ -72,19 +80,37 @@ class _AuthGateState extends State<AuthGate> {
       return;
     }
 
+    _clearNotificationService();
+
+    final service = NotificationService(
+      NotificationRepository(
+        FirebaseFirestore.instance,
+        churchId: user.churchId,
+      ),
+    );
+
     _notificationUserId = user.id;
+    _notificationService = service;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || authController.currentUser?.id != user.id) {
+        return;
+      }
+
       try {
-        await NotificationService(
-          NotificationRepository(
-            FirebaseFirestore.instance,
-            churchId: user.churchId,
-          ),
-        ).initializeMessaging(userId: user.id, churchId: user.churchId);
+        await service.initializeMessaging(
+          userId: user.id,
+          churchId: user.churchId,
+        );
       } catch (error) {
         debugPrint('Notification initialization failed: $error');
       }
     });
+  }
+
+  void _clearNotificationService() {
+    _notificationService?.dispose();
+    _notificationService = null;
+    _notificationUserId = null;
   }
 }

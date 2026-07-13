@@ -6,6 +6,7 @@ class ChurchSnapUser {
   final String role;
   final bool isEmailVerified;
   final bool isActive;
+  final bool isGuest;
 
   const ChurchSnapUser({
     required this.id,
@@ -15,9 +16,10 @@ class ChurchSnapUser {
     this.role = 'member',
     this.isEmailVerified = false,
     this.isActive = true,
+    this.isGuest = false,
   });
 
-  bool get isAdmin => role == 'admin' || role == 'pastor';
+  bool get isAdmin => !isGuest && (role == 'admin' || role == 'pastor');
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -38,6 +40,22 @@ class ChurchSnapUser {
       role: map['role'] as String? ?? 'member',
       isEmailVerified: map['isEmailVerified'] as bool? ?? false,
       isActive: map['isActive'] as bool? ?? true,
+    );
+  }
+
+  factory ChurchSnapUser.guest({
+    required String id,
+    String churchId = 'demo-church',
+  }) {
+    return ChurchSnapUser(
+      id: id,
+      churchId: churchId,
+      displayName: 'Guest Visitor',
+      email: '',
+      role: 'visitor',
+      isEmailVerified: true,
+      isActive: true,
+      isGuest: true,
     );
   }
 }

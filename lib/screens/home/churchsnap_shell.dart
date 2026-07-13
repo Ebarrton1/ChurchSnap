@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../features/auth/screens/guest_account_screen.dart';
+import '../../features/auth/screens/guest_restricted_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../events/events_screen.dart';
@@ -32,14 +34,28 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
     return churchId.isEmpty ? 'demo-church' : churchId;
   }
 
+  bool get _isGuest => widget.authController.isGuest;
+
   List<Widget> get pages => [
     HomeScreen(authController: widget.authController, onSelectTab: _selectTab),
     SermonsScreen(churchId: _churchId),
     MediaScreen(churchId: _churchId),
     EventsScreen(authController: widget.authController),
-    PrayerScreen(churchId: _churchId),
+    if (_isGuest)
+      GuestRestrictedScreen(
+        authController: widget.authController,
+        title: 'Prayer',
+        message:
+            'Sign in with a verified account to submit or manage prayer requests.',
+        icon: Icons.volunteer_activism_rounded,
+      )
+    else
+      PrayerScreen(churchId: _churchId),
     GivingScreen(authController: widget.authController),
-    ProfileScreen(authController: widget.authController),
+    if (_isGuest)
+      GuestAccountScreen(authController: widget.authController)
+    else
+      ProfileScreen(authController: widget.authController),
     if (widget.authController.isAdmin)
       AdminDashboardScreen(churchId: _churchId),
   ];
@@ -75,10 +91,10 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
       assetName: 'giving',
       fallbackIcon: Icons.favorite_rounded,
     ),
-    const _ShellDestination(
-      label: 'Profile',
+    _ShellDestination(
+      label: _isGuest ? 'Account' : 'Profile',
       assetName: 'profile',
-      fallbackIcon: Icons.person_rounded,
+      fallbackIcon: _isGuest ? Icons.login_rounded : Icons.person_rounded,
     ),
     if (widget.authController.isAdmin)
       const _ShellDestination(

@@ -189,15 +189,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       : 'Create a new account',
                 ),
               ),
+              if (!_isCreatingAccount) ...[
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: loading ? null : _continueAsGuest,
+                  icon: const Icon(Icons.explore_rounded),
+                  label: const Text('Browse as guest'),
+                ),
+              ],
               TextButton(
                 onPressed: loading ? null : _sendPasswordReset,
                 child: const Text('Forgot password?'),
               ),
               const SizedBox(height: 10),
               const Text(
-                'This stabilization build is limited to invited '
-                'ChurchSnap testers. Guest access will return after its '
-                'permissions are fully separated from member access.',
+                'Guest access includes published church content. Sign in for '
+                'RSVP, check-in, prayer submission, giving history, member '
+                'profile, volunteer, and administrative features.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.black54,
@@ -249,6 +257,24 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _isCreatingAccount = !_isCreatingAccount;
     });
+  }
+
+  Future<void> _continueAsGuest() async {
+    FocusScope.of(context).unfocus();
+
+    final opened = await widget.authController.continueAsGuest();
+
+    if (!mounted || opened) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          widget.authController.errorMessage ?? 'Unable to start guest access.',
+        ),
+      ),
+    );
   }
 
   Future<void> _sendPasswordReset() async {

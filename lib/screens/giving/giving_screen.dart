@@ -55,9 +55,7 @@ class _GivingScreenState extends State<GivingScreen> {
     return value.isEmpty ? 'demo-church' : value;
   }
 
-  bool get _isGuest =>
-      widget.authController.currentUser == null ||
-      widget.authController.currentUser?.id == 'guest';
+  bool get _isGuest => widget.authController.currentUser?.isGuest ?? true;
 
   int get _amountCents {
     final customValue = double.tryParse(

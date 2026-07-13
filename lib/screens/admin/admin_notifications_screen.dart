@@ -18,7 +18,7 @@ class AdminNotificationsScreen extends ConsumerWidget {
     return Material(
       child: ChurchSnapScreen(
         title: 'Notifications',
-        subtitle: 'Send church-wide updates and reminders.',
+        subtitle: 'Send role-targeted updates to active church accounts.',
         children: [
           FilledButton.icon(
             onPressed: () => _openNotificationDialog(context),
@@ -55,6 +55,12 @@ class AdminNotificationsScreen extends ConsumerWidget {
 
               return Column(
                 children: notifications.map((notification) {
+                  final deliveryDetails = notification.recipientCount == 0
+                      ? notification.deliveryLabel
+                      : '${notification.deliveryLabel}: '
+                            '${notification.successCount}/'
+                            '${notification.recipientCount} delivered';
+
                   return AppCard(
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -67,7 +73,8 @@ class AdminNotificationsScreen extends ConsumerWidget {
                       ),
                       subtitle: Text(
                         '${notification.body}\n'
-                        'Target: ${notification.targetRole}',
+                        'Audience: ${notification.audienceLabel}\n'
+                        '$deliveryDetails',
                       ),
                       isThreeLine: true,
                       trailing: PopupMenuButton<String>(
@@ -90,7 +97,7 @@ class AdminNotificationsScreen extends ConsumerWidget {
                             child: ListTile(
                               contentPadding: EdgeInsets.zero,
                               leading: Icon(Icons.edit_rounded),
-                              title: Text('Edit'),
+                              title: Text('Edit record'),
                             ),
                           ),
                           PopupMenuItem(
@@ -132,8 +139,8 @@ class AdminNotificationsScreen extends ConsumerWidget {
       SnackBar(
         content: Text(
           notification == null
-              ? 'Notification created.'
-              : 'Notification updated.',
+              ? 'Notification queued for delivery.'
+              : 'Notification record updated. It was not resent.',
         ),
       ),
     );
@@ -144,6 +151,33 @@ class AdminNotificationsScreen extends ConsumerWidget {
     WidgetRef ref,
     AppNotification notification,
   ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete notification?'),
+          content: const Text(
+            'This removes the notification record. Messages already delivered '
+            'to devices cannot be recalled.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+
     try {
       await ref
           .read(notificationServiceByChurchProvider(churchId))
@@ -181,7 +215,6 @@ class _NotificationDialog extends ConsumerStatefulWidget {
 
 class _NotificationDialogState extends ConsumerState<_NotificationDialog> {
   late final TextEditingController _titleController;
-
   late final TextEditingController _bodyController;
 
   late String _targetRole;
@@ -199,10 +232,15 @@ class _NotificationDialogState extends ConsumerState<_NotificationDialog> {
     final notification = widget.notification;
 
     _titleController = TextEditingController(text: notification?.title ?? '');
-
     _bodyController = TextEditingController(text: notification?.body ?? '');
 
-    _targetRole = notification?.targetRole ?? 'all';
+    final savedAudience =
+        notification?.targetRole ?? AppNotification.allAudience;
+
+    _targetRole = AppNotification.isValidAudience(savedAudience)
+        ? savedAudience
+        : AppNotification.allAudience;
+
     _type = notification?.type ?? 'announcement';
   }
 
@@ -226,6 +264,7 @@ class _NotificationDialogState extends ConsumerState<_NotificationDialog> {
               TextField(
                 controller: _titleController,
                 enabled: !_saving,
+                maxLength: 120,
                 decoration: const InputDecoration(labelText: 'Title'),
               ),
               const SizedBox(height: 12),
@@ -233,33 +272,23 @@ class _NotificationDialogState extends ConsumerState<_NotificationDialog> {
                 controller: _bodyController,
                 enabled: !_saving,
                 maxLines: 3,
+                maxLength: 500,
                 decoration: const InputDecoration(labelText: 'Message'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _targetRole,
                 decoration: const InputDecoration(labelText: 'Audience'),
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('All')),
-                  DropdownMenuItem(
-                    value: AppRoles.member,
-                    child: Text('Members'),
+                items: [
+                  const DropdownMenuItem(
+                    value: AppNotification.allAudience,
+                    child: Text('All active members'),
                   ),
-                  DropdownMenuItem(
-                    value: AppRoles.volunteer,
-                    child: Text('Volunteers'),
-                  ),
-                  DropdownMenuItem(
-                    value: AppRoles.ministryLeader,
-                    child: Text('Ministry Leaders'),
-                  ),
-                  DropdownMenuItem(
-                    value: AppRoles.groupLeader,
-                    child: Text('Group Leaders'),
-                  ),
-                  DropdownMenuItem(
-                    value: AppRoles.admin,
-                    child: Text('Admins'),
+                  ...AppRoles.assignableRoles.map(
+                    (role) => DropdownMenuItem<String>(
+                      value: role,
+                      child: Text(AppRoles.label(role)),
+                    ),
                   ),
                 ],
                 onChanged: _saving
@@ -303,6 +332,14 @@ class _NotificationDialogState extends ConsumerState<_NotificationDialog> {
                         });
                       },
               ),
+              if (_isEditing) ...[
+                const SizedBox(height: 12),
+                const Text(
+                  'Editing updates the Firestore record only. It does not '
+                  'send the notification again.',
+                  style: TextStyle(fontSize: 12, height: 1.4),
+                ),
+              ],
               if (_errorMessage != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -327,7 +364,7 @@ class _NotificationDialogState extends ConsumerState<_NotificationDialog> {
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(_isEditing ? 'Update' : 'Save'),
+              : Text(_isEditing ? 'Update record' : 'Review and send'),
         ),
       ],
     );
@@ -342,6 +379,45 @@ class _NotificationDialogState extends ConsumerState<_NotificationDialog> {
         _errorMessage = 'Enter both a title and a message.';
       });
       return;
+    }
+
+    if (!AppNotification.isValidAudience(_targetRole)) {
+      setState(() {
+        _errorMessage = 'Choose a supported audience.';
+      });
+      return;
+    }
+
+    if (!_isEditing) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          final audience = _targetRole == AppNotification.allAudience
+              ? 'All active members'
+              : AppRoles.label(_targetRole);
+
+          return AlertDialog(
+            title: const Text('Send notification?'),
+            content: Text(
+              'This will immediately queue "$title" for:\n\n$audience',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Send'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirmed != true || !mounted) {
+        return;
+      }
     }
 
     setState(() {

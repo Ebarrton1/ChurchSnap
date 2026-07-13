@@ -18,17 +18,39 @@ class NotificationRepository {
     return _collection
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map(
-                (document) =>
-                    AppNotification.fromMap(document.id, document.data()),
-              )
-              .toList(),
-        );
+        .map(_mapSnapshot);
+  }
+
+  Stream<List<AppNotification>> watchNotificationsForRole(String role) {
+    final normalizedRole = role.trim();
+
+    if (normalizedRole.isEmpty) {
+      return const Stream<List<AppNotification>>.empty();
+    }
+
+    return _collection
+        .where(
+          'targetRole',
+          whereIn: <String>[AppNotification.allAudience, normalizedRole],
+        )
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(_mapSnapshot);
   }
 
   Future<void> addNotification(AppNotification notification) {
+    if (notification.title.trim().isEmpty || notification.body.trim().isEmpty) {
+      throw ArgumentError('Notification title and message are required.');
+    }
+
+    if (!AppNotification.isValidAudience(notification.targetRole)) {
+      throw ArgumentError.value(
+        notification.targetRole,
+        'targetRole',
+        'Unsupported notification audience.',
+      );
+    }
+
     return _collection.add(notification.toMap());
   }
 
@@ -45,6 +67,14 @@ class NotificationRepository {
       throw ArgumentError.value(id, 'id', 'Notification ID cannot be empty.');
     }
 
+    if (!AppNotification.isValidAudience(targetRole)) {
+      throw ArgumentError.value(
+        targetRole,
+        'targetRole',
+        'Unsupported notification audience.',
+      );
+    }
+
     return _collection.doc(notificationId).update({
       'title': title.trim(),
       'body': body.trim(),
@@ -56,5 +86,15 @@ class NotificationRepository {
 
   Future<void> deleteNotification(String id) {
     return _collection.doc(id).delete();
+  }
+
+  List<AppNotification> _mapSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    return snapshot.docs
+        .map(
+          (document) => AppNotification.fromMap(document.id, document.data()),
+        )
+        .toList();
   }
 }

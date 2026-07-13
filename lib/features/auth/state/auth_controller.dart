@@ -27,7 +27,10 @@ class AuthController extends ChangeNotifier {
   bool get isSignedIn =>
       _status == AuthStatus.authenticated && _currentUser != null;
 
-  bool get isAdmin => AppRoles.canAccessAdmin(_currentUser?.role ?? '');
+  bool get isGuest => _currentUser?.isGuest == true;
+
+  bool get isAdmin =>
+      !isGuest && AppRoles.canAccessAdmin(_currentUser?.role ?? '');
 
   Future<void> _restoreSession() async {
     _status = AuthStatus.loading;
@@ -62,7 +65,9 @@ class AuthController extends ChangeNotifier {
 
     final signedInUser = _currentUser;
 
-    if (signedInUser != null && !signedInUser.isEmailVerified) {
+    if (signedInUser != null &&
+        !signedInUser.isGuest &&
+        !signedInUser.isEmailVerified) {
       final verificationResult = await _repository.sendEmailVerification();
 
       _currentUser = signedInUser;
@@ -96,6 +101,13 @@ class AuthController extends ChangeNotifier {
     return _handleAuthResult(result);
   }
 
+  Future<bool> continueAsGuest() async {
+    _setLoading();
+
+    final result = await _repository.continueAsGuest();
+    return _handleAuthResult(result);
+  }
+
   Future<bool> sendPasswordReset(String email) async {
     if (email.trim().isEmpty) {
       _errorMessage = 'Enter your email address first.';
@@ -103,9 +115,6 @@ class AuthController extends ChangeNotifier {
       return false;
     }
 
-    // Password reset must not switch the entire authentication gate to the
-    // loading screen. Doing so disposes LoginScreen before its confirmation
-    // dialog can be displayed.
     _errorMessage = null;
     notifyListeners();
 
@@ -120,9 +129,13 @@ class AuthController extends ChangeNotifier {
   Future<bool> resendEmailVerification() async {
     final existingUser = _currentUser;
 
-    if (existingUser == null) {
-      _status = AuthStatus.unauthenticated;
-      _errorMessage = 'No signed-in account was found.';
+    if (existingUser == null || existingUser.isGuest) {
+      _status = existingUser == null
+          ? AuthStatus.unauthenticated
+          : AuthStatus.authenticated;
+      _errorMessage = existingUser == null
+          ? 'No signed-in account was found.'
+          : 'Guest accounts do not use email verification.';
       notifyListeners();
       return false;
     }
@@ -142,9 +155,13 @@ class AuthController extends ChangeNotifier {
   Future<bool> refreshEmailVerification() async {
     final existingUser = _currentUser;
 
-    if (existingUser == null) {
-      _status = AuthStatus.unauthenticated;
-      _errorMessage = 'No signed-in account was found.';
+    if (existingUser == null || existingUser.isGuest) {
+      _status = existingUser == null
+          ? AuthStatus.unauthenticated
+          : AuthStatus.authenticated;
+      _errorMessage = existingUser == null
+          ? 'No signed-in account was found.'
+          : 'Guest accounts do not use email verification.';
       notifyListeners();
       return false;
     }
@@ -202,22 +219,6 @@ class AuthController extends ChangeNotifier {
 
     notifyListeners();
     return false;
-  }
-
-  void continueAsGuest() {
-    _currentUser = const ChurchSnapUser(
-      id: 'guest',
-      churchId: 'demo-church',
-      displayName: 'Guest Visitor',
-      email: 'guest@churchsnap.local',
-      role: 'visitor',
-      isEmailVerified: false,
-    );
-
-    _status = AuthStatus.authenticated;
-    _errorMessage = null;
-
-    notifyListeners();
   }
 
   void clearError() {

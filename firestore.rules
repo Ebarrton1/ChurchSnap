@@ -40,6 +40,19 @@ service cloud.firestore {
       ];
     }
 
+    function validNotificationAudience(audience) {
+      return audience == 'all' || validRole(audience);
+    }
+
+    function canReadNotification(churchId, data) {
+      return isAdmin(churchId)
+        || (
+          isActiveMember(churchId)
+          && data.get('targetRole', 'all')
+            in ['all', memberRole(churchId)]
+        );
+    }
+
     function isAdmin(churchId) {
       return isActiveMember(churchId)
         && memberRole(churchId) in ['admin', 'pastor'];
@@ -304,8 +317,23 @@ service cloud.firestore {
       }
 
       match /notifications/{notificationId} {
-        allow read: if isActiveMember(churchId);
-        allow create, update, delete: if isAdmin(churchId);
+        allow get, list: if canReadNotification(churchId, resource.data);
+
+        allow create: if isAdmin(churchId)
+          && validNotificationAudience(
+            request.resource.data.get('targetRole', 'all')
+          )
+          && request.resource.data.get('title', '') is string
+          && request.resource.data.get('title', '').size() > 0
+          && request.resource.data.get('body', '') is string
+          && request.resource.data.get('body', '').size() > 0;
+
+        allow update: if isAdmin(churchId)
+          && validNotificationAudience(
+            request.resource.data.get('targetRole', 'all')
+          );
+
+        allow delete: if isAdmin(churchId);
       }
 
       match /ministries/{ministryId} {
