@@ -1,15 +1,3 @@
-// This file documents the production Firebase implementation target.
-// Keep this stub until you run `flutterfire configure` and add Firebase packages.
-//
-// Planned packages:
-// - firebase_core
-// - firebase_auth
-// - cloud_firestore
-// - google_sign_in
-// - sign_in_with_apple
-//
-// The production class should implement AuthRepository and map FirebaseAuth users
-// to ChurchSnapUser records stored under churches/{churchId}/members/{uid}.
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -26,32 +14,36 @@ class FirebaseAuthRepository implements AuthRepository {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
 
+  ChurchSnapUser? _cachedUser;
+
   static const String defaultChurchId = 'demo-church';
 
   @override
-  ChurchSnapUser? get currentUser {
-    final user = _auth.currentUser;
-    if (user == null) return null;
-
-    return ChurchSnapUser(
-      id: user.uid,
-      churchId: defaultChurchId,
-      displayName: user.displayName ?? 'ChurchSnap Member',
-      email: user.email ?? '',
-      role: 'member',
-      isEmailVerified: user.emailVerified,
-    );
-  }
+  ChurchSnapUser? get currentUser => _cachedUser;
 
   @override
   Future<ChurchSnapUser?> restoreCurrentUser() async {
     final firebaseUser = _auth.currentUser;
 
     if (firebaseUser == null) {
+      _cachedUser = null;
       return null;
     }
 
-    return _loadOrCreateUser(firebaseUser);
+    await firebaseUser.reload();
+
+    final refreshedUser = _auth.currentUser;
+
+    if (refreshedUser == null) {
+      _cachedUser = null;
+      return null;
+    }
+
+    await refreshedUser.getIdToken(true);
+
+    final appUser = await _loadOrCreateUser(refreshedUser);
+    _cachedUser = appUser;
+    return appUser;
   }
 
   @override
@@ -59,20 +51,40 @@ class FirebaseAuthRepository implements AuthRepository {
     String email,
     String password,
   ) async {
+    final normalizedEmail = email.trim();
+
+    if (normalizedEmail.isEmpty || password.isEmpty) {
+      return ServiceResult.failure('Enter your email and password.');
+    }
+
     try {
       final credential = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
+        email: normalizedEmail,
         password: password,
       );
 
       final user = credential.user;
+
       if (user == null) {
         return ServiceResult.failure('Unable to sign in.');
       }
 
-      return ServiceResult.success(await _loadOrCreateUser(user));
-    } on FirebaseAuthException catch (e) {
-      return ServiceResult.failure(_friendlyError(e));
+      await user.reload();
+
+      final refreshedUser = _auth.currentUser;
+
+      if (refreshedUser == null) {
+        return ServiceResult.failure('Unable to restore the signed-in user.');
+      }
+
+      await refreshedUser.getIdToken(true);
+
+      final appUser = await _loadOrCreateUser(refreshedUser);
+      _cachedUser = appUser;
+
+      return ServiceResult.success(appUser);
+    } on FirebaseAuthException catch (error) {
+      return ServiceResult.failure(_friendlyError(error));
     } catch (_) {
       return ServiceResult.failure('Sign in failed. Please try again.');
     }
@@ -85,32 +97,75 @@ class FirebaseAuthRepository implements AuthRepository {
     required String password,
     required String churchId,
   }) async {
+    final normalizedName = displayName.trim();
+    final normalizedEmail = email.trim();
+    final normalizedChurchId = churchId.trim().isEmpty
+        ? defaultChurchId
+        : churchId.trim();
+
+    if (normalizedName.isEmpty) {
+      return ServiceResult.failure('Enter your full name.');
+    }
+
+    if (normalizedEmail.isEmpty) {
+      return ServiceResult.failure('Enter your email address.');
+    }
+
+    if (password.length < 6) {
+      return ServiceResult.failure('Password must be at least 6 characters.');
+    }
+
+    if (normalizedChurchId != defaultChurchId) {
+      return ServiceResult.failure(
+        'This testing build currently supports the ChurchSnap test church only.',
+      );
+    }
+
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
+        email: normalizedEmail,
         password: password,
       );
 
       final user = credential.user;
+
       if (user == null) {
         return ServiceResult.failure('Unable to create account.');
       }
 
-      await user.updateDisplayName(displayName.trim());
+      await user.updateDisplayName(normalizedName);
+      await user.reload();
+
+      final refreshedUser = _auth.currentUser;
+
+      if (refreshedUser == null) {
+        return ServiceResult.failure('Unable to finish account setup.');
+      }
 
       final appUser = ChurchSnapUser(
-        id: user.uid,
-        churchId: churchId.trim().isEmpty ? defaultChurchId : churchId.trim(),
-        displayName: displayName.trim(),
-        email: user.email ?? email.trim(),
+        id: refreshedUser.uid,
+        churchId: defaultChurchId,
+        displayName: normalizedName,
+        email: refreshedUser.email ?? normalizedEmail,
         role: 'member',
-        isEmailVerified: user.emailVerified,
+        isEmailVerified: refreshedUser.emailVerified,
       );
 
       final savedUser = await _saveUser(appUser);
+
+      if (!refreshedUser.emailVerified) {
+        try {
+          await refreshedUser.sendEmailVerification();
+        } on FirebaseAuthException {
+          // Account creation remains successful. The verification screen
+          // provides a resend action if the initial email could not be sent.
+        }
+      }
+
+      _cachedUser = savedUser;
       return ServiceResult.success(savedUser);
-    } on FirebaseAuthException catch (e) {
-      return ServiceResult.failure(_friendlyError(e));
+    } on FirebaseAuthException catch (error) {
+      return ServiceResult.failure(_friendlyError(error));
     } catch (_) {
       return ServiceResult.failure(
         'Account creation failed. Please try again.',
@@ -120,33 +175,109 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<ServiceResult<void>> sendPasswordReset(String email) async {
+    final normalizedEmail = email.trim();
+
+    if (normalizedEmail.isEmpty) {
+      return ServiceResult.failure('Enter your email address first.');
+    }
+
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      await _auth.sendPasswordResetEmail(email: normalizedEmail);
       return ServiceResult.success(null);
-    } on FirebaseAuthException catch (e) {
-      return ServiceResult.failure(_friendlyError(e));
+    } on FirebaseAuthException catch (error) {
+      return ServiceResult.failure(_friendlyError(error));
     } catch (_) {
       return ServiceResult.failure('Password reset failed. Please try again.');
     }
   }
 
   @override
+  Future<ServiceResult<void>> sendEmailVerification() async {
+    try {
+      final user = _auth.currentUser;
+
+      if (user == null) {
+        return ServiceResult.failure('No signed-in account was found.');
+      }
+
+      await user.reload();
+
+      final refreshedUser = _auth.currentUser;
+
+      if (refreshedUser == null) {
+        return ServiceResult.failure('No signed-in account was found.');
+      }
+
+      if (refreshedUser.emailVerified) {
+        return ServiceResult.success(null);
+      }
+
+      await refreshedUser.sendEmailVerification();
+      return ServiceResult.success(null);
+    } on FirebaseAuthException catch (error) {
+      return ServiceResult.failure(_friendlyError(error));
+    } catch (_) {
+      return ServiceResult.failure(
+        'Unable to send the verification email. Please try again.',
+      );
+    }
+  }
+
+  @override
+  Future<ServiceResult<ChurchSnapUser>> refreshCurrentUser() async {
+    try {
+      final user = _auth.currentUser;
+
+      if (user == null) {
+        return ServiceResult.failure('No signed-in account was found.');
+      }
+
+      await user.reload();
+
+      final refreshedUser = _auth.currentUser;
+
+      if (refreshedUser == null) {
+        return ServiceResult.failure('No signed-in account was found.');
+      }
+
+      await refreshedUser.getIdToken(true);
+
+      final appUser = await _loadOrCreateUser(refreshedUser);
+      _cachedUser = appUser;
+
+      return ServiceResult.success(appUser);
+    } on FirebaseAuthException catch (error) {
+      return ServiceResult.failure(_friendlyError(error));
+    } catch (_) {
+      return ServiceResult.failure(
+        'Unable to refresh your account. Please try again.',
+      );
+    }
+  }
+
+  @override
   Future<ServiceResult<void>> signOut() async {
-    await _auth.signOut();
-    return ServiceResult.success(null);
+    try {
+      await _auth.signOut();
+      _cachedUser = null;
+      return ServiceResult.success(null);
+    } on FirebaseAuthException catch (error) {
+      return ServiceResult.failure(_friendlyError(error));
+    } catch (_) {
+      return ServiceResult.failure('Unable to sign out. Please try again.');
+    }
   }
 
   Future<ChurchSnapUser> _loadOrCreateUser(User user) async {
-    final memberRef = _firestore
+    final memberReference = _firestore
         .collection(FirebasePaths.members(defaultChurchId))
         .doc(user.uid);
 
-    final snapshot = await memberRef.get();
+    final snapshot = await memberReference.get();
+    final data = snapshot.data();
 
-    if (snapshot.exists && snapshot.data() != null) {
-      final data = snapshot.data()!;
-
-      return ChurchSnapUser(
+    if (snapshot.exists && data != null) {
+      final savedUser = ChurchSnapUser(
         id: user.uid,
         churchId: defaultChurchId,
         displayName:
@@ -155,8 +286,12 @@ class FirebaseAuthRepository implements AuthRepository {
             'ChurchSnap Member',
         email: data['email'] as String? ?? user.email ?? '',
         role: data['role'] as String? ?? 'member',
-        isEmailVerified: data['isEmailVerified'] as bool? ?? user.emailVerified,
+        isEmailVerified: user.emailVerified,
       );
+
+      await memberReference.set(savedUser.toMap(), SetOptions(merge: true));
+
+      return savedUser;
     }
 
     final appUser = ChurchSnapUser(
@@ -168,8 +303,7 @@ class FirebaseAuthRepository implements AuthRepository {
       isEmailVerified: user.emailVerified,
     );
 
-    final savedUser = await _saveUser(appUser);
-    return savedUser;
+    return _saveUser(appUser);
   }
 
   Future<ChurchSnapUser> _saveUser(ChurchSnapUser user) async {
@@ -198,8 +332,8 @@ class FirebaseAuthRepository implements AuthRepository {
     return savedUser;
   }
 
-  String _friendlyError(FirebaseAuthException e) {
-    switch (e.code) {
+  String _friendlyError(FirebaseAuthException error) {
+    switch (error.code) {
       case 'invalid-email':
         return 'Please enter a valid email address.';
       case 'user-disabled':
@@ -214,8 +348,14 @@ class FirebaseAuthRepository implements AuthRepository {
         return 'Password must be at least 6 characters.';
       case 'network-request-failed':
         return 'Network error. Check your connection.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please wait and try again.';
+      case 'operation-not-allowed':
+        return 'This sign-in method is not enabled.';
+      case 'requires-recent-login':
+        return 'Please sign in again before continuing.';
       default:
-        return e.message ?? 'Authentication failed.';
+        return error.message ?? 'Authentication failed.';
     }
   }
 }

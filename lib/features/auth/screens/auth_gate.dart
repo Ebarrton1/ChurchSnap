@@ -1,7 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../screens/home/churchsnap_shell.dart';
+import '../../notifications/repositories/notification_repository.dart';
+import '../../notifications/services/notification_service.dart';
+import '../models/churchsnap_user.dart';
 import '../state/auth_controller.dart';
+import 'email_verification_screen.dart';
 import 'login_screen.dart';
 
 class AuthGate extends StatefulWidget {
@@ -13,6 +18,7 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   late final AuthController authController;
+  String? _notificationUserId;
 
   @override
   void initState() {
@@ -38,11 +44,42 @@ class _AuthGateState extends State<AuthGate> {
         }
 
         if (!authController.isSignedIn) {
+          _notificationUserId = null;
           return LoginScreen(authController: authController);
         }
 
+        final user = authController.currentUser!;
+
+        if (!_canEnterApp(user)) {
+          return EmailVerificationScreen(authController: authController);
+        }
+
+        _scheduleNotificationInitialization(user);
         return ChurchSnapShell(authController: authController);
       },
     );
+  }
+
+  bool _canEnterApp(ChurchSnapUser user) {
+    return user.id == 'guest' || user.isEmailVerified;
+  }
+
+  void _scheduleNotificationInitialization(ChurchSnapUser user) {
+    if (user.id == 'guest' || _notificationUserId == user.id) return;
+
+    _notificationUserId = user.id;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await NotificationService(
+          NotificationRepository(
+            FirebaseFirestore.instance,
+            churchId: user.churchId,
+          ),
+        ).initializeMessaging(userId: user.id, churchId: user.churchId);
+      } catch (error) {
+        debugPrint('Notification initialization failed: $error');
+      }
+    });
   }
 }
