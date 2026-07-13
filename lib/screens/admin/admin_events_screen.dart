@@ -6,6 +6,8 @@ import '../../features/admin/providers/admin_providers.dart';
 import '../../features/events/repositories/event_repository.dart';
 import '../../models/church_event.dart';
 
+import '../../core/utils/churchsnap_date_formatter.dart';
+
 class AdminEventsScreen extends ConsumerWidget {
   const AdminEventsScreen({super.key, required this.churchId});
 
@@ -48,7 +50,7 @@ class AdminEventsScreen extends ConsumerWidget {
                       leading: CircleAvatar(child: Icon(event.icon)),
                       title: Text(event.title),
                       subtitle: Text(
-                        '${event.when}\n'
+                        '${ChurchSnapDateFormatter.eventDateTime(context, event.startDate, fallback: event.when)}\n'
                         '${event.location}\n'
                         '${event.published ? 'Published' : 'Draft'}',
                       ),
@@ -176,7 +178,9 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
                 label: Text(
                   _selectedDate == null
                       ? 'Select date'
-                      : _formatDate(_selectedDate!),
+                      : MaterialLocalizations.of(
+                          context,
+                        ).formatFullDate(_selectedDate!),
                 ),
               ),
               const SizedBox(height: 12),
@@ -345,8 +349,7 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
     final updatedEvent = ChurchEvent(
       id: existingEvent?.id ?? '',
       title: title,
-      when:
-          '${_formatDate(startDate)} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ ${_selectedTime!.format(context)}',
+      when: ChurchSnapDateFormatter.eventDateTime(context, startDate),
       location: location,
       published: _published,
       startDate: startDate,
@@ -386,9 +389,5 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
         _errorMessage = 'Unable to save event: $error';
       });
     }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.month}/${date.day}/${date.year}';
   }
 }

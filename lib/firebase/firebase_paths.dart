@@ -15,6 +15,10 @@ class FirebasePaths {
       '${church(churchId)}/${FirebaseCollectionNames.announcements}';
   static String ministries(String churchId) =>
       '${church(churchId)}/${FirebaseCollectionNames.ministries}';
+  static String givingFunds(String churchId) =>
+      '${church(churchId)}/${FirebaseCollectionNames.givingFunds}';
+  static String donations(String churchId) =>
+      '${church(churchId)}/${FirebaseCollectionNames.donations}';
   static String settings(String churchId) =>
       '${church(churchId)}/${FirebaseCollectionNames.settings}/app';
 }

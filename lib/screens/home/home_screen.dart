@@ -11,6 +11,8 @@ import '../../models/church_event.dart';
 import '../../models/sermon.dart';
 import '../sermons/sermon_detail_screen.dart';
 
+import '../../core/utils/churchsnap_date_formatter.dart';
+
 const Color _homeNavy = Color(0xFF062640);
 const Color _homeAccent = Color(0xFF35B8FF);
 const Color _homeCardText = Color(0xFF071A34);
@@ -626,7 +628,11 @@ class _UpcomingEventCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  event.when,
+                  ChurchSnapDateFormatter.eventDateTime(
+                    context,
+                    event.startDate,
+                    fallback: event.when,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -758,6 +764,15 @@ class _FeaturedMessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sermonDate = sermon.sermonDate ?? sermon.createdAt;
+
+    final details = <String>[
+      if (sermon.speaker.trim().isNotEmpty) sermon.speaker.trim(),
+      if (sermonDate != null)
+        ChurchSnapDateFormatter.fullDate(context, sermonDate, fallback: ''),
+      if (sermon.scripture.trim().isNotEmpty) sermon.scripture.trim(),
+    ].where((value) => value.isNotEmpty).join(' • ');
+
     return _WhiteHomeCard(
       onTap: () {
         Navigator.of(context).push(
@@ -784,7 +799,7 @@ class _FeaturedMessageCard extends StatelessWidget {
                         'assets/icons/sermons.png',
                         width: 88,
                         height: 88,
-                        errorBuilder: (_, _, _) {
+                        errorBuilder: (context, error, stackTrace) {
                           return const Icon(
                             Icons.play_circle_fill_rounded,
                             color: Colors.white,
@@ -797,7 +812,7 @@ class _FeaturedMessageCard extends StatelessWidget {
                 : Image.network(
                     sermon.thumbnailUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) {
+                    errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: const Color(0xFFE6EEF8),
                         child: const Center(
@@ -837,16 +852,10 @@ class _FeaturedMessageCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                if (sermon.speaker.trim().isNotEmpty ||
-                    sermon.scripture.trim().isNotEmpty) ...[
+                if (details.isNotEmpty) ...[
                   const SizedBox(height: 5),
                   Text(
-                    [
-                      if (sermon.speaker.trim().isNotEmpty) sermon.speaker,
-                      if (sermon.scripture.trim().isNotEmpty) sermon.scripture,
-                    ].join(
-                      ' ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ',
-                    ),
+                    details,
                     style: const TextStyle(color: _homeMuted, fontSize: 12),
                   ),
                 ],

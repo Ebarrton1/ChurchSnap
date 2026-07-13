@@ -38,7 +38,7 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
     MediaScreen(churchId: _churchId),
     EventsScreen(authController: widget.authController),
     PrayerScreen(churchId: _churchId),
-    const GivingScreen(),
+    GivingScreen(authController: widget.authController),
     ProfileScreen(authController: widget.authController),
     if (widget.authController.isAdmin)
       AdminDashboardScreen(churchId: _churchId),

@@ -6,6 +6,8 @@ import '../../features/events/providers/event_providers.dart';
 import '../../models/church_event.dart';
 import 'admin_events_screen.dart';
 
+import '../../core/utils/churchsnap_date_formatter.dart';
+
 class AdminCalendarScreen extends ConsumerStatefulWidget {
   const AdminCalendarScreen({super.key, required this.churchId});
 
@@ -222,29 +224,11 @@ class _AdminCalendarScreenState extends ConsumerState<AdminCalendarScreen> {
   }
 
   String _eventDateText(ChurchEvent event) {
-    final startDate = event.startDate;
-
-    if (startDate == null) {
-      return event.when.trim().isEmpty ? 'Date not provided' : event.when;
-    }
-
-    return '${_monthName(startDate.month)} '
-        '${startDate.day}, ${startDate.year} '
-        'at ${_formatTime(startDate)}';
-  }
-
-  String _formatTime(DateTime date) {
-    final hour = date.hour == 0
-        ? 12
-        : date.hour > 12
-        ? date.hour - 12
-        : date.hour;
-
-    final minute = date.minute.toString().padLeft(2, '0');
-
-    final period = date.hour >= 12 ? 'PM' : 'AM';
-
-    return '$hour:$minute $period';
+    return ChurchSnapDateFormatter.eventDateTime(
+      context,
+      event.startDate,
+      fallback: event.when,
+    );
   }
 
   static String _monthName(int month) {
@@ -351,7 +335,7 @@ class _CalendarEventCard extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         subtitle: Text(
-          '${event.when}\n'
+          '${ChurchSnapDateFormatter.eventDateTime(context, event.startDate, fallback: event.when)}\n'
           '${event.location.trim().isEmpty ? 'Location not provided' : event.location}',
         ),
         isThreeLine: true,

@@ -8,6 +8,8 @@ import '../../features/check_in/providers/check_in_providers.dart';
 import '../../features/events/providers/event_providers.dart';
 import '../../models/church_event.dart';
 
+import '../../core/utils/churchsnap_date_formatter.dart';
+
 class EventsScreen extends ConsumerWidget {
   const EventsScreen({super.key, this.authController});
 
@@ -206,7 +208,7 @@ class _EventCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${event.when}\n'
+                        '${ChurchSnapDateFormatter.eventDateTime(context, event.startDate, fallback: event.when)}\n'
                         '${event.location}\n'
                         '${event.rsvpCount} going',
                       ),

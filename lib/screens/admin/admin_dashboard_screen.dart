@@ -18,6 +18,8 @@ import 'admin_sermons_screen.dart';
 import 'admin_small_groups_screen.dart';
 import 'admin_volunteer_schedule_screen.dart';
 
+import 'admin_giving_screen.dart';
+
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key, required this.churchId});
 
@@ -145,9 +147,11 @@ class AdminDashboardScreen extends ConsumerWidget {
         ),
 
         const SectionTitle(title: 'Finance'),
-        const _ComingSoonCard(
+        _AdminNavCard(
           icon: Icons.volunteer_activism_rounded,
           title: 'Giving',
+          subtitle: 'Manage funds and verified contributions',
+          screen: AdminGivingScreen(churchId: churchId),
         ),
 
         _AdminNavCard(
@@ -198,7 +202,10 @@ class _DashboardStatCard extends StatelessWidget {
               style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            Text(title),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
           ],
         ),
       ),
@@ -224,31 +231,15 @@ class _AdminNavCard extends StatelessWidget {
     return AppCard(
       child: ListTile(
         leading: Icon(icon),
-        title: Text(title),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
         },
-      ),
-    );
-  }
-}
-
-class _ComingSoonCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-
-  const _ComingSoonCard({required this.icon, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: const Text('Coming soon'),
-        trailing: const Icon(Icons.chevron_right_rounded),
       ),
     );
   }

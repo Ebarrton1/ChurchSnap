@@ -17,7 +17,34 @@ class EventRepository {
       _firestore.collection(FirebasePaths.events(churchId));
 
   Stream<List<ChurchEvent>> watchPublishedEvents() {
-    return _watchEvents(includeUnpublished: false);
+    return _collection.where('published', isEqualTo: true).snapshots().map((
+      snapshot,
+    ) {
+      final events = snapshot.docs
+          .map((document) => ChurchEvent.fromMap(document.id, document.data()))
+          .toList();
+
+      events.sort((first, second) {
+        final firstDate = first.startDate;
+        final secondDate = second.startDate;
+
+        if (firstDate == null && secondDate == null) {
+          return first.title.compareTo(second.title);
+        }
+
+        if (firstDate == null) {
+          return 1;
+        }
+
+        if (secondDate == null) {
+          return -1;
+        }
+
+        return firstDate.compareTo(secondDate);
+      });
+
+      return events;
+    });
   }
 
   Stream<List<ChurchEvent>> watchAllEvents() {

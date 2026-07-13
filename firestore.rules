@@ -187,14 +187,24 @@ service cloud.firestore {
           );
       }
 
-      match /giving/{givingId} {
-        allow read, create: if signedIn();
-        allow update, delete: if isAdmin(churchId);
+      match /giving_funds/{fundId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin(churchId);
       }
 
       match /donations/{donationId} {
-        allow read, create: if signedIn();
-        allow update, delete: if isAdmin(churchId);
+        allow read: if isAdmin(churchId)
+          || (
+            signedIn()
+            && resource.data.memberId == request.auth.uid
+          );
+
+        allow create, update: if isAdmin(churchId);
+        allow delete: if false;
+      }
+
+      match /giving/{givingId} {
+        allow read, write: if false;
       }
     }
   }

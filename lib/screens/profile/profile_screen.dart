@@ -4,6 +4,7 @@ import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
 import '../volunteers/my_schedule_screen.dart';
 import 'attendance_history_screen.dart';
+import 'giving_history_screen.dart';
 import 'my_qr_code_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -181,15 +182,28 @@ class ProfileScreen extends StatelessWidget {
             trailing: Chip(label: Text('Coming soon')),
           ),
         ),
-        const AppCard(
+        AppCard(
           child: ListTile(
-            leading: CircleAvatar(child: Icon(Icons.receipt_long_rounded)),
-            title: Text(
+            leading: const CircleAvatar(
+              child: Icon(Icons.receipt_long_rounded),
+            ),
+            title: const Text(
               'Giving History',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
-            subtitle: Text('Review contributions and statements'),
-            trailing: Chip(label: Text('Coming soon')),
+            subtitle: const Text('Review verified contributions'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GivingHistoryScreen(
+                    churchId: churchId,
+                    memberId: member.id,
+                  ),
+                ),
+              );
+            },
           ),
         ),
         const SectionTitle(title: 'Account'),
