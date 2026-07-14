@@ -5,6 +5,7 @@ import 'admin_announcements_screen.dart';
 import 'admin_attendance_screen.dart';
 import 'admin_calendar_screen.dart';
 import 'admin_events_screen.dart';
+import 'admin_home_appearance_screen.dart';
 import 'admin_members_screen.dart';
 import 'admin_ministries_screen.dart';
 import 'admin_media_screen.dart';
@@ -77,6 +78,12 @@ class AdminDashboardScreen extends ConsumerWidget {
         ),
 
         const SectionTitle(title: 'Content'),
+        _AdminNavCard(
+          icon: Icons.image_rounded,
+          title: 'Home Welcome Picture',
+          subtitle: 'Customize the home welcome background',
+          screen: AdminHomeAppearanceScreen(churchId: churchId),
+        ),
         _AdminNavCard(
           icon: Icons.campaign_rounded,
           title: 'Announcements',

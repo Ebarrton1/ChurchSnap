@@ -7,6 +7,7 @@ import '../../core/constants/church_config.dart';
 import '../../features/announcements/providers/announcement_providers.dart';
 import '../../features/auth/state/auth_controller.dart';
 import '../../features/events/providers/event_providers.dart';
+import '../../features/home/providers/home_appearance_provider.dart';
 import '../../features/sermons/providers/sermon_providers.dart';
 import '../../models/announcement.dart';
 import '../../models/church_event.dart';
@@ -211,6 +212,13 @@ class _WelcomeHero extends ConsumerWidget {
           orElse: () => const WorshipSettings(),
         );
 
+    final homeAppearance = ref
+        .watch(homeAppearanceProvider(churchId))
+        .maybeWhen(
+          data: (settings) => settings,
+          orElse: () => const HomeAppearanceSettings(),
+        );
+
     final visibleServices = worshipSettings.visibleServices;
 
     final mainService = visibleServices.isEmpty ? null : visibleServices.first;
@@ -247,41 +255,12 @@ class _WelcomeHero extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF153E63), Color(0xFF0C2946)],
-                  ),
+              Positioned.fill(
+                child: _WelcomeHeroImage(
+                  imageUrl: homeAppearance.backgroundImageUrl,
                 ),
               ),
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 225,
-                child: Image.asset(
-                  'assets/home/home_hero_church.jpg',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                ),
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    stops: [0, 0.44, 0.72, 1],
-                    colors: [
-                      Color(0xFA0B2946),
-                      Color(0xE60B2946),
-                      Color(0x730B2946),
-                      Color(0x100B2946),
-                    ],
-                  ),
-                ),
-              ),
+
               DecoratedBox(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.white24),
@@ -358,6 +337,45 @@ class _WelcomeHero extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _WelcomeHeroImage extends StatelessWidget {
+  const _WelcomeHeroImage({required this.imageUrl});
+
+  final String imageUrl;
+
+  Widget _fallbackImage() {
+    return Image.asset(
+      'assets/home/home_hero_church.jpg',
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+      filterQuality: FilterQuality.high,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedUrl = imageUrl.trim();
+
+    if (normalizedUrl.isEmpty) {
+      return _fallbackImage();
+    }
+
+    return Image.network(
+      normalizedUrl,
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+      filterQuality: FilterQuality.high,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) {
+          return child;
+        }
+
+        return _fallbackImage();
+      },
+      errorBuilder: (_, _, _) => _fallbackImage(),
     );
   }
 }

@@ -229,6 +229,21 @@ service cloud.firestore {
         || isAdmin(churchId);
       }
 
+      match /settings/{settingId} {
+        allow read: if settingId == 'homeAppearance';
+
+        allow create, update: if settingId == 'homeAppearance'
+          && isAdmin(churchId)
+          && request.resource.data.keys().hasOnly([
+            'backgroundImageUrl',
+            'storagePath',
+            'updatedAt'
+          ]);
+
+        allow delete: if settingId == 'homeAppearance'
+          && isAdmin(churchId);
+      }
+
       match /announcements/{announcementId} {
         allow read: if resource.data.get('published', false) == true
           || isActiveMember(churchId);
