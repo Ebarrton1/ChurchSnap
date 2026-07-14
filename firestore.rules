@@ -205,11 +205,22 @@ service cloud.firestore {
           || isAdmin(churchId)
         )
         && request.resource.data.keys().hasOnly([
-          'dateOfBirth',
-          'maritalStatus',
-          'gender',
-          'updatedAt'
-        ]);
+            'firstName',
+            'middleName',
+            'lastName',
+            'addressLine1',
+            'addressLine2',
+            'city',
+            'stateOrProvince',
+            'postalCode',
+            'country',
+            'membershipDate',
+            'marriageDate',
+            'dateOfBirth',
+            'maritalStatus',
+            'gender',
+            'updatedAt'
+          ]);
 
         allow delete: if (
           isActiveMember(churchId)

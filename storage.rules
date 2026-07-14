@@ -1,0 +1,54 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function memberExists(churchId) {
+      return signedIn()
+        && firestore.exists(
+          /databases/(default)/documents/churches/$(churchId)/members/$(request.auth.uid)
+        );
+    }
+
+    function isAdmin(churchId) {
+      return memberExists(churchId)
+        && firestore.get(
+          /databases/(default)/documents/churches/$(churchId)/members/$(request.auth.uid)
+        ).data.role in ['admin', 'pastor'];
+    }
+
+    match /churches/{churchId}/member_profile_photos/{memberId}/{fileName} {
+      allow read: if signedIn()
+        && (
+          memberId == request.auth.uid
+          || isAdmin(churchId)
+        );
+
+      allow create, update: if signedIn()
+        && (
+          memberId == request.auth.uid
+          || isAdmin(churchId)
+        )
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+
+      allow delete: if signedIn()
+        && (
+          memberId == request.auth.uid
+          || isAdmin(churchId)
+        );
+    }
+
+    match /churches/{churchId}/media/{allPaths=**} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin(churchId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

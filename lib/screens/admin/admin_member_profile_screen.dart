@@ -1,5 +1,7 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/members/models/church_member.dart';
@@ -24,12 +26,20 @@ class AdminMemberProfileScreen extends ConsumerStatefulWidget {
 class _AdminMemberProfileScreenState
     extends ConsumerState<AdminMemberProfileScreen> {
   late ChurchMember _member;
+
+  final ImagePicker _imagePicker = ImagePicker();
+
   bool _saving = false;
+  bool _uploadingPhoto = false;
 
   @override
   void initState() {
     super.initState();
     _member = widget.member;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _recoverLostPhoto();
+    });
   }
 
   @override
@@ -40,12 +50,16 @@ class _AdminMemberProfileScreenState
 
     return Material(
       child: ChurchSnapScreen(
-        title: _member.displayName.isEmpty
+        title: _member.displayName.trim().isEmpty
             ? 'Member Profile'
-            : _member.displayName,
+            : _member.displayName.trim(),
         subtitle: 'Private member record',
         children: [
-          _MemberIdentityCard(member: _member),
+          _MemberIdentityCard(
+            member: _member,
+            uploadingPhoto: _uploadingPhoto,
+            onChangePhoto: _uploadingPhoto ? null : _chooseProfilePhoto,
+          ),
           const SizedBox(height: 14),
           StreamBuilder<MemberProfileDetails>(
             stream: memberService.watchPrivateProfile(_member.id),
@@ -100,9 +114,10 @@ class _AdminMemberProfileScreenState
               leading: Icon(Icons.lock_rounded),
               title: Text('Private information'),
               subtitle: Text(
-                'Date of birth, marital status, and gender are stored '
-                'separately from the church directory and are available '
-                'only to the member and authorized administrators.',
+                'Legal name, home address, membership dates, birth date, '
+                'marital information, and gender are stored separately from '
+                'the public church directory and are available only to the '
+                'member and authorized administrators.',
               ),
             ),
           ),
@@ -151,9 +166,9 @@ class _AdminMemberProfileScreenState
         _member = result.member;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Member profile updated.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Private member record updated.')),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -170,44 +185,199 @@ class _AdminMemberProfileScreenState
       }
     }
   }
+
+  Future<void> _chooseProfilePhoto() async {
+    try {
+      final photo = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 88,
+        requestFullMetadata: false,
+      );
+
+      if (photo == null) {
+        return;
+      }
+
+      await _uploadProfilePhoto(photo);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to select profile picture: $error')),
+      );
+    }
+  }
+
+  Future<void> _recoverLostPhoto() async {
+    try {
+      final response = await _imagePicker.retrieveLostData();
+
+      if (response.isEmpty || response.files == null) {
+        return;
+      }
+
+      final files = response.files!;
+
+      if (files.isNotEmpty) {
+        await _uploadProfilePhoto(files.first);
+      }
+    } catch (_) {
+      // A lost image is optional. The member can select it again.
+    }
+  }
+
+  Future<void> _uploadProfilePhoto(XFile photo) async {
+    if (_uploadingPhoto) {
+      return;
+    }
+
+    setState(() {
+      _uploadingPhoto = true;
+    });
+
+    try {
+      final bytes = await photo.readAsBytes();
+
+      const maximumBytes = 5 * 1024 * 1024;
+
+      if (bytes.isEmpty) {
+        throw StateError('The selected image is empty.');
+      }
+
+      if (bytes.length > maximumBytes) {
+        throw StateError('The profile picture must be smaller than 5 MB.');
+      }
+
+      final contentType = _safeImageContentType(photo.mimeType);
+      final extension = _fileExtensionForContentType(contentType);
+
+      final storageReference = FirebaseStorage.instance
+          .ref()
+          .child('churches')
+          .child(widget.churchId)
+          .child('member_profile_photos')
+          .child(_member.id)
+          .child('profile.$extension');
+
+      await storageReference.putData(
+        bytes,
+        SettableMetadata(
+          contentType: contentType,
+          cacheControl: 'public,max-age=3600',
+          customMetadata: {'churchId': widget.churchId, 'memberId': _member.id},
+        ),
+      );
+
+      final photoUrl = await storageReference.getDownloadURL();
+
+      final updatedMember = ChurchMember(
+        id: _member.id,
+        displayName: _member.displayName,
+        email: _member.email,
+        phone: _member.phone,
+        photoUrl: photoUrl,
+        role: _member.role,
+        isActive: _member.isActive,
+      );
+
+      await ref
+          .read(memberServiceByChurchProvider(widget.churchId))
+          .updateMember(updatedMember);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _member = updatedMember;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile picture updated.')));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to upload profile picture: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploadingPhoto = false;
+        });
+      }
+    }
+  }
 }
 
 class _MemberIdentityCard extends StatelessWidget {
-  const _MemberIdentityCard({required this.member});
+  const _MemberIdentityCard({
+    required this.member,
+    required this.uploadingPhoto,
+    required this.onChangePhoto,
+  });
 
   final ChurchMember member;
+  final bool uploadingPhoto;
+  final VoidCallback? onChangePhoto;
 
   @override
   Widget build(BuildContext context) {
+    final photoUrl = member.photoUrl.trim();
+    final displayName = member.displayName.trim().isEmpty
+        ? 'Unnamed Member'
+        : member.displayName.trim();
+
     return AppCard(
       child: Column(
         children: [
           CircleAvatar(
-            radius: 34,
-            backgroundImage: member.photoUrl.trim().isEmpty
-                ? null
-                : NetworkImage(member.photoUrl),
-            child: member.photoUrl.trim().isEmpty
+            radius: 80,
+            backgroundImage: photoUrl.isEmpty ? null : NetworkImage(photoUrl),
+            child: photoUrl.isEmpty
                 ? Text(
-                    member.displayName.trim().isEmpty
+                    displayName.isEmpty
                         ? '?'
-                        : member.displayName.trim()[0].toUpperCase(),
+                        : displayName.substring(0, 1).toUpperCase(),
                     style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w900,
                     ),
                   )
                 : null,
           ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: onChangePhoto,
+            icon: uploadingPhoto
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_a_photo_rounded),
+            label: Text(
+              uploadingPhoto
+                  ? 'Uploading picture...'
+                  : photoUrl.isEmpty
+                  ? 'Add Profile Picture'
+                  : 'Change Profile Picture',
+            ),
+          ),
           const SizedBox(height: 12),
           Text(
-            member.displayName.trim().isEmpty
-                ? 'Unnamed Member'
-                : member.displayName.trim(),
+            displayName,
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           _ProfileRow(
@@ -247,29 +417,44 @@ class _PersonalDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateOfBirth = details.dateOfBirth;
-    final formattedDate = dateOfBirth == null
-        ? 'Not provided'
-        : MaterialLocalizations.of(context).formatMediumDate(dateOfBirth);
-
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Personal Details',
+            'Private Member Details',
             style: Theme.of(
               context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           _ProfileRow(
-            icon: Icons.cake_rounded,
-            label: 'Date of birth',
-            value: formattedDate,
+            icon: Icons.account_box_rounded,
+            label: 'Full legal name',
+            value: _valueOrNotProvided(details.fullName),
+          ),
+          _ProfileRow(
+            icon: Icons.home_rounded,
+            label: 'Home address',
+            value: _valueOrNotProvided(details.formattedAddress),
+          ),
+          _ProfileRow(
+            icon: Icons.card_membership_rounded,
+            label: 'Membership date',
+            value: _formatDate(context, details.membershipDate),
           ),
           _ProfileRow(
             icon: Icons.favorite_rounded,
+            label: 'Marriage date',
+            value: _formatDate(context, details.marriageDate),
+          ),
+          _ProfileRow(
+            icon: Icons.cake_rounded,
+            label: 'Date of birth',
+            value: _formatDate(context, details.dateOfBirth),
+          ),
+          _ProfileRow(
+            icon: Icons.favorite_border_rounded,
             label: 'Marital status',
             value: _maritalStatusLabel(details.maritalStatus),
           ),
@@ -300,7 +485,7 @@ class _ProfileRow extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon),
-      title: Text(label),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
       subtitle: Text(value),
     );
   }
@@ -317,12 +502,23 @@ class _EditMemberDialog extends StatefulWidget {
 }
 
 class _EditMemberDialogState extends State<_EditMemberDialog> {
-  late final TextEditingController _nameController;
+  late final TextEditingController _displayNameController;
+  late final TextEditingController _firstNameController;
+  late final TextEditingController _middleNameController;
+  late final TextEditingController _lastNameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _addressLine1Controller;
+  late final TextEditingController _addressLine2Controller;
+  late final TextEditingController _cityController;
+  late final TextEditingController _stateController;
+  late final TextEditingController _postalCodeController;
+  late final TextEditingController _countryController;
 
   late String _selectedRole;
   late bool _isActive;
+  late DateTime? _membershipDate;
+  late DateTime? _marriageDate;
   late DateTime? _dateOfBirth;
   late String _maritalStatus;
   late String _gender;
@@ -361,17 +557,77 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
   void initState() {
     super.initState();
 
-    _nameController = TextEditingController(text: widget.member.displayName);
+    final existingNameParts = widget.member.displayName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    final fallbackFirstName = existingNameParts.isEmpty
+        ? ''
+        : existingNameParts.first;
+
+    final fallbackLastName = existingNameParts.length < 2
+        ? ''
+        : existingNameParts.last;
+
+    final fallbackMiddleName = existingNameParts.length < 3
+        ? ''
+        : existingNameParts.sublist(1, existingNameParts.length - 1).join(' ');
+
+    _displayNameController = TextEditingController(
+      text: widget.member.displayName,
+    );
+
+    _firstNameController = TextEditingController(
+      text: widget.details.firstName.trim().isEmpty
+          ? fallbackFirstName
+          : widget.details.firstName,
+    );
+
+    _middleNameController = TextEditingController(
+      text: widget.details.middleName.trim().isEmpty
+          ? fallbackMiddleName
+          : widget.details.middleName,
+    );
+
+    _lastNameController = TextEditingController(
+      text: widget.details.lastName.trim().isEmpty
+          ? fallbackLastName
+          : widget.details.lastName,
+    );
 
     _emailController = TextEditingController(text: widget.member.email);
 
     _phoneController = TextEditingController(text: widget.member.phone);
+
+    _addressLine1Controller = TextEditingController(
+      text: widget.details.addressLine1,
+    );
+
+    _addressLine2Controller = TextEditingController(
+      text: widget.details.addressLine2,
+    );
+
+    _cityController = TextEditingController(text: widget.details.city);
+
+    _stateController = TextEditingController(
+      text: widget.details.stateOrProvince,
+    );
+
+    _postalCodeController = TextEditingController(
+      text: widget.details.postalCode,
+    );
+
+    _countryController = TextEditingController(text: widget.details.country);
 
     _selectedRole = _roles.contains(widget.member.role)
         ? widget.member.role
         : 'member';
 
     _isActive = widget.member.isActive;
+    _membershipDate = widget.details.membershipDate;
+    _marriageDate = widget.details.marriageDate;
     _dateOfBirth = widget.details.dateOfBirth;
 
     _maritalStatus = _maritalStatuses.contains(widget.details.maritalStatus)
@@ -385,35 +641,69 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _displayNameController.dispose();
+    _firstNameController.dispose();
+    _middleNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _addressLine1Controller.dispose();
+    _addressLine2Controller.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _postalCodeController.dispose();
+    _countryController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final dateLabel = _dateOfBirth == null
-        ? 'Choose date of birth'
-        : MaterialLocalizations.of(context).formatMediumDate(_dateOfBirth!);
-
     return AlertDialog(
-      title: const Text('Edit Member Profile'),
+      title: const Text('Edit Private Member Record'),
       content: SingleChildScrollView(
         child: SizedBox(
-          width: 460,
+          width: 520,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const _DialogSectionTitle(title: 'Member Identity'),
               TextField(
-                controller: _nameController,
+                controller: _displayNameController,
                 textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(
-                  labelText: 'Display name',
+                  labelText: 'Directory display name',
+                  prefixIcon: Icon(Icons.badge_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _firstNameController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'First name',
                   prefixIcon: Icon(Icons.person_rounded),
                 ),
               ),
               const SizedBox(height: 12),
+              TextField(
+                controller: _middleNameController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Middle name',
+                  prefixIcon: Icon(Icons.person_outline_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _lastNameController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Last name',
+                  prefixIcon: Icon(Icons.person_rounded),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const _DialogSectionTitle(title: 'Contact Information'),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -431,31 +721,133 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
                   prefixIcon: Icon(Icons.phone_rounded),
                 ),
               ),
-              const SizedBox(height: 12),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.cake_rounded),
-                title: const Text('Date of birth'),
-                subtitle: Text(dateLabel),
-                trailing: _dateOfBirth == null
-                    ? const Icon(Icons.calendar_month_rounded)
-                    : IconButton(
-                        tooltip: 'Clear date',
-                        onPressed: () {
-                          setState(() {
-                            _dateOfBirth = null;
-                          });
-                        },
-                        icon: const Icon(Icons.clear_rounded),
-                      ),
-                onTap: _chooseDateOfBirth,
+              const SizedBox(height: 18),
+              const _DialogSectionTitle(title: 'Home Address'),
+              TextField(
+                controller: _addressLine1Controller,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Street address',
+                  prefixIcon: Icon(Icons.home_rounded),
+                ),
               ),
               const SizedBox(height: 12),
+              TextField(
+                controller: _addressLine2Controller,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Apartment, suite, or unit',
+                  prefixIcon: Icon(Icons.apartment_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _cityController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'City',
+                  prefixIcon: Icon(Icons.location_city_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _stateController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'State or province',
+                  prefixIcon: Icon(Icons.map_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _postalCodeController,
+                keyboardType: TextInputType.streetAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Postal or ZIP code',
+                  prefixIcon: Icon(Icons.markunread_mailbox_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _countryController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Country',
+                  prefixIcon: Icon(Icons.public_rounded),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const _DialogSectionTitle(title: 'Important Dates'),
+              _DateSelectionTile(
+                icon: Icons.card_membership_rounded,
+                title: 'Membership date',
+                value: _membershipDate,
+                onTap: () => _chooseDate(
+                  currentValue: _membershipDate,
+                  helpText: 'Select membership date',
+                  onSelected: (date) {
+                    setState(() {
+                      _membershipDate = date;
+                    });
+                  },
+                ),
+                onClear: _membershipDate == null
+                    ? null
+                    : () {
+                        setState(() {
+                          _membershipDate = null;
+                        });
+                      },
+              ),
+              _DateSelectionTile(
+                icon: Icons.favorite_rounded,
+                title: 'Date of marriage',
+                value: _marriageDate,
+                onTap: () => _chooseDate(
+                  currentValue: _marriageDate,
+                  helpText: 'Select date of marriage',
+                  onSelected: (date) {
+                    setState(() {
+                      _marriageDate = date;
+                    });
+                  },
+                ),
+                onClear: _marriageDate == null
+                    ? null
+                    : () {
+                        setState(() {
+                          _marriageDate = null;
+                        });
+                      },
+              ),
+              _DateSelectionTile(
+                icon: Icons.cake_rounded,
+                title: 'Date of birth',
+                value: _dateOfBirth,
+                onTap: () => _chooseDate(
+                  currentValue: _dateOfBirth,
+                  helpText: 'Select date of birth',
+                  onSelected: (date) {
+                    setState(() {
+                      _dateOfBirth = date;
+                    });
+                  },
+                ),
+                onClear: _dateOfBirth == null
+                    ? null
+                    : () {
+                        setState(() {
+                          _dateOfBirth = null;
+                        });
+                      },
+              ),
+              const SizedBox(height: 18),
+              const _DialogSectionTitle(title: 'Member Classification'),
               DropdownButtonFormField<String>(
                 initialValue: _maritalStatus,
                 decoration: const InputDecoration(
                   labelText: 'Marital status',
-                  prefixIcon: Icon(Icons.favorite_rounded),
+                  prefixIcon: Icon(Icons.favorite_border_rounded),
                 ),
                 items: _maritalStatuses.map((status) {
                   return DropdownMenuItem<String>(
@@ -493,7 +885,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
                 initialValue: _selectedRole,
                 decoration: const InputDecoration(
                   labelText: 'Role',
-                  prefixIcon: Icon(Icons.badge_rounded),
+                  prefixIcon: Icon(Icons.admin_panel_settings_rounded),
                 ),
                 items: _roles.map((role) {
                   return DropdownMenuItem<String>(
@@ -522,7 +914,10 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
                 const SizedBox(height: 8),
                 Text(
                   _errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ],
@@ -539,40 +934,50 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
     );
   }
 
-  Future<void> _chooseDateOfBirth() async {
+  Future<void> _chooseDate({
+    required DateTime? currentValue,
+    required String helpText,
+    required ValueChanged<DateTime> onSelected,
+  }) async {
     final today = DateUtils.dateOnly(DateTime.now());
-    final defaultDate = DateTime(today.year - 30, today.month, today.day);
 
-    var initialDate = _dateOfBirth ?? defaultDate;
+    var initialDate = currentValue ?? today;
 
     if (initialDate.isAfter(today)) {
       initialDate = today;
     }
 
-    final picked = await showDatePicker(
+    final selectedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(1900),
       lastDate: today,
-      helpText: 'Select date of birth',
+      helpText: helpText,
     );
 
-    if (picked == null || !mounted) {
+    if (selectedDate == null || !mounted) {
       return;
     }
 
-    setState(() {
-      _dateOfBirth = DateUtils.dateOnly(picked);
-    });
+    onSelected(DateUtils.dateOnly(selectedDate));
   }
 
   void _submit() {
-    final displayName = _nameController.text.trim();
+    final firstName = _firstNameController.text.trim();
+    final middleName = _middleNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
     final email = _emailController.text.trim();
 
-    if (displayName.isEmpty) {
+    if (firstName.isEmpty) {
       setState(() {
-        _errorMessage = 'Enter the member name.';
+        _errorMessage = 'Enter the member first name.';
+      });
+      return;
+    }
+
+    if (lastName.isEmpty) {
+      setState(() {
+        _errorMessage = 'Enter the member last name.';
       });
       return;
     }
@@ -583,6 +988,17 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
       });
       return;
     }
+
+    final fullLegalName = [
+      firstName,
+      middleName,
+      lastName,
+    ].where((part) => part.isNotEmpty).join(' ');
+
+    final requestedDisplayName = _displayNameController.text.trim();
+    final displayName = requestedDisplayName.isEmpty
+        ? fullLegalName
+        : requestedDisplayName;
 
     Navigator.of(context).pop(
       _MemberEditResult(
@@ -596,6 +1012,17 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
           isActive: _isActive,
         ),
         details: MemberProfileDetails(
+          firstName: firstName,
+          middleName: middleName,
+          lastName: lastName,
+          addressLine1: _addressLine1Controller.text.trim(),
+          addressLine2: _addressLine2Controller.text.trim(),
+          city: _cityController.text.trim(),
+          stateOrProvince: _stateController.text.trim(),
+          postalCode: _postalCodeController.text.trim(),
+          country: _countryController.text.trim(),
+          membershipDate: _membershipDate,
+          marriageDate: _marriageDate,
           dateOfBirth: _dateOfBirth,
           maritalStatus: _maritalStatus,
           gender: _gender,
@@ -605,11 +1032,113 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
   }
 }
 
+class _DialogSectionTitle extends StatelessWidget {
+  const _DialogSectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+      ),
+    );
+  }
+}
+
+class _DateSelectionTile extends StatelessWidget {
+  const _DateSelectionTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  final IconData icon;
+  final String title;
+  final DateTime? value;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(_formatDate(context, value)),
+      trailing: onClear == null
+          ? const Icon(Icons.calendar_month_rounded)
+          : IconButton(
+              tooltip: 'Clear date',
+              onPressed: onClear,
+              icon: const Icon(Icons.clear_rounded),
+            ),
+      onTap: onTap,
+    );
+  }
+}
+
 class _MemberEditResult {
   const _MemberEditResult({required this.member, required this.details});
 
   final ChurchMember member;
   final MemberProfileDetails details;
+}
+
+String _valueOrNotProvided(String value) {
+  final cleanedValue = value.trim();
+  return cleanedValue.isEmpty ? 'Not provided' : cleanedValue;
+}
+
+String _formatDate(BuildContext context, DateTime? value) {
+  if (value == null) {
+    return 'Not provided';
+  }
+
+  return MaterialLocalizations.of(context).formatMediumDate(value.toLocal());
+}
+
+String _safeImageContentType(String? contentType) {
+  switch (contentType?.toLowerCase()) {
+    case 'image/png':
+      return 'image/png';
+    case 'image/webp':
+      return 'image/webp';
+    case 'image/heic':
+      return 'image/heic';
+    case 'image/heif':
+      return 'image/heif';
+    case 'image/jpeg':
+    case 'image/jpg':
+    default:
+      return 'image/jpeg';
+  }
+}
+
+String _fileExtensionForContentType(String contentType) {
+  switch (contentType) {
+    case 'image/png':
+      return 'png';
+    case 'image/webp':
+      return 'webp';
+    case 'image/heic':
+      return 'heic';
+    case 'image/heif':
+      return 'heif';
+    case 'image/jpeg':
+    default:
+      return 'jpg';
+  }
 }
 
 String _roleLabel(String role) {
