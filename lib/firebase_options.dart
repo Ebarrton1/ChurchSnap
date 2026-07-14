@@ -54,7 +54,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyC3XhBm9P-CzaLFXZbUjlOYr64dDo8CFOo',
-    appId: '1:1008639778895:android:ba08ba294736ba53baca3a',
+    appId: '1:1008639778895:android:6e130ffd69747ad7baca3a',
     messagingSenderId: '1008639778895',
     projectId: 'churchsnap-d8fe6',
     storageBucket: 'churchsnap-d8fe6.firebasestorage.app',
