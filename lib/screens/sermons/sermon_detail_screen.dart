@@ -189,7 +189,14 @@ class _SermonDetailScreenState extends ConsumerState<SermonDetailScreen> {
               subtitle: Text('Video, audio, or notes have not been added yet.'),
             ),
           ),
-        const SectionTitle(title: 'Actions'),
+        const Text(
+          'Actions',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 21,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         AppCard(
           child: Column(
             children: [
@@ -316,7 +323,7 @@ class _SermonDetailScreenState extends ConsumerState<SermonDetailScreen> {
   }
 
   Widget _buildThumbnail() {
-    if (sermon.thumbnailUrl.isEmpty) {
+    if (sermon.displayThumbnailUrl.isEmpty) {
       return const AppCard(
         child: SizedBox(
           width: double.infinity,
@@ -332,7 +339,7 @@ class _SermonDetailScreenState extends ConsumerState<SermonDetailScreen> {
         child: AspectRatio(
           aspectRatio: 16 / 9,
           child: Image.network(
-            sermon.thumbnailUrl,
+            sermon.displayThumbnailUrl,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return const ColoredBox(
@@ -539,7 +546,7 @@ class _ActionCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.onTap,
+    this.onTap,
     this.trailing,
   });
 
@@ -551,15 +558,130 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: CircleAvatar(child: Icon(icon)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text(subtitle),
-        trailing: trailing ?? const Icon(Icons.chevron_right_rounded),
-        onTap: onTap,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: const Color(0xFF123A63),
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 26),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.76),
+                          fontSize: 13,
+                          height: 1.3,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                trailing ??
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white,
+                    ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
+}
+
+extension _SermonDisplayThumbnail on Sermon {
+  String get displayThumbnailUrl {
+    final manualThumbnail = thumbnailUrl.trim();
+
+    if (manualThumbnail.isNotEmpty) {
+      return manualThumbnail;
+    }
+
+    final videoId = _youtubeVideoId(videoUrl);
+
+    if (videoId == null) {
+      return '';
+    }
+
+    return 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+  }
+}
+
+String? _youtubeVideoId(String rawUrl) {
+  final value = rawUrl.trim();
+
+  if (value.isEmpty) {
+    return null;
+  }
+
+  final normalizedUrl = value.contains('://') ? value : 'https://$value';
+
+  final uri = Uri.tryParse(normalizedUrl);
+
+  if (uri == null) {
+    return null;
+  }
+
+  final host = uri.host.toLowerCase();
+  String? videoId;
+
+  if (host == 'youtu.be' || host.endsWith('.youtu.be')) {
+    if (uri.pathSegments.isNotEmpty) {
+      videoId = uri.pathSegments.first;
+    }
+  } else if (host == 'youtube.com' || host.endsWith('.youtube.com')) {
+    final firstSegment = uri.pathSegments.isEmpty
+        ? ''
+        : uri.pathSegments.first.toLowerCase();
+
+    if (firstSegment == 'embed' ||
+        firstSegment == 'shorts' ||
+        firstSegment == 'live') {
+      if (uri.pathSegments.length > 1) {
+        videoId = uri.pathSegments[1];
+      }
+    } else {
+      videoId = uri.queryParameters['v'];
+    }
+  }
+
+  final cleanedVideoId = videoId?.trim();
+
+  if (cleanedVideoId == null ||
+      !RegExp(r'^[A-Za-z0-9_-]{11}$').hasMatch(cleanedVideoId)) {
+    return null;
+  }
+
+  return cleanedVideoId;
 }

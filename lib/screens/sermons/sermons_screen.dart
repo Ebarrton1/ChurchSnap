@@ -207,17 +207,18 @@ class _FeaturedSermonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final thumbnailUrl = _resolveSermonThumbnailUrl(sermon);
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (sermon.thumbnailUrl.isNotEmpty)
+          if (thumbnailUrl.isNotEmpty)
             ClipRRect(
               borderRadius: BorderRadius.circular(18),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
                 child: Image.network(
-                  sermon.thumbnailUrl,
+                  thumbnailUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return const ColoredBox(
@@ -253,7 +254,7 @@ class _FeaturedSermonCard extends StatelessWidget {
           Text(
             sermon.speaker.isEmpty
                 ? sermon.scripture
-                : '${sermon.speaker}${sermon.scripture.isEmpty ? '' : ' • ${sermon.scripture}'}',
+                : '${sermon.speaker}${sermon.scripture.isEmpty ? '' : ' â€¢ ${sermon.scripture}'}',
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -268,6 +269,72 @@ class _FeaturedSermonCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _resolveSermonThumbnailUrl(Sermon sermon) {
+  final manualThumbnail = sermon.thumbnailUrl.trim();
+
+  if (manualThumbnail.isNotEmpty) {
+    return manualThumbnail;
+  }
+
+  final videoId = _extractYouTubeVideoId(sermon.videoUrl);
+
+  if (videoId == null) {
+    return '';
+  }
+
+  return 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+}
+
+String? _extractYouTubeVideoId(String rawUrl) {
+  final value = rawUrl.trim();
+
+  if (value.isEmpty) {
+    return null;
+  }
+
+  final normalizedUrl = value.contains('://') ? value : 'https://$value';
+
+  final uri = Uri.tryParse(normalizedUrl);
+
+  if (uri == null) {
+    return null;
+  }
+
+  final host = uri.host.toLowerCase();
+  String? videoId;
+
+  if (host == 'youtu.be' || host.endsWith('.youtu.be')) {
+    if (uri.pathSegments.isNotEmpty) {
+      videoId = uri.pathSegments.first;
+    }
+  } else if (host == 'youtube.com' || host.endsWith('.youtube.com')) {
+    if (uri.pathSegments.isEmpty) {
+      videoId = uri.queryParameters['v'];
+    } else {
+      final firstSegment = uri.pathSegments.first.toLowerCase();
+
+      if (firstSegment == 'watch') {
+        videoId = uri.queryParameters['v'];
+      } else if (<String>{'embed', 'shorts', 'live'}.contains(firstSegment)) {
+        if (uri.pathSegments.length > 1) {
+          videoId = uri.pathSegments[1];
+        }
+      } else {
+        videoId = uri.queryParameters['v'];
+      }
+    }
+  }
+
+  final cleanedVideoId = videoId?.trim();
+
+  if (cleanedVideoId == null ||
+      !RegExp(r'^[A-Za-z0-9_-]{11}$').hasMatch(cleanedVideoId)) {
+    return null;
+  }
+
+  return cleanedVideoId;
 }
 
 class _SermonCard extends StatelessWidget {
@@ -291,7 +358,7 @@ class _SermonCard extends StatelessWidget {
       if (sermon.speaker.isNotEmpty) sermon.speaker,
       if (sermon.duration.isNotEmpty) sermon.duration,
       if (sermon.scripture.isNotEmpty) sermon.scripture,
-    ].join(' • ');
+    ].join(' â€¢ ');
 
     return AppCard(
       child: ListTile(

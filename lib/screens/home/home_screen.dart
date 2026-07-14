@@ -838,14 +838,19 @@ class _FeaturedMessageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sermonDate = sermon.sermonDate ?? sermon.createdAt;
+    final thumbnailUrl = _resolveSermonThumbnailUrl(sermon);
+
+    final sermonDateText = sermonDate == null
+        ? ''
+        : MaterialLocalizations.of(
+            context,
+          ).formatFullDate(sermonDate.toLocal());
 
     final details = <String>[
       if (sermon.speaker.trim().isNotEmpty) sermon.speaker.trim(),
-      if (sermonDate != null)
-        ChurchSnapDateFormatter.fullDate(context, sermonDate, fallback: ''),
+      if (sermonDateText.isNotEmpty) sermonDateText,
       if (sermon.scripture.trim().isNotEmpty) sermon.scripture.trim(),
-    ].where((value) => value.isNotEmpty).join(' Ã¢â‚¬Â¢ ');
-
+    ].join(' | ');
     return _WhiteHomeCard(
       onTap: () {
         Navigator.of(context).push(
@@ -860,7 +865,7 @@ class _FeaturedMessageCard extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 16 / 7.5,
-            child: sermon.thumbnailUrl.trim().isEmpty
+            child: thumbnailUrl.isEmpty
                 ? Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
@@ -883,7 +888,7 @@ class _FeaturedMessageCard extends StatelessWidget {
                     ),
                   )
                 : Image.network(
-                    sermon.thumbnailUrl,
+                    thumbnailUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
@@ -939,6 +944,72 @@ class _FeaturedMessageCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _resolveSermonThumbnailUrl(Sermon sermon) {
+  final manualThumbnail = sermon.thumbnailUrl.trim();
+
+  if (manualThumbnail.isNotEmpty) {
+    return manualThumbnail;
+  }
+
+  final videoId = _extractYouTubeVideoId(sermon.videoUrl);
+
+  if (videoId == null) {
+    return '';
+  }
+
+  return 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+}
+
+String? _extractYouTubeVideoId(String rawUrl) {
+  final value = rawUrl.trim();
+
+  if (value.isEmpty) {
+    return null;
+  }
+
+  final normalizedUrl = value.contains('://') ? value : 'https://$value';
+
+  final uri = Uri.tryParse(normalizedUrl);
+
+  if (uri == null) {
+    return null;
+  }
+
+  final host = uri.host.toLowerCase();
+  String? videoId;
+
+  if (host == 'youtu.be' || host.endsWith('.youtu.be')) {
+    if (uri.pathSegments.isNotEmpty) {
+      videoId = uri.pathSegments.first;
+    }
+  } else if (host == 'youtube.com' || host.endsWith('.youtube.com')) {
+    if (uri.pathSegments.isEmpty) {
+      videoId = uri.queryParameters['v'];
+    } else {
+      final firstSegment = uri.pathSegments.first.toLowerCase();
+
+      if (firstSegment == 'watch') {
+        videoId = uri.queryParameters['v'];
+      } else if (<String>{'embed', 'shorts', 'live'}.contains(firstSegment)) {
+        if (uri.pathSegments.length > 1) {
+          videoId = uri.pathSegments[1];
+        }
+      } else {
+        videoId = uri.queryParameters['v'];
+      }
+    }
+  }
+
+  final cleanedVideoId = videoId?.trim();
+
+  if (cleanedVideoId == null ||
+      !RegExp(r'^[A-Za-z0-9_-]{11}$').hasMatch(cleanedVideoId)) {
+    return null;
+  }
+
+  return cleanedVideoId;
 }
 
 class _ChurchUpdateSection extends ConsumerWidget {
