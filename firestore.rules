@@ -316,6 +316,11 @@ service cloud.firestore {
         allow update, delete: if isAdmin(churchId);
       }
 
+      match /settings/{settingId} {
+        allow read: if signedIn();
+        allow create, update, delete: if isAdmin(churchId);
+      }
+
       match /notifications/{notificationId} {
         allow get, list: if canReadNotification(churchId, resource.data);
 
@@ -438,3 +443,4 @@ service cloud.firestore {
     }
   }
 }
+

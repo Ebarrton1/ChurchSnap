@@ -1,3 +1,5 @@
+import '../../features/worship/providers/worship_settings_providers.dart';
+import '../../features/worship/models/worship_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -69,9 +71,13 @@ class HomeScreen extends ConsumerWidget {
               },
             ),
             const SizedBox(height: 12),
-            _WelcomeHero(firstName: firstName, onJoinUs: () => onSelectTab(3)),
+            _WelcomeHero(
+              churchId: churchId,
+              firstName: firstName,
+              onJoinUs: () => onSelectTab(3),
+            ),
             const SizedBox(height: 12),
-            _TodayServiceCard(onOpen: () => onSelectTab(3)),
+            _TodayServiceCard(churchId: churchId, onOpen: () => onSelectTab(3)),
             const SizedBox(height: 12),
             _QuickActions(
               onSermons: () => onSelectTab(1),
@@ -185,14 +191,47 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-class _WelcomeHero extends StatelessWidget {
-  const _WelcomeHero({required this.firstName, required this.onJoinUs});
+class _WelcomeHero extends ConsumerWidget {
+  const _WelcomeHero({
+    required this.churchId,
+    required this.firstName,
+    required this.onJoinUs,
+  });
 
+  final String churchId;
   final String firstName;
   final VoidCallback onJoinUs;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final worshipSettings = ref
+        .watch(worshipSettingsProvider(churchId))
+        .maybeWhen(
+          data: (settings) => settings,
+          orElse: () => const WorshipSettings(),
+        );
+
+    final visibleServices = worshipSettings.visibleServices;
+
+    final mainService = visibleServices.isEmpty ? null : visibleServices.first;
+
+    final configuredDay = mainService?.dayLabel.trim() ?? '';
+    final normalizedDay = configuredDay.toLowerCase();
+
+    final String mainWorshipDay;
+
+    if (normalizedDay.contains('saturday') ||
+        normalizedDay.contains('sabbath')) {
+      mainWorshipDay = 'Saturday';
+    } else if (normalizedDay.contains('sunday')) {
+      mainWorshipDay = 'Sunday';
+    } else if (configuredDay.isNotEmpty) {
+      mainWorshipDay = configuredDay;
+    } else {
+      mainWorshipDay = 'Sunday';
+    }
+
+    final joinButtonText = 'Join Us This $mainWorshipDay For Main Worship';
     final welcomeText = firstName.isEmpty
         ? 'We\u2019re glad\nyou\u2019re here!'
         : 'We\u2019re glad you\u2019re\nhere, $firstName!';
@@ -255,7 +294,7 @@ class _WelcomeHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'WELCOME HOME',
+                      'WELCOME',
                       style: TextStyle(
                         color: Color(0xFFBDEAFF),
                         fontSize: 12,
@@ -301,9 +340,15 @@ class _WelcomeHero extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text(
-                        'Join Us This Sunday',
-                        style: TextStyle(fontWeight: FontWeight.w900),
+                      child: Text(
+                        joinButtonText,
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.15,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ],
@@ -317,13 +362,41 @@ class _WelcomeHero extends StatelessWidget {
   }
 }
 
-class _TodayServiceCard extends StatelessWidget {
-  const _TodayServiceCard({required this.onOpen});
+class _TodayServiceCard extends ConsumerWidget {
+  const _TodayServiceCard({required this.churchId, required this.onOpen});
 
+  final String churchId;
   final VoidCallback onOpen;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref
+        .watch(worshipSettingsProvider(churchId))
+        .maybeWhen(
+          data: (value) => value,
+          orElse: () => const WorshipSettings(),
+        );
+
+    if (!settings.showSection) {
+      return const SizedBox.shrink();
+    }
+
+    final configuredTitle = settings.sectionTitle.trim();
+    final configuredSchedule = settings.scheduleSummary.trim();
+    final configuredLeader = settings.leaderText.trim();
+
+    final title = configuredTitle.isEmpty
+        ? churchConfig.worshipTitle
+        : configuredTitle;
+
+    final schedule = configuredSchedule.isEmpty
+        ? churchConfig.primaryServiceTime
+        : configuredSchedule;
+
+    final leader = configuredLeader.isEmpty
+        ? 'Pastor and Worship Team'
+        : configuredLeader;
+
     return Material(
       color: const Color(0xFFF8FAFC),
       borderRadius: BorderRadius.circular(17),
@@ -351,7 +424,7 @@ class _TodayServiceCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        churchConfig.worshipTitle,
+                        title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -364,12 +437,12 @@ class _TodayServiceCard extends StatelessWidget {
                       const Spacer(),
                       _ServiceInfoLine(
                         icon: Icons.schedule_rounded,
-                        text: churchConfig.primaryServiceTime,
+                        text: schedule,
                       ),
                       const SizedBox(height: 7),
-                      const _ServiceInfoLine(
+                      _ServiceInfoLine(
                         icon: Icons.person_rounded,
-                        text: 'Pastor and Worship Team',
+                        text: leader,
                       ),
                     ],
                   ),
@@ -771,7 +844,7 @@ class _FeaturedMessageCard extends StatelessWidget {
       if (sermonDate != null)
         ChurchSnapDateFormatter.fullDate(context, sermonDate, fallback: ''),
       if (sermon.scripture.trim().isNotEmpty) sermon.scripture.trim(),
-    ].where((value) => value.isNotEmpty).join(' • ');
+    ].where((value) => value.isNotEmpty).join(' Ã¢â‚¬Â¢ ');
 
     return _WhiteHomeCard(
       onTap: () {

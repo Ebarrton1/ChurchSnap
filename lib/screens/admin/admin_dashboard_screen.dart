@@ -20,6 +20,8 @@ import 'admin_volunteer_schedule_screen.dart';
 
 import 'admin_giving_screen.dart';
 
+import 'admin_worship_settings_screen.dart';
+
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key, required this.churchId});
 
@@ -99,6 +101,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           title: 'Media',
           subtitle: 'Videos, podcasts, photos and documents',
           screen: AdminMediaScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
+          icon: Icons.church_rounded,
+          title: 'Worship Settings',
+          subtitle: 'Customize Home worship services and times',
+          screen: AdminWorshipSettingsScreen(churchId: churchId),
         ),
         const SectionTitle(title: 'People'),
         _AdminNavCard(

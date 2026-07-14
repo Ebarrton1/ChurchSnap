@@ -49,6 +49,6 @@ const churchConfig = ChurchConfig(
   pastorName: 'Pastor John',
   worshipDay: WorshipDay.both,
   primaryServiceLabel: 'Weekend Worship',
-  primaryServiceTime: 'Sabbath 11:00 AM • Sunday 10:00 AM',
-  address: '123 Faith Avenue • Your City',
+  primaryServiceTime: 'Sabbath at 11:00 AM | Sunday at 10:00 AM',
+  address: '123 Faith Avenue | Your City',
 );
