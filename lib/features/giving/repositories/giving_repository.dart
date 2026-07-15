@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../firebase/firebase_paths.dart';
 import '../models/donation_record.dart';
 import '../models/giving_fund.dart';
+import '../models/standard_giving_funds.dart';
 
 class GivingRepository {
   GivingRepository({FirebaseFirestore? firestore, required this.churchId})
@@ -17,21 +18,105 @@ class GivingRepository {
   CollectionReference<Map<String, dynamic>> get _donations =>
       _firestore.collection(FirebasePaths.donations(churchId));
 
-  Stream<List<GivingFund>> watchActiveFunds() {
-    return _funds.snapshots().map((snapshot) {
+  Stream<List<GivingFund>> watchActiveFunds() async* {
+    await _ensureSeparateTitheAndOfferingFunds();
+
+    yield* _funds.snapshots().map((snapshot) {
       final funds = snapshot.docs
           .map((document) => GivingFund.fromMap(document.id, document.data()))
           .where((fund) => fund.active)
           .toList();
 
-      funds.sort((left, right) {
-        final orderComparison = left.sortOrder.compareTo(right.sortOrder);
-        if (orderComparison != 0) return orderComparison;
-        return left.name.toLowerCase().compareTo(right.name.toLowerCase());
-      });
-
-      return funds;
+      return StandardGivingFunds.separateLegacyFund(funds);
     });
+  }
+
+  Future<void> _ensureSeparateTitheAndOfferingFunds() async {
+    try {
+      final snapshot = await _funds.get();
+      var hasTithe = false;
+      var hasOffering = false;
+      var hasDonation = false;
+      final legacyDocuments = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+
+      for (final document in snapshot.docs) {
+        final data = document.data();
+        final name = data['name'] is String ? (data['name'] as String) : '';
+
+        if (StandardGivingFunds.isTithe(id: document.id, name: name)) {
+          hasTithe = true;
+        }
+
+        if (StandardGivingFunds.isOffering(id: document.id, name: name)) {
+          hasOffering = true;
+        }
+        if (StandardGivingFunds.isDonation(id: document.id, name: name)) {
+          hasDonation = true;
+        }
+
+        if (StandardGivingFunds.isLegacyCombinedFund(
+          id: document.id,
+          name: name,
+        )) {
+          legacyDocuments.add(document);
+        }
+      }
+
+      if (hasTithe && hasOffering && hasDonation && legacyDocuments.isEmpty) {
+        return;
+      }
+
+      final batch = _firestore.batch();
+      var hasWrites = false;
+
+      if (!hasTithe) {
+        batch.set(_funds.doc(StandardGivingFunds.tithe.id), {
+          ...StandardGivingFunds.tithe.toMap(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        hasWrites = true;
+      }
+
+      if (!hasOffering) {
+        batch.set(_funds.doc(StandardGivingFunds.offering.id), {
+          ...StandardGivingFunds.offering.toMap(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        hasWrites = true;
+      }
+      if (!hasDonation) {
+        batch.set(_funds.doc(StandardGivingFunds.donation.id), {
+          ...StandardGivingFunds.donation.toMap(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        hasWrites = true;
+      }
+
+      for (final document in legacyDocuments) {
+        batch.set(document.reference, {
+          'name': 'Legacy Tithe & Offering',
+          'description':
+              'Inactive legacy fund retained for historical records.',
+          'active': false,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        hasWrites = true;
+      }
+
+      if (hasWrites) {
+        await batch.commit();
+      }
+    } on FirebaseException catch (error) {
+      // Members and visitors may read funds but cannot migrate them.
+      // The giver UI still separates the legacy fund locally. The first
+      // administrator who opens Giving completes the Firestore migration.
+      if (error.code != 'permission-denied') {
+        rethrow;
+      }
+    }
   }
 
   Stream<List<GivingFund>> watchAllFunds() {

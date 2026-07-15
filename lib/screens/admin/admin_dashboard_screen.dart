@@ -21,6 +21,8 @@ import 'admin_small_groups_screen.dart';
 import 'admin_volunteer_schedule_screen.dart';
 
 import 'admin_giving_screen.dart';
+import 'admin_giving_currency_screen.dart';
+import 'admin_giving_confirmations_screen.dart';
 
 import 'admin_worship_settings_screen.dart';
 
@@ -174,6 +176,18 @@ class AdminDashboardScreen extends ConsumerWidget {
           title: 'Giving',
           subtitle: 'Manage funds and verified contributions',
           screen: AdminGivingScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
+          icon: Icons.currency_exchange_rounded,
+          title: 'Giving Currencies',
+          subtitle: 'Set the default and currencies givers may select',
+          screen: AdminGivingCurrencyScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
+          icon: Icons.fact_check_rounded,
+          title: 'Gift Confirmations',
+          subtitle: 'Confirm the amount and currency actually received',
+          screen: AdminGivingConfirmationsScreen(churchId: churchId),
         ),
 
         _AdminNavCard(

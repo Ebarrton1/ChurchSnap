@@ -499,6 +499,168 @@ service cloud.firestore {
           );
       }
 
+      match /settings/givingCurrency {
+        allow read: if true;
+
+        allow create, update: if isAdmin(churchId)
+          && request.resource.data.keys().hasOnly([
+            'defaultCurrencyCode',
+            'enabledCurrencyCodes',
+            'currencyCode',
+            'currencyName',
+            'currencySymbol',
+            'symbolBeforeAmount',
+            'updatedAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'defaultCurrencyCode',
+            'enabledCurrencyCodes',
+            'currencyCode',
+            'currencyName',
+            'currencySymbol',
+            'symbolBeforeAmount'
+          ])
+          && request.resource.data.defaultCurrencyCode in [
+            'USD',
+            'JMD',
+            'CAD',
+            'GBP',
+            'EUR',
+            'TTD',
+            'BSD',
+            'BBD',
+            'XCD',
+            'GYD',
+            'NGN',
+            'GHS',
+            'ZAR'
+          ]
+          && request.resource.data.enabledCurrencyCodes is list
+          && request.resource.data.enabledCurrencyCodes.size() > 0
+          && request.resource.data.enabledCurrencyCodes.size() <= 13
+          && request.resource.data.defaultCurrencyCode
+            in request.resource.data.enabledCurrencyCodes
+          && request.resource.data.enabledCurrencyCodes.hasOnly([
+            'USD',
+            'JMD',
+            'CAD',
+            'GBP',
+            'EUR',
+            'TTD',
+            'BSD',
+            'BBD',
+            'XCD',
+            'GYD',
+            'NGN',
+            'GHS',
+            'ZAR'
+          ])
+          && request.resource.data.currencyCode
+            == request.resource.data.defaultCurrencyCode
+          && request.resource.data.currencyName is string
+          && request.resource.data.currencyName.size() > 0
+          && request.resource.data.currencyName.size() <= 64
+          && request.resource.data.currencySymbol is string
+          && request.resource.data.currencySymbol.size() > 0
+          && request.resource.data.currencySymbol.size() <= 8
+          && request.resource.data.symbolBeforeAmount is bool
+          && request.resource.data.get('updatedAt', request.time) is timestamp;
+
+        allow delete: if isAdmin(churchId);
+      }
+      match /giving_submissions/{submissionId} {
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly([
+            'giverId',
+            'createdByUid',
+            'giverName',
+            'fundId',
+            'fundName',
+            'amountMinorUnits',
+            'currencyCode',
+            'currencySymbol',
+            'recurring',
+            'status',
+            'submittedAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'giverId',
+            'createdByUid',
+            'giverName',
+            'fundId',
+            'fundName',
+            'amountMinorUnits',
+            'currencyCode',
+            'currencySymbol',
+            'recurring',
+            'status',
+            'submittedAt'
+          ])
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.giverId is string
+          && request.resource.data.giverId.size() > 0
+          && request.resource.data.giverId.size() <= 128
+          && request.resource.data.giverName is string
+          && request.resource.data.giverName.size() > 0
+          && request.resource.data.giverName.size() <= 120
+          && request.resource.data.fundId is string
+          && request.resource.data.fundId.size() > 0
+          && request.resource.data.fundId.size() <= 128
+          && request.resource.data.fundName is string
+          && request.resource.data.fundName.size() > 0
+          && request.resource.data.fundName.size() <= 120
+          && request.resource.data.amountMinorUnits is int
+          && request.resource.data.amountMinorUnits > 0
+          && request.resource.data.amountMinorUnits <= 100000000000
+          && request.resource.data.currencyCode in [
+            'USD',
+            'JMD',
+            'CAD',
+            'GBP',
+            'EUR',
+            'TTD',
+            'BSD',
+            'BBD',
+            'XCD',
+            'GYD',
+            'NGN',
+            'GHS',
+            'ZAR'
+          ]
+          && request.resource.data.currencySymbol is string
+          && request.resource.data.currencySymbol.size() > 0
+          && request.resource.data.currencySymbol.size() <= 8
+          && request.resource.data.recurring is bool
+          && request.resource.data.status == 'pending'
+          && request.resource.data.submittedAt is timestamp;
+
+        allow read: if isAdmin(churchId)
+          || (
+            signedIn()
+            && resource.data.createdByUid == request.auth.uid
+          );
+
+        allow update: if isAdmin(churchId)
+          && request.resource.data.giverId == resource.data.giverId
+          && request.resource.data.createdByUid == resource.data.createdByUid
+          && request.resource.data.giverName == resource.data.giverName
+          && request.resource.data.fundId == resource.data.fundId
+          && request.resource.data.fundName == resource.data.fundName
+          && request.resource.data.amountMinorUnits
+            == resource.data.amountMinorUnits
+          && request.resource.data.currencyCode == resource.data.currencyCode
+          && request.resource.data.currencySymbol
+            == resource.data.currencySymbol
+          && request.resource.data.recurring == resource.data.recurring
+          && request.resource.data.submittedAt == resource.data.submittedAt
+          && request.resource.data.status in [
+            'pending',
+            'confirmed',
+            'rejected'
+          ];
+
+        allow delete: if isAdmin(churchId);
+      }
       match /giving_funds/{fundId} {
         allow read: if true;
         allow create, update, delete: if isAdmin(churchId);
