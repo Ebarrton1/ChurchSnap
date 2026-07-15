@@ -8,6 +8,8 @@ import 'admin_events_screen.dart';
 import 'admin_home_appearance_screen.dart';
 import 'admin_church_connection_screen.dart';
 import 'admin_members_screen.dart';
+import 'admin_member_demographics_screen.dart';
+
 import 'admin_ministries_screen.dart';
 import 'admin_media_screen.dart';
 import '../../features/dashboard/providers/dashboard_providers.dart';
@@ -130,6 +132,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           title: 'Members',
           subtitle: 'Manage church members',
           screen: AdminMembersScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
+          icon: Icons.pie_chart_rounded,
+          title: 'Member Demographics',
+          subtitle: 'View aggregate age, gender, and marital-status totals',
+          screen: AdminMemberDemographicsScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.admin_panel_settings_rounded,
