@@ -9,6 +9,7 @@ import 'admin_home_appearance_screen.dart';
 import 'admin_church_connection_screen.dart';
 import 'admin_members_screen.dart';
 import 'admin_member_demographics_screen.dart';
+import 'admin_upcoming_celebrations_screen.dart';
 
 import 'admin_ministries_screen.dart';
 import 'admin_media_screen.dart';
@@ -138,6 +139,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           title: 'Member Demographics',
           subtitle: 'View aggregate age, gender, and marital-status totals',
           screen: AdminMemberDemographicsScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
+          icon: Icons.celebration_rounded,
+          title: 'Upcoming Celebrations',
+          subtitle: 'Birthdays and anniversaries within the next 7 days',
+          screen: AdminUpcomingCelebrationsScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.admin_panel_settings_rounded,

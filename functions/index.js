@@ -1,6 +1,7 @@
 
 const {setGlobalOptions} = require("firebase-functions");
-const {onDocumentCreated} = require("firebase-functions/v2/firestore");
+const {onDocumentCreated} = require("firebase-functions/v2/firestore");const {onSchedule} = require("firebase-functions/scheduler");
+
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -224,4 +225,350 @@ exports.sendNotificationOnCreate = onDocumentCreated(
       });
     }
   },
+);
+
+const CHURCHSNAP_CELEBRATION_WINDOW_DAYS = 7;
+const CHURCHSNAP_DEFAULT_TIME_ZONE = "America/New_York";
+
+function churchSnapDateParts(date, timeZone) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const values = {};
+
+  for (const part of formatter.formatToParts(date)) {
+    if (part.type !== "literal") {
+      values[part.type] = Number(part.value);
+    }
+  }
+
+  return {
+    year: values.year,
+    month: values.month,
+    day: values.day,
+  };
+}
+
+function churchSnapMonthDay(value, timeZone) {
+  if (!value) {
+    return null;
+  }
+
+  let date = null;
+
+  if (typeof value.toDate === "function") {
+    date = value.toDate();
+  } else if (value instanceof Date) {
+    date = value;
+  } else if (typeof value === "string") {
+    date = new Date(value);
+  }
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const parts = churchSnapDateParts(date, timeZone);
+
+  return `${String(parts.month).padStart(2, "0")}-${String(
+      parts.day,
+  ).padStart(2, "0")}`;
+}
+
+function churchSnapUpcomingDateKeys(now, timeZone) {
+  const today = churchSnapDateParts(now, timeZone);
+  const base = new Date(Date.UTC(today.year, today.month - 1, today.day));
+  const keys = new Map();
+
+  for (
+    let offset = 0;
+    offset <= CHURCHSNAP_CELEBRATION_WINDOW_DAYS;
+    offset += 1
+  ) {
+    const date = new Date(
+        base.getTime() + offset * 24 * 60 * 60 * 1000,
+    );
+    const monthDay = `${String(date.getUTCMonth() + 1).padStart(
+        2,
+        "0",
+    )}-${String(date.getUTCDate()).padStart(2, "0")}`;
+
+    keys.set(monthDay, offset);
+  }
+
+  return {
+    todayKey: `${today.year}-${String(today.month).padStart(
+        2,
+        "0",
+    )}-${String(today.day).padStart(2, "0")}`,
+    keys,
+  };
+}
+
+function churchSnapIsInCelebrationWindow(monthDay, dateWindow) {
+  if (!monthDay) {
+    return false;
+  }
+
+  if (dateWindow.keys.has(monthDay)) {
+    return true;
+  }
+
+  return (
+    monthDay === "02-29" &&
+    !dateWindow.keys.has("02-29") &&
+    dateWindow.keys.has("02-28")
+  );
+}
+
+function churchSnapNotificationBody(
+    birthdayCount,
+    anniversaryCount,
+) {
+  const parts = [];
+
+  if (birthdayCount > 0) {
+    parts.push(
+        `${birthdayCount} birthday${birthdayCount === 1 ? "" : "s"}`,
+    );
+  }
+
+  if (anniversaryCount > 0) {
+    parts.push(
+        `${anniversaryCount} wedding anniversary${
+          anniversaryCount === 1 ? "" : "ies"
+        }`,
+    );
+  }
+
+  return `${parts.join(" and ")} coming up within 7 days.`;
+}
+
+async function churchSnapSendCelebrationPush(tokens, message) {
+  let successCount = 0;
+  let failureCount = 0;
+
+  for (let index = 0; index < tokens.length; index += 500) {
+    const tokenBatch = tokens.slice(index, index + 500);
+    const response = await admin.messaging().sendEachForMulticast({
+      tokens: tokenBatch,
+      notification: message.notification,
+      data: message.data,
+    });
+
+    successCount += response.successCount;
+    failureCount += response.failureCount;
+  }
+
+  return {successCount, failureCount};
+}
+
+exports.sendUpcomingCelebrationAlerts = onSchedule(
+    {
+      schedule: "0 8 * * *",
+      timeZone: CHURCHSNAP_DEFAULT_TIME_ZONE,
+    },
+    async () => {
+      const firestore = admin.firestore();
+      const churchesSnapshot = await firestore
+          .collection("churches")
+          .get();
+      const now = new Date();
+
+      for (const churchDocument of churchesSnapshot.docs) {
+        const churchId = churchDocument.id;
+        const churchData = churchDocument.data();
+        const timeZone =
+          churchData.timeZone ||
+          churchData.timezone ||
+          CHURCHSNAP_DEFAULT_TIME_ZONE;
+
+        if (churchData.celebrationRemindersEnabled === false) {
+          continue;
+        }
+
+        const dateWindow = churchSnapUpcomingDateKeys(now, timeZone);
+        const churchReference = churchDocument.ref;
+        const membersSnapshot = await churchReference
+            .collection("members")
+            .get();
+        const profilesSnapshot = await churchReference
+            .collection("memberPrivateProfiles")
+            .get();
+
+        const membersById = new Map(
+            membersSnapshot.docs.map((document) => [
+              document.id,
+              document.data(),
+            ]),
+        );
+
+        let birthdayCount = 0;
+        let anniversaryCount = 0;
+
+        for (const profileDocument of profilesSnapshot.docs) {
+          const member = membersById.get(profileDocument.id);
+
+          if (!member) {
+            continue;
+          }
+
+          const role = String(member.role || "")
+              .trim()
+              .toLowerCase();
+
+          if (
+            member.isActive === false ||
+            role === "visitor" ||
+            role === "guest"
+          ) {
+            continue;
+          }
+
+          const profile = profileDocument.data();
+          const birthdayKey = churchSnapMonthDay(
+              profile.dateOfBirth,
+              timeZone,
+          );
+
+          if (
+            profile.birthdayReminderEnabled !== false &&
+            churchSnapIsInCelebrationWindow(
+                birthdayKey,
+                dateWindow,
+            )
+          ) {
+            birthdayCount += 1;
+          }
+
+          const anniversaryKey = churchSnapMonthDay(
+              profile.weddingAnniversaryDate,
+              timeZone,
+          );
+          const maritalStatus = String(
+              profile.maritalStatus || "",
+          )
+              .trim()
+              .toLowerCase();
+
+          if (
+            profile.anniversaryReminderEnabled !== false &&
+            maritalStatus === "married" &&
+            churchSnapIsInCelebrationWindow(
+                anniversaryKey,
+                dateWindow,
+            )
+          ) {
+            anniversaryCount += 1;
+          }
+        }
+
+        if (birthdayCount === 0 && anniversaryCount === 0) {
+          continue;
+        }
+
+        const alertReference = churchReference
+            .collection("celebrationAlerts")
+            .doc(`daily-${dateWindow.todayKey}`);
+
+        try {
+          await alertReference.create({
+            birthdayCount,
+            anniversaryCount,
+            windowDays: CHURCHSNAP_CELEBRATION_WINDOW_DAYS,
+            timeZone,
+            status: "processing",
+            createdAt:
+              admin.firestore.FieldValue.serverTimestamp(),
+          });
+        } catch (error) {
+          if (
+            error &&
+            (
+              error.code === 6 ||
+              error.code === "6" ||
+              error.code === "already-exists"
+            )
+          ) {
+            continue;
+          }
+
+          throw error;
+        }
+
+        const tokens = Array.from(
+            new Set(
+                membersSnapshot.docs
+                    .map((document) => document.data())
+                    .filter((member) => {
+                      const role = String(member.role || "")
+                          .trim()
+                          .toLowerCase();
+
+                      return (
+                        member.isActive !== false &&
+                        (role === "admin" || role === "pastor")
+                      );
+                    })
+                    .map((member) => member.fcmToken)
+                    .filter(
+                        (token) =>
+                          typeof token === "string" &&
+                          token.trim().length > 0,
+                    ),
+            ),
+        );
+
+        if (tokens.length === 0) {
+          await alertReference.update({
+            status: "no_admin_device_tokens",
+            completedAt:
+              admin.firestore.FieldValue.serverTimestamp(),
+          });
+          continue;
+        }
+
+        try {
+          const result = await churchSnapSendCelebrationPush(
+              tokens,
+              {
+                notification: {
+                  title: "Upcoming celebrations",
+                  body: churchSnapNotificationBody(
+                      birthdayCount,
+                      anniversaryCount,
+                  ),
+                },
+                data: {
+                  type: "celebrations",
+                  churchId,
+                  windowDays: String(
+                      CHURCHSNAP_CELEBRATION_WINDOW_DAYS,
+                  ),
+                },
+              },
+          );
+
+          await alertReference.update({
+            status: "sent",
+            sentAt:
+              admin.firestore.FieldValue.serverTimestamp(),
+            successCount: result.successCount,
+            failureCount: result.failureCount,
+          });
+        } catch (error) {
+          await alertReference.update({
+            status: "failed",
+            failureMessage: String(error),
+            completedAt:
+              admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          throw error;
+        }
+      }
+    },
 );

@@ -270,6 +270,9 @@ service cloud.firestore {
             'dateOfBirth',
             'maritalStatus',
             'gender',
+          'weddingAnniversaryDate',
+          'birthdayReminderEnabled',
+          'anniversaryReminderEnabled',
             'updatedAt'
           ]);
 
