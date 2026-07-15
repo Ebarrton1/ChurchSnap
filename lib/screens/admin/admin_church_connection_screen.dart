@@ -26,6 +26,8 @@ class _AdminChurchConnectionScreenState
 
   bool _loading = true;
   bool _saving = false;
+  bool _publishSucceeded = false;
+  String? _publishFeedback;
   bool _isPublic = true;
   bool _visitorAccessEnabled = true;
 
@@ -102,8 +104,12 @@ class _AdminChurchConnectionScreenState
       return;
     }
 
+    FocusScope.of(context).unfocus();
+
     setState(() {
       _saving = true;
+      _publishSucceeded = false;
+      _publishFeedback = null;
     });
 
     try {
@@ -123,13 +129,25 @@ class _AdminChurchConnectionScreenState
         return;
       }
 
-      _showMessage('Church connection settings published.');
+      setState(() {
+        _publishSucceeded = true;
+        _publishFeedback =
+            'Connection settings saved and published successfully.';
+      });
+
+      _showMessage('Church connection settings published successfully.');
     } catch (error) {
       if (!mounted) {
         return;
       }
 
-      _showMessage('Unable to save church settings: $error');
+      setState(() {
+        _publishSucceeded = false;
+        _publishFeedback =
+            'The settings were not saved. Check the connection and try again.';
+      });
+
+      _showMessage('Unable to save church settings: $error', isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -352,11 +370,73 @@ class _AdminChurchConnectionScreenState
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.publish_rounded),
+                    : Icon(
+                        _publishSucceeded
+                            ? Icons.check_circle_rounded
+                            : Icons.publish_rounded,
+                      ),
                 label: Text(
-                  _saving ? 'Publishing...' : 'Publish Connection Settings',
+                  _saving
+                      ? 'Publishing...'
+                      : _publishSucceeded
+                      ? 'Published Successfully'
+                      : 'Publish Connection Settings',
                 ),
               ),
+              if (_publishFeedback != null) ...[
+                const SizedBox(height: 8),
+                Semantics(
+                  liveRegion: true,
+                  label: _publishFeedback,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _publishSucceeded
+                          ? const Color(0xFFE7F6EC)
+                          : Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _publishSucceeded
+                            ? const Color(0xFF2E7D4F)
+                            : Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _publishSucceeded
+                              ? Icons.check_circle_rounded
+                              : Icons.error_rounded,
+                          size: 18,
+                          color: _publishSucceeded
+                              ? const Color(0xFF176B3A)
+                              : Theme.of(context).colorScheme.error,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _publishFeedback!,
+                            style: TextStyle(
+                              color: _publishSucceeded
+                                  ? const Color(0xFF124F2D)
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onErrorContainer,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -400,10 +480,43 @@ class _AdminChurchConnectionScreenState
     );
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
+  void _showMessage(String message, {bool isError = false}) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+
+    if (messenger == null) {
+      return;
+    }
+
+    messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+          backgroundColor: isError
+              ? Theme.of(context).colorScheme.error
+              : const Color(0xFF176B3A),
+          content: Row(
+            children: [
+              Icon(
+                isError ? Icons.error_rounded : Icons.check_circle_rounded,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
   }
 
   static String _readString(
