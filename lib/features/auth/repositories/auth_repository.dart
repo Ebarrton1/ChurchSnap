@@ -18,7 +18,9 @@ abstract class AuthRepository {
     required String churchId,
   });
 
-  Future<ServiceResult<ChurchSnapUser>> continueAsGuest();
+  Future<ServiceResult<ChurchSnapUser>> signInAsVisitor({
+    required String churchId,
+  });
 
   Future<ServiceResult<void>> sendPasswordReset(String email);
 

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../../../../core/services/service_result.dart';
 import '../../../../firebase/firebase_paths.dart';
@@ -42,12 +41,6 @@ class FirebaseAuthRepository implements AuthRepository {
 
     await refreshedUser.getIdToken(true);
 
-    if (refreshedUser.isAnonymous) {
-      final guest = ChurchSnapUser.guest(id: refreshedUser.uid);
-      _cachedUser = guest;
-      return guest;
-    }
-
     final appUser = await _loadOrCreateUser(refreshedUser);
     _cachedUser = appUser;
     return appUser;
@@ -65,10 +58,6 @@ class FirebaseAuthRepository implements AuthRepository {
     }
 
     try {
-      if (_auth.currentUser?.isAnonymous == true) {
-        await _auth.signOut();
-      }
-
       final credential = await _auth.signInWithEmailAndPassword(
         email: normalizedEmail,
         password: password,
@@ -110,9 +99,7 @@ class FirebaseAuthRepository implements AuthRepository {
   }) async {
     final normalizedName = displayName.trim();
     final normalizedEmail = email.trim();
-    final normalizedChurchId = churchId.trim().isEmpty
-        ? defaultChurchId
-        : churchId.trim();
+    final normalizedChurchId = churchId.trim();
 
     if (normalizedName.isEmpty) {
       return ServiceResult.failure('Enter your full name.');
@@ -126,15 +113,15 @@ class FirebaseAuthRepository implements AuthRepository {
       return ServiceResult.failure('Password must be at least 6 characters.');
     }
 
-    if (normalizedChurchId != defaultChurchId) {
-      return ServiceResult.failure(
-        'This testing build currently supports the ChurchSnap test church only.',
-      );
+    if (normalizedChurchId.isEmpty) {
+      return ServiceResult.failure('Choose your church.');
     }
 
     try {
-      if (_auth.currentUser?.isAnonymous == true) {
-        await _auth.signOut();
+      if (!await _churchAcceptsVisitors(normalizedChurchId)) {
+        return ServiceResult.failure(
+          'The selected church is not accepting visitor connections.',
+        );
       }
 
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -159,22 +146,25 @@ class FirebaseAuthRepository implements AuthRepository {
 
       final appUser = ChurchSnapUser(
         id: refreshedUser.uid,
-        churchId: defaultChurchId,
+        churchId: normalizedChurchId,
         displayName: normalizedName,
         email: refreshedUser.email ?? normalizedEmail,
-        role: 'member',
+        role: 'visitor',
         isEmailVerified: refreshedUser.emailVerified,
         isActive: true,
       );
 
       final savedUser = await _saveUser(appUser);
+      await _saveChurchLink(
+        userId: refreshedUser.uid,
+        churchId: normalizedChurchId,
+      );
 
       if (!refreshedUser.emailVerified) {
         try {
           await refreshedUser.sendEmailVerification();
         } on FirebaseAuthException {
-          // Account creation remains successful. The verification screen
-          // provides a resend action if the initial email could not be sent.
+          // The verification screen provides a resend action.
         }
       }
 
@@ -190,44 +180,61 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<ServiceResult<ChurchSnapUser>> continueAsGuest() async {
+  Future<ServiceResult<ChurchSnapUser>> signInAsVisitor({
+    required String churchId,
+  }) async {
+    final normalizedChurchId = churchId.trim();
+
+    if (normalizedChurchId.isEmpty) {
+      return ServiceResult.failure('Choose a church first.');
+    }
+
     try {
+      if (!await _churchAcceptsVisitors(normalizedChurchId)) {
+        return ServiceResult.failure(
+          'This church is not accepting visitor connections.',
+        );
+      }
+
       final existingUser = _auth.currentUser;
 
       if (existingUser != null && !existingUser.isAnonymous) {
-        return ServiceResult.failure(
-          'Sign out of the current account before entering guest mode.',
-        );
+        await _auth.signOut();
       }
 
-      if (existingUser?.isAnonymous == true) {
-        final guest = ChurchSnapUser.guest(id: existingUser!.uid);
-        _cachedUser = guest;
-        return ServiceResult.success(guest);
+      User? visitorUser = _auth.currentUser;
+
+      if (visitorUser == null || !visitorUser.isAnonymous) {
+        final credential = await _auth.signInAnonymously();
+        visitorUser = credential.user;
       }
 
-      final credential = await _auth.signInAnonymously();
-      final user = credential.user;
-
-      if (user == null) {
-        return ServiceResult.failure('Unable to start guest access.');
+      if (visitorUser == null) {
+        return ServiceResult.failure('Unable to start visitor access.');
       }
 
-      final guest = ChurchSnapUser.guest(id: user.uid);
-      _cachedUser = guest;
-      return ServiceResult.success(guest);
+      final appUser = ChurchSnapUser(
+        id: visitorUser.uid,
+        churchId: normalizedChurchId,
+        displayName: 'Guest Visitor',
+        email: '',
+        role: 'visitor',
+        isEmailVerified: true,
+        isActive: true,
+      );
+
+      final savedUser = await _saveUser(appUser);
+      await _saveChurchLink(
+        userId: visitorUser.uid,
+        churchId: normalizedChurchId,
+      );
+
+      _cachedUser = savedUser;
+      return ServiceResult.success(savedUser);
     } on FirebaseAuthException catch (error) {
-      if (error.code == 'operation-not-allowed') {
-        return ServiceResult.failure(
-          'Guest access is not enabled in Firebase Authentication yet.',
-        );
-      }
-
       return ServiceResult.failure(_friendlyError(error));
     } catch (_) {
-      return ServiceResult.failure(
-        'Unable to start guest access. Please try again.',
-      );
+      return ServiceResult.failure('Visitor access failed. Please try again.');
     }
   }
 
@@ -259,9 +266,7 @@ class FirebaseAuthRepository implements AuthRepository {
       }
 
       if (user.isAnonymous) {
-        return ServiceResult.failure(
-          'Guest accounts do not use email verification.',
-        );
+        return ServiceResult.success(null);
       }
 
       await user.reload();
@@ -306,12 +311,6 @@ class FirebaseAuthRepository implements AuthRepository {
 
       await refreshedUser.getIdToken(true);
 
-      if (refreshedUser.isAnonymous) {
-        final guest = ChurchSnapUser.guest(id: refreshedUser.uid);
-        _cachedUser = guest;
-        return ServiceResult.success(guest);
-      }
-
       final appUser = await _loadOrCreateUser(refreshedUser);
       _cachedUser = appUser;
 
@@ -328,20 +327,6 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<ServiceResult<void>> signOut() async {
     try {
-      final currentUser = _auth.currentUser;
-
-      if (currentUser != null) {
-        if (currentUser.isAnonymous) {
-          try {
-            await currentUser.delete();
-          } on FirebaseAuthException {
-            // Sign-out still proceeds if anonymous account cleanup fails.
-          }
-        } else {
-          await _removeCurrentMessagingToken(currentUser);
-        }
-      }
-
       await _auth.signOut();
       _cachedUser = null;
       return ServiceResult.success(null);
@@ -353,12 +338,9 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   Future<ChurchSnapUser> _loadOrCreateUser(User user) async {
-    if (user.isAnonymous) {
-      return ChurchSnapUser.guest(id: user.uid);
-    }
-
+    final churchId = await _resolveChurchId(user.uid);
     final memberReference = _firestore
-        .collection(FirebasePaths.members(defaultChurchId))
+        .collection(FirebasePaths.members(churchId))
         .doc(user.uid);
 
     final snapshot = await memberReference.get();
@@ -367,33 +349,95 @@ class FirebaseAuthRepository implements AuthRepository {
     if (snapshot.exists && data != null) {
       final savedUser = ChurchSnapUser(
         id: user.uid,
-        churchId: defaultChurchId,
+        churchId: churchId,
         displayName:
             data['displayName'] as String? ??
             user.displayName ??
-            'ChurchSnap Member',
+            (user.isAnonymous ? 'Guest Visitor' : 'ChurchSnap Member'),
         email: data['email'] as String? ?? user.email ?? '',
-        role: data['role'] as String? ?? 'member',
-        isEmailVerified: user.emailVerified,
+        role:
+            data['role'] as String? ??
+            (user.isAnonymous ? 'visitor' : 'member'),
+        isEmailVerified: user.isAnonymous || user.emailVerified,
         isActive: data['isActive'] as bool? ?? true,
       );
 
       await memberReference.set(savedUser.toMap(), SetOptions(merge: true));
+      await _saveChurchLink(userId: user.uid, churchId: churchId);
 
       return savedUser;
     }
 
     final appUser = ChurchSnapUser(
       id: user.uid,
-      churchId: defaultChurchId,
-      displayName: user.displayName ?? 'ChurchSnap Member',
+      churchId: churchId,
+      displayName: user.isAnonymous
+          ? 'Guest Visitor'
+          : user.displayName ?? 'ChurchSnap Member',
       email: user.email ?? '',
-      role: 'member',
-      isEmailVerified: user.emailVerified,
+      role: 'visitor',
+      isEmailVerified: user.isAnonymous || user.emailVerified,
       isActive: true,
     );
 
-    return _saveUser(appUser);
+    final savedUser = await _saveUser(appUser);
+    await _saveChurchLink(userId: user.uid, churchId: churchId);
+
+    return savedUser;
+  }
+
+  Future<String> _resolveChurchId(String userId) async {
+    final linkSnapshot = await _firestore
+        .collection('userChurchLinks')
+        .doc(userId)
+        .get();
+
+    final linkedChurchId = (linkSnapshot.data()?['churchId'] as String? ?? '')
+        .trim();
+
+    if (linkedChurchId.isNotEmpty) {
+      return linkedChurchId;
+    }
+
+    final defaultMemberSnapshot = await _firestore
+        .collection(FirebasePaths.members(defaultChurchId))
+        .doc(userId)
+        .get();
+
+    if (defaultMemberSnapshot.exists) {
+      return defaultChurchId;
+    }
+
+    return defaultChurchId;
+  }
+
+  Future<bool> _churchAcceptsVisitors(String churchId) async {
+    final snapshot = await _firestore
+        .collection('churches')
+        .doc(churchId)
+        .get();
+
+    if (!snapshot.exists) {
+      return false;
+    }
+
+    final data = snapshot.data() ?? const <String, dynamic>{};
+
+    return (data['isActive'] as bool? ?? true) &&
+        (data['visitorAccessEnabled'] as bool? ?? true);
+  }
+
+  Future<void> _saveChurchLink({
+    required String userId,
+    required String churchId,
+  }) async {
+    await _firestore.collection('userChurchLinks').doc(userId).set(
+      <String, dynamic>{
+        'churchId': churchId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
   }
 
   Future<ChurchSnapUser> _saveUser(ChurchSnapUser user) async {
@@ -427,32 +471,6 @@ class FirebaseAuthRepository implements AuthRepository {
     return savedUser;
   }
 
-  Future<void> _removeCurrentMessagingToken(User user) async {
-    try {
-      final token = await FirebaseMessaging.instance.getToken();
-
-      if (token != null && token.isNotEmpty) {
-        final memberReference = _firestore
-            .collection(FirebasePaths.members(defaultChurchId))
-            .doc(user.uid);
-
-        final memberSnapshot = await memberReference.get();
-        final savedToken = memberSnapshot.data()?['fcmToken'] as String?;
-
-        if (savedToken == token) {
-          await memberReference.update({
-            'fcmToken': FieldValue.delete(),
-            'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-      }
-
-      await FirebaseMessaging.instance.deleteToken();
-    } catch (_) {
-      // Notification cleanup is best-effort and must not block sign-out.
-    }
-  }
-
   String _friendlyError(FirebaseAuthException error) {
     switch (error.code) {
       case 'invalid-email':
@@ -472,7 +490,7 @@ class FirebaseAuthRepository implements AuthRepository {
       case 'too-many-requests':
         return 'Too many attempts. Please wait and try again.';
       case 'operation-not-allowed':
-        return 'This sign-in method is not enabled.';
+        return 'Visitor access is not enabled in Firebase Authentication.';
       case 'requires-recent-login':
         return 'Please sign in again before continuing.';
       default:

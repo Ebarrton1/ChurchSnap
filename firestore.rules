@@ -108,6 +108,46 @@ service cloud.firestore {
         && data.get('userId', '') in ['', currentUserId()];
     }
 
+    function churchPath(churchId) {
+      return /databases/$(database)/documents/churches/$(churchId);
+    }
+
+    function churchAcceptsVisitors(churchId) {
+      return churchId is string
+        && churchId.size() > 0
+        && exists(churchPath(churchId))
+        && get(churchPath(churchId)).data.get('isActive', true) == true
+        && get(churchPath(churchId)).data.get(
+          'visitorAccessEnabled',
+          true
+        ) == true;
+    }
+
+    match /userChurchLinks/{userId} {
+      allow read, delete: if signedIn()
+        && userId == currentUserId();
+
+      allow create, update: if signedIn()
+        && userId == currentUserId()
+        && request.resource.data.keys().hasOnly([
+          'churchId',
+          'updatedAt'
+        ])
+        && request.resource.data.get('churchId', '') is string
+        && request.resource.data.get('churchId', '').size() > 0
+        && (
+          exists(
+            memberPath(
+              request.resource.data.get('churchId', ''),
+              currentUserId()
+            )
+          )
+          || churchAcceptsVisitors(
+            request.resource.data.get('churchId', '')
+          )
+        );
+    }
+
     match /churches/{churchId} {
       allow read: if true;
       allow create, update, delete: if isAdmin(churchId);
@@ -126,8 +166,9 @@ service cloud.firestore {
           && memberId == currentUserId()
           && request.resource.data.get('id', memberId) == memberId
           && request.resource.data.get('churchId', churchId) == churchId
-          && request.resource.data.get('role', 'member') in ['member', 'visitor']
+          && request.resource.data.get('role', 'visitor') == 'visitor'
           && request.resource.data.get('isActive', true) == true
+          && churchAcceptsVisitors(churchId)
         )
         || (
           isAdmin(churchId)

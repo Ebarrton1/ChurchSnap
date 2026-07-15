@@ -27,10 +27,17 @@ class AuthController extends ChangeNotifier {
   bool get isSignedIn =>
       _status == AuthStatus.authenticated && _currentUser != null;
 
-  bool get isGuest => _currentUser?.isGuest == true;
+  bool get isAdmin => AppRoles.canAccessAdmin(_currentUser?.role ?? '');
 
-  bool get isAdmin =>
-      !isGuest && AppRoles.canAccessAdmin(_currentUser?.role ?? '');
+  bool get isGuest {
+    final user = _currentUser;
+
+    if (user == null || user.role != 'visitor') {
+      return false;
+    }
+
+    return user.email.trim().isEmpty;
+  }
 
   Future<void> _restoreSession() async {
     _status = AuthStatus.loading;
@@ -65,9 +72,7 @@ class AuthController extends ChangeNotifier {
 
     final signedInUser = _currentUser;
 
-    if (signedInUser != null &&
-        !signedInUser.isGuest &&
-        !signedInUser.isEmailVerified) {
+    if (signedInUser != null && !signedInUser.isEmailVerified) {
       final verificationResult = await _repository.sendEmailVerification();
 
       _currentUser = signedInUser;
@@ -101,10 +106,11 @@ class AuthController extends ChangeNotifier {
     return _handleAuthResult(result);
   }
 
-  Future<bool> continueAsGuest() async {
+  Future<bool> continueAsVisitor({required String churchId}) async {
     _setLoading();
 
-    final result = await _repository.continueAsGuest();
+    final result = await _repository.signInAsVisitor(churchId: churchId);
+
     return _handleAuthResult(result);
   }
 
@@ -129,13 +135,9 @@ class AuthController extends ChangeNotifier {
   Future<bool> resendEmailVerification() async {
     final existingUser = _currentUser;
 
-    if (existingUser == null || existingUser.isGuest) {
-      _status = existingUser == null
-          ? AuthStatus.unauthenticated
-          : AuthStatus.authenticated;
-      _errorMessage = existingUser == null
-          ? 'No signed-in account was found.'
-          : 'Guest accounts do not use email verification.';
+    if (existingUser == null) {
+      _status = AuthStatus.unauthenticated;
+      _errorMessage = 'No signed-in account was found.';
       notifyListeners();
       return false;
     }
@@ -155,13 +157,9 @@ class AuthController extends ChangeNotifier {
   Future<bool> refreshEmailVerification() async {
     final existingUser = _currentUser;
 
-    if (existingUser == null || existingUser.isGuest) {
-      _status = existingUser == null
-          ? AuthStatus.unauthenticated
-          : AuthStatus.authenticated;
-      _errorMessage = existingUser == null
-          ? 'No signed-in account was found.'
-          : 'Guest accounts do not use email verification.';
+    if (existingUser == null) {
+      _status = AuthStatus.unauthenticated;
+      _errorMessage = 'No signed-in account was found.';
       notifyListeners();
       return false;
     }

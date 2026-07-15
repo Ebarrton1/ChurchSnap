@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../repositories/firebase/firebase_auth_repository_stub.dart';
+import '../../church_directory/models/church_directory_entry.dart';
+import '../../church_directory/screens/church_selection_screen.dart';
 import '../state/auth_controller.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,14 +14,16 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
 
   bool _isCreatingAccount = false;
   bool _obscurePassword = true;
+  String _selectedChurchId = '';
+  String _selectedChurchName = '';
 
   @override
   void dispose() {
@@ -47,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                    colors: [Color(0xFF164D75), Color(0xFF0C3555)],
                   ),
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -66,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Sign in to connect with your church community.',
+                      'Sign in or choose a church to visit.',
                       style: TextStyle(color: Colors.white70, height: 1.4),
                     ),
                   ],
@@ -84,12 +87,35 @@ class _LoginScreenState extends State<LoginScreen> {
                     icon: Icons.person_rounded,
                   ),
                   validator: (value) {
-                    if (!_isCreatingAccount) return null;
+                    if (!_isCreatingAccount) {
+                      return null;
+                    }
+
                     if (value == null || value.trim().isEmpty) {
                       return 'Enter your full name.';
                     }
+
                     return null;
                   },
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.church_rounded),
+                    title: Text(
+                      _selectedChurchName.isEmpty
+                          ? 'Choose your church'
+                          : _selectedChurchName,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: Text(
+                      _selectedChurchId.isEmpty
+                          ? 'Required for your ChurchSnap account'
+                          : 'Connected church',
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: loading ? null : _chooseChurchForAccount,
+                  ),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -141,9 +167,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (value == null || value.isEmpty) {
                     return 'Enter your password.';
                   }
+
                   if (_isCreatingAccount && value.length < 6) {
                     return 'Use at least 6 characters.';
                   }
+
                   return null;
                 },
               ),
@@ -175,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   loading
                       ? 'Please wait...'
                       : _isCreatingAccount
-                      ? 'Create Account'
+                      ? 'Create Visitor Account'
                       : 'Sign In',
                 ),
               ),
@@ -192,22 +220,25 @@ class _LoginScreenState extends State<LoginScreen> {
               if (!_isCreatingAccount) ...[
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
-                  onPressed: loading ? null : _continueAsGuest,
-                  icon: const Icon(Icons.explore_rounded),
-                  label: const Text('Browse as guest'),
+                  onPressed: loading ? null : _browseAsVisitor,
+                  icon: const Icon(Icons.travel_explore_rounded),
+                  label: const Text('Find a Church and Visit'),
+                ),
+                TextButton(
+                  onPressed: loading ? null : _sendPasswordReset,
+                  child: const Text('Forgot password?'),
                 ),
               ],
-              TextButton(
-                onPressed: loading ? null : _sendPasswordReset,
-                child: const Text('Forgot password?'),
-              ),
               const SizedBox(height: 10),
-              const Text(
-                'Guest access includes published church content. Sign in for '
-                'RSVP, check-in, prayer submission, giving history, member '
-                'profile, volunteer, and administrative features.',
+              Text(
+                _isCreatingAccount
+                    ? 'New accounts begin with visitor access. '
+                          'A church administrator can approve additional '
+                          'member roles later.'
+                    : 'Visitors can find a church by name, enter its '
+                          'connection code, or scan its ChurchSnap QR code.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.black54,
                   fontSize: 12,
                   height: 1.4,
@@ -238,7 +269,9 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
 
-    if (email.isEmpty) return 'Enter your email address.';
+    if (email.isEmpty) {
+      return 'Enter your email address.';
+    }
 
     final atIndex = email.indexOf('@');
     final dotIndex = email.lastIndexOf('.');
@@ -254,25 +287,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _toggleMode() {
     widget.authController.clearError();
+
     setState(() {
       _isCreatingAccount = !_isCreatingAccount;
     });
   }
 
-  Future<void> _continueAsGuest() async {
-    FocusScope.of(context).unfocus();
+  Future<void> _chooseChurchForAccount() async {
+    final church = await Navigator.of(context).push<ChurchDirectoryEntry>(
+      MaterialPageRoute(
+        builder: (_) => ChurchSelectionScreen(
+          authController: widget.authController,
+          selectionOnly: true,
+        ),
+      ),
+    );
 
-    final opened = await widget.authController.continueAsGuest();
-
-    if (!mounted || opened) {
+    if (!mounted || church == null) {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          widget.authController.errorMessage ?? 'Unable to start guest access.',
-        ),
+    setState(() {
+      _selectedChurchId = church.id;
+      _selectedChurchName = church.name;
+    });
+  }
+
+  Future<void> _browseAsVisitor() async {
+    widget.authController.clearError();
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) =>
+            ChurchSelectionScreen(authController: widget.authController),
       ),
     );
   }
@@ -319,9 +366,9 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text(
             'A password reset link was sent to:\n\n'
             '$email\n\n'
-            'Open the newest ChurchSnap email and follow the link to choose '
-            'a new password. Check your Spam or Junk folder if it does not '
-            'appear in your inbox.',
+            'Open the newest ChurchSnap email and follow '
+            'the link to choose a new password. Check your '
+            'Spam or Junk folder if it does not appear.',
           ),
           actions: [
             FilledButton(
@@ -339,14 +386,25 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
 
     if (_isCreatingAccount) {
+      if (_selectedChurchId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Choose the church you want to connect to.'),
+          ),
+        );
+        return;
+      }
+
       await widget.authController.createAccount(
         displayName: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
-        churchId: FirebaseAuthRepository.defaultChurchId,
+        churchId: _selectedChurchId,
       );
       return;
     }
