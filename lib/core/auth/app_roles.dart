@@ -25,6 +25,14 @@ class AppRoles {
     return role == admin || role == pastor;
   }
 
+  static bool isVisitor(String role) {
+    return role == visitor;
+  }
+
+  static bool canAccessMemberPrivate(String role) {
+    return isValid(role) && !isVisitor(role);
+  }
+
   static bool canAccessAdmin(String role) {
     return isPrivileged(role);
   }
@@ -56,7 +64,8 @@ class AppRoles {
 
   static String description(String role) {
     return switch (role) {
-      visitor => 'Can view public and member content after approval.',
+      visitor =>
+        'Can view public church content. Member-private tools remain locked.',
       member => 'Standard church member access.',
       volunteer => 'Member access plus volunteer scheduling.',
       groupLeader => 'Can manage assigned small-group content.',

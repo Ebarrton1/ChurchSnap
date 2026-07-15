@@ -113,7 +113,7 @@ exports.sendNotificationOnCreate = onDocumentCreated(
       const role = String(member.role || "member");
       const token = member.fcmToken;
 
-      if (member.isActive === false) {
+      if (member.isActive === false || role === "visitor") {
         continue;
       }
 

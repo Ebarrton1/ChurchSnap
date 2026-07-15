@@ -50,7 +50,10 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
         icon: Icons.volunteer_activism_rounded,
       )
     else
-      PrayerScreen(churchId: _churchId),
+      PrayerScreen(
+        churchId: _churchId,
+        canSubmitRequests: widget.authController.canAccessMemberPrivate,
+      ),
     GivingScreen(authController: widget.authController),
     if (_isGuest)
       GuestAccountScreen(authController: widget.authController)

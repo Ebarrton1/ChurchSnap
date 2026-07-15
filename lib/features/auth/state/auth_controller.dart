@@ -29,6 +29,11 @@ class AuthController extends ChangeNotifier {
 
   bool get isAdmin => AppRoles.canAccessAdmin(_currentUser?.role ?? '');
 
+  bool get isVisitor => AppRoles.isVisitor(_currentUser?.role ?? '');
+
+  bool get canAccessMemberPrivate =>
+      AppRoles.canAccessMemberPrivate(_currentUser?.role ?? '');
+
   bool get isGuest {
     final user = _currentUser;
 

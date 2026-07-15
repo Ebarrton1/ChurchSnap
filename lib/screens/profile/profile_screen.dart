@@ -44,6 +44,14 @@ class ProfileScreen extends StatelessWidget {
 
     final churchId = rawChurchId.isEmpty ? 'demo-church' : rawChurchId;
 
+    if (member.role == 'visitor') {
+      return _buildVisitorProfile(
+        authController: authController,
+        displayName: displayName,
+        initial: initial,
+      );
+    }
+
     return ChurchSnapScreen(
       title: 'My Profile',
       subtitle: 'Your ChurchSnap member account',
@@ -215,6 +223,80 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
             subtitle: const Text('Sign out of your ChurchSnap account'),
+            onTap: () async {
+              await authController.signOut();
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildVisitorProfile({
+    required AuthController authController,
+    required String displayName,
+    required String initial,
+  }) {
+    return ChurchSnapScreen(
+      title: 'Visitor Profile',
+      subtitle: 'Public church access',
+      children: [
+        AppCard(
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 46,
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                displayName,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Chip(
+                avatar: Icon(Icons.visibility_rounded, size: 18),
+                label: Text('Visitor'),
+              ),
+            ],
+          ),
+        ),
+        const SectionTitle(title: 'Visitor Access'),
+        const AppCard(
+          child: ListTile(
+            leading: CircleAvatar(child: Icon(Icons.church_rounded)),
+            title: Text(
+              'Connected to this church',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: Text(
+              'You can view published sermons, media, events, prayer updates, '
+              'announcements, and giving information. Member records, RSVP, '
+              'check-in, schedules, giving history, and admin tools stay private.',
+            ),
+          ),
+        ),
+        const SectionTitle(title: 'Account'),
+        AppCard(
+          child: ListTile(
+            leading: const Icon(Icons.logout_rounded),
+            title: const Text(
+              'Leave visitor mode',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: const Text(
+              'Sign out and choose another church or use a member account.',
+            ),
             onTap: () async {
               await authController.signOut();
             },

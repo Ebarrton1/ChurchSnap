@@ -76,6 +76,11 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _scheduleNotificationInitialization(ChurchSnapUser user) {
+    if (user.role == 'visitor') {
+      _notificationUserId = null;
+      return;
+    }
+
     if (_notificationUserId == user.id) {
       return;
     }

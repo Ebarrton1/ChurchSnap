@@ -55,7 +55,7 @@ class _GivingScreenState extends State<GivingScreen> {
     return value.isEmpty ? 'demo-church' : value;
   }
 
-  bool get _isGuest => widget.authController.currentUser?.isGuest ?? true;
+  bool get _isVisitor => widget.authController.currentUser?.role == 'visitor';
 
   int get _amountCents {
     final customValue = double.tryParse(
@@ -234,7 +234,7 @@ class _GivingScreenState extends State<GivingScreen> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: _isGuest
+              onPressed: _isVisitor
                   ? null
                   : () {
                       final member = widget.authController.currentUser;
@@ -252,7 +252,7 @@ class _GivingScreenState extends State<GivingScreen> {
                     },
               icon: const Icon(Icons.receipt_long_rounded),
               label: Text(
-                _isGuest ? 'Sign in to view Giving History' : 'Giving History',
+                _isVisitor ? 'Giving History is for members' : 'Giving History',
               ),
             ),
           ),

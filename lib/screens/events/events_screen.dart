@@ -30,8 +30,8 @@ class EventsScreen extends ConsumerWidget {
     return Material(
       child: ChurchSnapScreen(
         title: 'Events',
-        subtitle: currentUser?.isGuest == true
-            ? 'Browse upcoming church events. Sign in to RSVP or check in.'
+        subtitle: currentUser?.role == 'visitor'
+            ? 'Browse upcoming church events. Member access is required to RSVP or check in.'
             : 'RSVP and stay connected with church life.',
         children: [
           const SectionTitle(title: 'Upcoming'),
@@ -65,7 +65,7 @@ class EventsScreen extends ConsumerWidget {
                     event: event,
                     isGoing: isGoing,
                     canRespond:
-                        userId.isNotEmpty && currentUser?.isGuest != true,
+                        userId.isNotEmpty && currentUser?.role != 'visitor',
                     onRsvp: () => _toggleRsvp(
                       context,
                       ref,

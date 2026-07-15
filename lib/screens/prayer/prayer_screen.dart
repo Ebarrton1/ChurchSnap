@@ -6,9 +6,14 @@ import '../../features/prayer/providers/prayer_providers.dart';
 import '../../models/prayer_request.dart';
 
 class PrayerScreen extends ConsumerWidget {
-  const PrayerScreen({super.key, required this.churchId});
+  const PrayerScreen({
+    super.key,
+    required this.churchId,
+    this.canSubmitRequests = true,
+  });
 
   final String churchId;
+  final bool canSubmitRequests;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,11 +24,26 @@ class PrayerScreen extends ConsumerWidget {
         title: 'Prayer',
         subtitle: 'Share requests and pray together.',
         children: [
-          FilledButton.icon(
-            onPressed: () => _openPrayerForm(context),
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Add Prayer Request'),
-          ),
+          if (canSubmitRequests)
+            FilledButton.icon(
+              onPressed: () => _openPrayerForm(context),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add Prayer Request'),
+            )
+          else
+            const AppCard(
+              child: ListTile(
+                leading: Icon(Icons.visibility_rounded),
+                title: Text(
+                  'Public prayer wall',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  'Visitors can read published prayer updates. '
+                  'Submitting a request is available after becoming a member.',
+                ),
+              ),
+            ),
           const SizedBox(height: 18),
           const SectionTitle(title: 'Prayer Wall'),
           prayers.when(
