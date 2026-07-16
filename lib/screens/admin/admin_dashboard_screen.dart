@@ -7,6 +7,7 @@ import 'admin_attendance_screen.dart';
 import 'admin_calendar_screen.dart';
 import 'admin_events_screen.dart';
 import 'admin_home_appearance_screen.dart';
+import 'admin_pastor_picture_screen.dart';
 import 'admin_church_connection_screen.dart';
 import 'admin_members_screen.dart';
 import 'admin_member_demographics_screen.dart';
@@ -96,6 +97,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           title: 'Home Welcome Picture',
           subtitle: 'Customize the home welcome background',
           screen: AdminHomeAppearanceScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
+          icon: Icons.person_pin_rounded,
+          title: 'Pastor Picture',
+          subtitle: 'Customize the Today\u2019s Service pastor photo',
+          screen: AdminPastorPictureScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.hub_rounded,

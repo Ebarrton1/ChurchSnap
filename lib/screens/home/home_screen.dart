@@ -8,6 +8,7 @@ import '../../features/announcements/providers/announcement_providers.dart';
 import '../../features/auth/state/auth_controller.dart';
 import '../../features/events/providers/event_providers.dart';
 import '../../features/home/providers/home_appearance_provider.dart';
+import '../../features/home/providers/pastor_appearance_provider.dart';
 import '../../features/sermons/providers/sermon_providers.dart';
 import '../../models/announcement.dart';
 import '../../models/church_event.dart';
@@ -395,6 +396,13 @@ class _TodayServiceCard extends ConsumerWidget {
           orElse: () => const WorshipSettings(),
         );
 
+    final pastorAppearance = ref
+        .watch(pastorAppearanceProvider(churchId))
+        .maybeWhen(
+          data: (value) => value,
+          orElse: () => const PastorAppearanceSettings(),
+        );
+
     if (!settings.showSection) {
       return const SizedBox.shrink();
     }
@@ -469,10 +477,8 @@ class _TodayServiceCard extends ConsumerWidget {
               Expanded(
                 flex: 10,
                 child: SizedBox.expand(
-                  child: Image.asset(
-                    'assets/home/home_service_pastor.jpg',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
+                  child: _PastorServiceImage(
+                    imageUrl: pastorAppearance.imageUrl,
                   ),
                 ),
               ),
@@ -480,6 +486,45 @@ class _TodayServiceCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PastorServiceImage extends StatelessWidget {
+  const _PastorServiceImage({required this.imageUrl});
+
+  final String imageUrl;
+
+  Widget _fallbackImage() {
+    return Image.asset(
+      'assets/home/home_service_pastor.jpg',
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+      filterQuality: FilterQuality.high,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedUrl = imageUrl.trim();
+
+    if (normalizedUrl.isEmpty) {
+      return _fallbackImage();
+    }
+
+    return Image.network(
+      normalizedUrl,
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+      filterQuality: FilterQuality.high,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) {
+          return child;
+        }
+
+        return _fallbackImage();
+      },
+      errorBuilder: (_, _, _) => _fallbackImage(),
     );
   }
 }

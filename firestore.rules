@@ -298,6 +298,18 @@ service cloud.firestore {
         allow delete: if settingId == 'homeAppearance'
           && isAdmin(churchId);
       }
+      match /settings/pastorAppearance {
+        allow read: if true;
+
+        allow create, update: if isAdmin(churchId)
+          && request.resource.data.keys().hasOnly([
+            'imageUrl',
+            'storagePath',
+            'updatedAt'
+          ]);
+
+        allow delete: if isAdmin(churchId);
+      }
 
       match /announcements/{announcementId} {
         allow read: if resource.data.get('published', false) == true
