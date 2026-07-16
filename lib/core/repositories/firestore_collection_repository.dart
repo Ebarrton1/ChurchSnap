@@ -25,10 +25,16 @@ class FirestoreCollectionRepository<T> {
               .map((doc) => fromMap(doc.id, doc.data()))
               .toList();
 
+          final dataByItem = Map<T, Map<String, dynamic>>.identity();
+
+          for (var index = 0; index < items.length; index++) {
+            dataByItem[items[index]] = snapshot.docs[index].data();
+          }
+
           if (dateField != null) {
             items.sort((a, b) {
-              final aData = snapshot.docs[items.indexOf(a)].data();
-              final bData = snapshot.docs[items.indexOf(b)].data();
+              final aData = dataByItem[a]!;
+              final bData = dataByItem[b]!;
 
               final aDate = aData[dateField] as Timestamp?;
               final bDate = bData[dateField] as Timestamp?;
