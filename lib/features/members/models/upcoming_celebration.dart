@@ -101,6 +101,10 @@ class MemberCelebrationSettings {
 
 enum CelebrationType { birthday, weddingAnniversary }
 
+enum CelebrationFilter { all, birthdays, anniversaries }
+
+enum CelebrationDateOrder { soonestFirst, latestFirst }
+
 class UpcomingCelebration {
   const UpcomingCelebration({
     required this.memberId,
@@ -175,11 +179,43 @@ class UpcomingCelebrationCalculator {
       }
     }
 
-    results.sort((left, right) {
-      final dayComparison = left.daysUntil.compareTo(right.daysUntil);
+    return sortAndFilter(
+      celebrations: results,
+      filter: CelebrationFilter.all,
+      order: CelebrationDateOrder.soonestFirst,
+    );
+  }
 
-      if (dayComparison != 0) {
-        return dayComparison;
+  static List<UpcomingCelebration> annualCalendar({
+    required Iterable<MemberCelebrationProfile> profiles,
+    DateTime? now,
+  }) {
+    return calculate(profiles: profiles, now: now, windowDays: 366);
+  }
+
+  static List<UpcomingCelebration> sortAndFilter({
+    required Iterable<UpcomingCelebration> celebrations,
+    required CelebrationFilter filter,
+    required CelebrationDateOrder order,
+  }) {
+    final results = celebrations.where((celebration) {
+      return switch (filter) {
+        CelebrationFilter.all => true,
+        CelebrationFilter.birthdays =>
+          celebration.type == CelebrationType.birthday,
+        CelebrationFilter.anniversaries =>
+          celebration.type == CelebrationType.weddingAnniversary,
+      };
+    }).toList();
+
+    results.sort((left, right) {
+      final dayComparison = left.nextOccurrence.compareTo(right.nextOccurrence);
+      final orderedDayComparison = order == CelebrationDateOrder.soonestFirst
+          ? dayComparison
+          : -dayComparison;
+
+      if (orderedDayComparison != 0) {
+        return orderedDayComparison;
       }
 
       final typeComparison = left.type.index.compareTo(right.type.index);

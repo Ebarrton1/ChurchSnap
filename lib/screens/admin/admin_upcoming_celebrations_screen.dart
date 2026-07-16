@@ -18,6 +18,9 @@ class _AdminUpcomingCelebrationsScreenState
     extends State<AdminUpcomingCelebrationsScreen> {
   late final MemberCelebrationRepository _repository;
 
+  CelebrationFilter _filter = CelebrationFilter.all;
+  CelebrationDateOrder _dateOrder = CelebrationDateOrder.soonestFirst;
+
   @override
   void initState() {
     super.initState();
@@ -47,19 +50,26 @@ class _AdminUpcomingCelebrationsScreenState
           }
 
           final profiles = snapshot.data ?? const <MemberCelebrationProfile>[];
-          final celebrations = UpcomingCelebrationCalculator.calculate(
+          final celebrationsThisWeek = UpcomingCelebrationCalculator.calculate(
             profiles: profiles,
           );
-          final birthdayCount = celebrations
+          final fullCalendar = UpcomingCelebrationCalculator.sortAndFilter(
+            celebrations: UpcomingCelebrationCalculator.annualCalendar(
+              profiles: profiles,
+            ),
+            filter: _filter,
+            order: _dateOrder,
+          );
+          final birthdayCount = celebrationsThisWeek
               .where((item) => item.type == CelebrationType.birthday)
               .length;
-          final anniversaryCount = celebrations
+          final anniversaryCount = celebrationsThisWeek
               .where((item) => item.type == CelebrationType.weddingAnniversary)
               .length;
 
           return ChurchSnapScreen(
             title: 'Upcoming Celebrations',
-            subtitle: 'Today through the next 7 days',
+            subtitle: 'Birthdays and wedding anniversaries',
             children: [
               const AppCard(
                 child: ListTile(
@@ -79,7 +89,7 @@ class _AdminUpcomingCelebrationsScreenState
                   padding: EdgeInsets.only(bottom: 14),
                   child: LinearProgressIndicator(),
                 ),
-              const SectionTitle(title: 'This Week'),
+              const SectionTitle(title: 'Next 7 Days'),
               LayoutBuilder(
                 builder: (context, constraints) {
                   final itemWidth = constraints.maxWidth >= 700
@@ -110,8 +120,7 @@ class _AdminUpcomingCelebrationsScreenState
                   );
                 },
               ),
-              const SectionTitle(title: 'Celebration Schedule'),
-              if (celebrations.isEmpty)
+              if (celebrationsThisWeek.isEmpty)
                 const AppCard(
                   child: ListTile(
                     leading: Icon(Icons.event_available_rounded),
@@ -123,7 +132,38 @@ class _AdminUpcomingCelebrationsScreenState
                   ),
                 )
               else
-                ...celebrations.map(
+                ...celebrationsThisWeek.map(
+                  (celebration) => _CelebrationCard(celebration: celebration),
+                ),
+              const SectionTitle(title: 'Celebration Calendar'),
+              _CalendarControls(
+                filter: _filter,
+                dateOrder: _dateOrder,
+                onFilterChanged: (value) {
+                  setState(() {
+                    _filter = value;
+                  });
+                },
+                onDateOrderChanged: (value) {
+                  setState(() {
+                    _dateOrder = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              if (fullCalendar.isEmpty)
+                const AppCard(
+                  child: ListTile(
+                    leading: Icon(Icons.calendar_month_rounded),
+                    title: Text('No matching celebration dates'),
+                    subtitle: Text(
+                      'Change the filter or add birthday and '
+                      'anniversary dates for members.',
+                    ),
+                  ),
+                )
+              else
+                ...fullCalendar.map(
                   (celebration) => _CelebrationCard(celebration: celebration),
                 ),
               const SectionTitle(title: 'Manage Member Reminders'),
@@ -172,6 +212,84 @@ class _AdminUpcomingCelebrationsScreenState
         SnackBar(content: Text('Unable to save celebration settings: $error')),
       );
     }
+  }
+}
+
+class _CalendarControls extends StatelessWidget {
+  const _CalendarControls({
+    required this.filter,
+    required this.dateOrder,
+    required this.onFilterChanged,
+    required this.onDateOrderChanged,
+  });
+
+  final CelebrationFilter filter;
+  final CelebrationDateOrder dateOrder;
+  final ValueChanged<CelebrationFilter> onFilterChanged;
+  final ValueChanged<CelebrationDateOrder> onDateOrderChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Filter',
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          SegmentedButton<CelebrationFilter>(
+            segments: const [
+              ButtonSegment<CelebrationFilter>(
+                value: CelebrationFilter.all,
+                label: Text('All'),
+                icon: Icon(Icons.celebration_rounded),
+              ),
+              ButtonSegment<CelebrationFilter>(
+                value: CelebrationFilter.birthdays,
+                label: Text('Birthdays'),
+                icon: Icon(Icons.cake_rounded),
+              ),
+              ButtonSegment<CelebrationFilter>(
+                value: CelebrationFilter.anniversaries,
+                label: Text('Anniversaries'),
+                icon: Icon(Icons.favorite_rounded),
+              ),
+            ],
+            selected: <CelebrationFilter>{filter},
+            onSelectionChanged: (selection) {
+              onFilterChanged(selection.single);
+            },
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<CelebrationDateOrder>(
+            initialValue: dateOrder,
+            decoration: const InputDecoration(
+              labelText: 'Date order',
+              prefixIcon: Icon(Icons.sort_rounded),
+            ),
+            items: const [
+              DropdownMenuItem<CelebrationDateOrder>(
+                value: CelebrationDateOrder.soonestFirst,
+                child: Text('Soonest first'),
+              ),
+              DropdownMenuItem<CelebrationDateOrder>(
+                value: CelebrationDateOrder.latestFirst,
+                child: Text('Latest first'),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                onDateOrderChanged(value);
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
 

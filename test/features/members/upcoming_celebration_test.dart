@@ -159,5 +159,115 @@ void main() {
       expect(profile.birthdayReminderEnabled, isTrue);
       expect(profile.anniversaryReminderEnabled, isTrue);
     });
+
+    test('sorts the annual calendar in ascending date order', () {
+      final calendar = UpcomingCelebrationCalculator.annualCalendar(
+        profiles: <MemberCelebrationProfile>[
+          MemberCelebrationProfile(
+            memberId: 'later',
+            memberName: 'Later Member',
+            role: 'member',
+            isActive: true,
+            maritalStatus: '',
+            dateOfBirth: DateTime(1990, 11, 20),
+            weddingAnniversaryDate: null,
+            birthdayReminderEnabled: true,
+            anniversaryReminderEnabled: true,
+          ),
+          MemberCelebrationProfile(
+            memberId: 'earlier',
+            memberName: 'Earlier Member',
+            role: 'member',
+            isActive: true,
+            maritalStatus: '',
+            dateOfBirth: DateTime(1990, 8, 1),
+            weddingAnniversaryDate: null,
+            birthdayReminderEnabled: true,
+            anniversaryReminderEnabled: true,
+          ),
+        ],
+        now: DateTime(2026, 7, 15),
+      );
+
+      expect(calendar.map((item) => item.memberId), <String>[
+        'earlier',
+        'later',
+      ]);
+    });
+
+    test('filters birthday and anniversary lists independently', () {
+      final all = UpcomingCelebrationCalculator.annualCalendar(
+        profiles: <MemberCelebrationProfile>[
+          MemberCelebrationProfile(
+            memberId: 'birthday',
+            memberName: 'Birthday Member',
+            role: 'member',
+            isActive: true,
+            maritalStatus: '',
+            dateOfBirth: DateTime(1990, 8, 1),
+            weddingAnniversaryDate: null,
+            birthdayReminderEnabled: true,
+            anniversaryReminderEnabled: true,
+          ),
+          MemberCelebrationProfile(
+            memberId: 'anniversary',
+            memberName: 'Anniversary Member',
+            role: 'member',
+            isActive: true,
+            maritalStatus: 'married',
+            dateOfBirth: null,
+            weddingAnniversaryDate: DateTime(2010, 9, 1),
+            birthdayReminderEnabled: true,
+            anniversaryReminderEnabled: true,
+          ),
+        ],
+        now: DateTime(2026, 7, 15),
+      );
+
+      final birthdays = UpcomingCelebrationCalculator.sortAndFilter(
+        celebrations: all,
+        filter: CelebrationFilter.birthdays,
+        order: CelebrationDateOrder.soonestFirst,
+      );
+      final anniversaries = UpcomingCelebrationCalculator.sortAndFilter(
+        celebrations: all,
+        filter: CelebrationFilter.anniversaries,
+        order: CelebrationDateOrder.soonestFirst,
+      );
+
+      expect(birthdays, hasLength(1));
+      expect(birthdays.single.memberId, 'birthday');
+      expect(anniversaries, hasLength(1));
+      expect(anniversaries.single.memberId, 'anniversary');
+    });
+
+    test('supports latest-date-first ordering', () {
+      final celebrations = <UpcomingCelebration>[
+        UpcomingCelebration(
+          memberId: 'early',
+          memberName: 'Early',
+          type: CelebrationType.birthday,
+          originalDate: DateTime(1990, 8, 1),
+          nextOccurrence: DateTime(2026, 8, 1),
+          daysUntil: 17,
+        ),
+        UpcomingCelebration(
+          memberId: 'late',
+          memberName: 'Late',
+          type: CelebrationType.birthday,
+          originalDate: DateTime(1990, 11, 20),
+          nextOccurrence: DateTime(2026, 11, 20),
+          daysUntil: 128,
+        ),
+      ];
+
+      final ordered = UpcomingCelebrationCalculator.sortAndFilter(
+        celebrations: celebrations,
+        filter: CelebrationFilter.all,
+        order: CelebrationDateOrder.latestFirst,
+      );
+
+      expect(ordered.map((item) => item.memberId), <String>['late', 'early']);
+    });
   });
 }
