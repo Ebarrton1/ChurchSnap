@@ -273,6 +273,7 @@ service cloud.firestore {
           'weddingAnniversaryDate',
           'birthdayReminderEnabled',
           'anniversaryReminderEnabled',
+          'baptismDate',
             'updatedAt'
           ]);
 

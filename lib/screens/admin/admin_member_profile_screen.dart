@@ -338,20 +338,49 @@ class _MemberIdentityCard extends StatelessWidget {
     return AppCard(
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 80,
-            backgroundImage: photoUrl.isEmpty ? null : NetworkImage(photoUrl),
-            child: photoUrl.isEmpty
-                ? Text(
-                    displayName.isEmpty
-                        ? '?'
-                        : displayName.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w900,
+          SizedBox(
+            width: 160,
+            height: 160,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: photoUrl.isEmpty
+                  ? DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                      ),
+                      child: Center(
+                        child: Text(
+                          displayName.isEmpty
+                              ? '?'
+                              : displayName.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 42,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Image.network(
+                      photoUrl,
+                      width: 160,
+                      height: 160,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.person_rounded, size: 64),
+                          ),
+                        );
+                      },
                     ),
-                  )
-                : null,
+            ),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:churchsnap/features/members/providers/member_baptism_providers.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import 'admin_announcements_screen.dart';
@@ -9,6 +10,7 @@ import 'admin_home_appearance_screen.dart';
 import 'admin_church_connection_screen.dart';
 import 'admin_members_screen.dart';
 import 'admin_member_demographics_screen.dart';
+import 'admin_recent_baptisms_screen.dart';
 import 'admin_upcoming_celebrations_screen.dart';
 
 import 'admin_ministries_screen.dart';
@@ -50,6 +52,11 @@ class AdminDashboardScreen extends ConsumerWidget {
               icon: Icons.people_rounded,
               value:
                   ref.watch(memberCountByChurchProvider(churchId)).value ?? 0,
+            ),
+            _DashboardStatCard(
+              title: 'Recent Baptisms',
+              icon: Icons.water_drop_rounded,
+              value: ref.watch(recentBaptismCountProvider(churchId)).value ?? 0,
             ),
             _DashboardStatCard(
               title: 'Events',
@@ -145,6 +152,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           title: 'Upcoming Celebrations',
           subtitle: 'Birthdays and anniversaries within the next 7 days',
           screen: AdminUpcomingCelebrationsScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
+          icon: Icons.water_drop_rounded,
+          title: 'Recent Baptisms',
+          subtitle: 'Record and review members baptized in the last 30 days',
+          screen: AdminRecentBaptismsScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.admin_panel_settings_rounded,
