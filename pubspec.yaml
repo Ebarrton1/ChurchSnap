@@ -23,7 +23,8 @@ dependencies:
   dio: ^5.10.0
   path_provider: ^2.1.6
   image_picker: ^1.2.3
-
+  file_picker: 10.3.10
+  pdfrx: 2.4.7
 dev_dependencies:
   flutter_test:
     sdk: flutter

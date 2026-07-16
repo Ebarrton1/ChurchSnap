@@ -93,7 +93,7 @@ class HomeScreen extends ConsumerWidget {
               onOpen: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => const ResourcesScreen(),
+                    builder: (_) => ResourcesScreen(churchId: churchId),
                   ),
                 );
               },

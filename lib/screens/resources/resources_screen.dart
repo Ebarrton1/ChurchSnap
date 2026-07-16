@@ -5,10 +5,12 @@ import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/resources/controllers/bible_reader_controller.dart';
 import '../../features/resources/data/bible_books.dart';
 import '../../features/resources/models/bible_models.dart';
+import 'resource_library_screen.dart';
 
 class ResourcesScreen extends StatefulWidget {
-  const ResourcesScreen({super.key});
+  const ResourcesScreen({super.key, required this.churchId});
 
+  final String churchId;
   @override
   State<ResourcesScreen> createState() => _ResourcesScreenState();
 }
@@ -41,6 +43,31 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
             title: 'Bible Reader',
             subtitle: 'Read Scripture and grow in the Word.',
             children: [
+              AppCard(
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.library_books_rounded),
+                  ),
+                  title: const Text(
+                    'Church Resource Library',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  subtitle: const Text(
+                    'Open song books, Sunday School, Sabbath School, '
+                    'study guides, and other church resources.',
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            ResourceLibraryScreen(churchId: widget.churchId),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
               const _BibleWelcomeCard(),
               const SectionTitle(title: 'Translation'),
               _TranslationSelector(controller: _controller),

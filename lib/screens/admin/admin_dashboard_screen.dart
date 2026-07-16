@@ -32,6 +32,8 @@ import 'admin_giving_confirmations_screen.dart';
 
 import 'admin_worship_settings_screen.dart';
 
+import 'admin_resources_screen.dart';
+
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key, required this.churchId});
 
@@ -92,6 +94,12 @@ class AdminDashboardScreen extends ConsumerWidget {
         ),
 
         const SectionTitle(title: 'Content'),
+        _AdminNavCard(
+          icon: Icons.library_books_rounded,
+          title: 'Resource Library',
+          subtitle: 'Upload books, lessons, guides, and links',
+          screen: AdminResourcesScreen(churchId: churchId),
+        ),
         _AdminNavCard(
           icon: Icons.image_rounded,
           title: 'Home Welcome Picture',
