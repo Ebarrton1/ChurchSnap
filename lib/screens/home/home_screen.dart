@@ -13,6 +13,7 @@ import '../../features/sermons/providers/sermon_providers.dart';
 import '../../models/announcement.dart';
 import '../../models/church_event.dart';
 import '../../models/sermon.dart';
+import '../resources/resources_screen.dart';
 import '../sermons/sermon_detail_screen.dart';
 
 import '../../core/utils/churchsnap_date_formatter.dart';
@@ -86,6 +87,16 @@ class HomeScreen extends ConsumerWidget {
               onPrayer: () => onSelectTab(4),
               onEvents: () => onSelectTab(3),
               onGiving: () => onSelectTab(5),
+            ),
+            const SizedBox(height: 22),
+            _ResourcesHomeCard(
+              onOpen: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ResourcesScreen(),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 22),
             _UpcomingEventsSection(
@@ -658,6 +669,160 @@ class _QuickActionTile extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ResourcesHomeCard extends StatelessWidget {
+  const _ResourcesHomeCard({required this.onOpen});
+
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.white,
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(26),
+        side: const BorderSide(color: Color(0xFFDCE7F1)),
+      ),
+      child: InkWell(
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 68,
+                height: 68,
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF6FF),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Image.asset(
+                  'assets/icons/bible.png',
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (_, _, _) => Icon(
+                    Icons.menu_book_rounded,
+                    color: colorScheme.primary,
+                    size: 40,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'RESOURCES',
+                      style: TextStyle(
+                        color: Color(0xFF0284C7),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Read the Bible',
+                      style: TextStyle(
+                        color: Color(0xFF102438),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      'Browse all 66 books with KJV access and a secure path '
+                      'for licensed NIV access.',
+                      style: TextStyle(
+                        color: Color(0xFF5A6B7B),
+                        fontSize: 12.5,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 7,
+                      runSpacing: 7,
+                      children: [
+                        _ResourceStatusChip(
+                          icon: Icons.check_circle_rounded,
+                          label: 'KJV ready',
+                          backgroundColor: const Color(0xFFE7F8EF),
+                          foregroundColor: const Color(0xFF137A43),
+                        ),
+                        _ResourceStatusChip(
+                          icon: Icons.verified_user_rounded,
+                          label: 'NIV prepared',
+                          backgroundColor: const Color(0xFFFFF6DF),
+                          foregroundColor: const Color(0xFF946200),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colorScheme.primary,
+                size: 30,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ResourceStatusChip extends StatelessWidget {
+  const _ResourceStatusChip({
+    required this.icon,
+    required this.label,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: foregroundColor),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                color: foregroundColor,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
       ),
     );
