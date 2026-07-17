@@ -73,14 +73,24 @@ class HomeScreen extends ConsumerWidget {
                 _showAnnouncements(context, churchId);
               },
             ),
+            // ChurchSnap view-only Welcome and Today Service cards.
             const SizedBox(height: 12),
-            _WelcomeHero(
-              churchId: churchId,
-              firstName: firstName,
-              onJoinUs: () => onSelectTab(3),
+            AbsorbPointer(
+              absorbing: true,
+              child: _WelcomeHero(
+                churchId: churchId,
+                firstName: firstName,
+                onJoinUs: () => onSelectTab(3),
+              ),
             ),
             const SizedBox(height: 12),
-            _TodayServiceCard(churchId: churchId, onOpen: () => onSelectTab(3)),
+            AbsorbPointer(
+              absorbing: true,
+              child: _TodayServiceCard(
+                churchId: churchId,
+                onOpen: () => onSelectTab(3),
+              ),
+            ),
             const SizedBox(height: 12),
             _QuickActions(
               onSermons: () => onSelectTab(1),
