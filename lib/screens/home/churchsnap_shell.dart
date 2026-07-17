@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/auth/screens/guest_account_screen.dart';
 import '../../features/auth/screens/guest_restricted_screen.dart';
@@ -26,7 +28,47 @@ class ChurchSnapShell extends StatefulWidget {
 }
 
 class _ChurchSnapShellState extends State<ChurchSnapShell> {
+  final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
+
   int selectedIndex = 0;
+
+  String get _lastTabPreferenceKey {
+    final userId = widget.authController.currentUser?.id.trim() ?? '';
+    final preferenceOwner = userId.isEmpty ? 'guest' : userId;
+
+    return 'churchsnap_last_main_tab_$preferenceOwner';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_restoreSelectedTab());
+  }
+
+  Future<void> _restoreSelectedTab() async {
+    final savedIndex = await _preferences.getInt(_lastTabPreferenceKey) ?? 0;
+
+    if (!mounted) {
+      return;
+    }
+
+    final maximumIndex = pages.length - 1;
+    final restoredIndex = savedIndex >= 0 && savedIndex <= maximumIndex
+        ? savedIndex
+        : 0;
+
+    if (restoredIndex == selectedIndex) {
+      return;
+    }
+
+    setState(() {
+      selectedIndex = restoredIndex;
+    });
+  }
+
+  Future<void> _saveSelectedTab(int index) {
+    return _preferences.setInt(_lastTabPreferenceKey, index);
+  }
 
   String get _churchId {
     final churchId = widget.authController.currentUser?.churchId.trim() ?? '';
@@ -110,13 +152,15 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
   void _selectTab(int index) {
     final maximumIndex = pages.length - 1;
 
-    if (index < 0 || index > maximumIndex) {
+    if (index < 0 || index > maximumIndex || index == selectedIndex) {
       return;
     }
 
     setState(() {
       selectedIndex = index;
     });
+
+    unawaited(_saveSelectedTab(index));
   }
 
   @override
