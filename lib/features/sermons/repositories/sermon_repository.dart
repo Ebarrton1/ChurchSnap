@@ -30,14 +30,26 @@ class SermonRepository {
   }
 
   Stream<List<Sermon>> watchAllSermons() {
-    return _collection
-        .orderBy('sermonDate', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs.map((document) {
-            return Sermon.fromMap(document.id, document.data());
-          }).toList(),
-        );
+    return _collection.snapshots().map((snapshot) {
+      final sermons = snapshot.docs.map((document) {
+        return Sermon.fromMap(document.id, document.data());
+      }).toList();
+
+      sermons.sort((first, second) {
+        final firstDate =
+            first.sermonDate ??
+            first.createdAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final secondDate =
+            second.sermonDate ??
+            second.createdAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+
+        return secondDate.compareTo(firstDate);
+      });
+
+      return sermons;
+    });
   }
 
   Future<String> addSermon(Sermon sermon) async {
