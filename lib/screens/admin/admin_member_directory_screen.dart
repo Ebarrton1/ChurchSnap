@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
@@ -354,11 +355,17 @@ class _AdminMemberDirectoryScreenState
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: false,
+              ),
               child: const Text('Cancel'),
             ),
             FilledButton.icon(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: true,
+              ),
               icon: const Icon(Icons.person_remove_alt_1_rounded),
               label: const Text('Remove'),
             ),
@@ -393,11 +400,17 @@ class _AdminMemberDirectoryScreenState
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: false,
+              ),
               child: const Text('Cancel'),
             ),
             FilledButton.icon(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: true,
+              ),
               icon: const Icon(Icons.settings_backup_restore_rounded),
               label: const Text('Restore'),
             ),

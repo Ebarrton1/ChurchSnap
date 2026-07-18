@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/check_in/models/check_in_record.dart';
@@ -357,8 +358,10 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                   subtitle: const Text(
                     'Remove check-ins recorded on the current local date.',
                   ),
-                  onTap: () =>
-                      Navigator.of(sheetContext).pop(_ClearCheckInScope.today),
+                  onTap: () => ChurchSnapNavigation.closeAllWindows(
+                    sheetContext,
+                    result: _ClearCheckInScope.today,
+                  ),
                 ),
                 if (_selectedEventId != null)
                   ListTile(
@@ -382,8 +385,10 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
                     'Permanently remove all check-ins. '
                     '$totalLoaded recent records are currently displayed.',
                   ),
-                  onTap: () =>
-                      Navigator.of(sheetContext).pop(_ClearCheckInScope.all),
+                  onTap: () => ChurchSnapNavigation.closeAllWindows(
+                    sheetContext,
+                    result: _ClearCheckInScope.all,
+                  ),
                 ),
               ],
             ),
@@ -413,11 +418,17 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => ChurchSnapNavigation.closeAllWindows(
+              dialogContext,
+              result: false,
+            ),
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => ChurchSnapNavigation.closeAllWindows(
+              dialogContext,
+              result: true,
+            ),
             icon: const Icon(Icons.delete_outline_rounded),
             label: const Text('Remove'),
           ),
@@ -446,11 +457,17 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => ChurchSnapNavigation.closeAllWindows(
+              dialogContext,
+              result: false,
+            ),
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => ChurchSnapNavigation.closeAllWindows(
+              dialogContext,
+              result: true,
+            ),
             icon: const Icon(Icons.delete_sweep_rounded),
             label: const Text('Clear Selected'),
           ),
@@ -492,11 +509,17 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => ChurchSnapNavigation.closeAllWindows(
+              dialogContext,
+              result: false,
+            ),
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => ChurchSnapNavigation.closeAllWindows(
+              dialogContext,
+              result: true,
+            ),
             icon: const Icon(Icons.cleaning_services_rounded),
             label: const Text('Clear Check-ins'),
           ),
@@ -570,7 +593,10 @@ class _AdminAttendanceScreenState extends State<AdminAttendanceScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                    dialogContext,
+                    result: false,
+                  ),
                   child: const Text('Cancel'),
                 ),
                 FilledButton.icon(

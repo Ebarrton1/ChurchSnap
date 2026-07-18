@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -189,11 +190,17 @@ class _AdminPastorPictureScreenState
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: false,
+              ),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: true,
+              ),
               child: const Text('Restore'),
             ),
           ],

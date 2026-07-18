@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/app_roles.dart';
@@ -184,13 +185,19 @@ class AdminRoleManagementScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop(false);
+                ChurchSnapNavigation.closeAllWindows(
+                  dialogContext,
+                  result: false,
+                );
               },
               child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop(true);
+                ChurchSnapNavigation.closeAllWindows(
+                  dialogContext,
+                  result: true,
+                );
               },
               child: const Text('Change role'),
             ),

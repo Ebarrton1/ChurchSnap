@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
@@ -119,7 +120,8 @@ class AdminAnnouncementsListScreen extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: () =>
+                  ChurchSnapNavigation.closeAllWindows(dialogContext),
               child: const Text('Cancel'),
             ),
             FilledButton(
@@ -138,7 +140,7 @@ class AdminAnnouncementsListScreen extends ConsumerWidget {
                     .updateAnnouncement(announcement.id, updated);
 
                 if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext);
+                  ChurchSnapNavigation.closeAllWindows(dialogContext);
                 }
               },
               child: const Text('Save'),

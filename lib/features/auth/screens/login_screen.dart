@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 
 import '../../church_directory/models/church_directory_entry.dart';
 import '../../church_directory/screens/church_selection_screen.dart';
@@ -373,7 +374,7 @@ class _LoginScreenState extends State<LoginScreen> {
           actions: [
             FilledButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop();
+                ChurchSnapNavigation.closeAllWindows(dialogContext);
               },
               child: const Text('Got it'),
             ),

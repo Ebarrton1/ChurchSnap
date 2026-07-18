@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../auth/state/auth_controller.dart';
@@ -269,11 +270,17 @@ class _ChurchSelectionScreenState extends State<ChurchSelectionScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: false,
+              ),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: true,
+              ),
               child: const Text('Connect'),
             ),
           ],

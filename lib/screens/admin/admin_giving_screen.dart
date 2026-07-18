@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/giving/models/donation_record.dart';
@@ -305,11 +306,17 @@ class AdminGivingScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () => ChurchSnapNavigation.closeAllWindows(
+              dialogContext,
+              result: false,
+            ),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
+            onPressed: () => ChurchSnapNavigation.closeAllWindows(
+              dialogContext,
+              result: true,
+            ),
             child: const Text('Delete'),
           ),
         ],

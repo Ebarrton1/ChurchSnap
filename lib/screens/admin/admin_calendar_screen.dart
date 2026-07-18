@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
@@ -214,7 +215,8 @@ class _AdminCalendarScreenState extends ConsumerState<AdminCalendarScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
+              onPressed: () =>
+                  ChurchSnapNavigation.closeAllWindows(dialogContext),
               child: const Text('Close'),
             ),
           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -439,11 +440,17 @@ class _SermonDetailScreenState extends ConsumerState<SermonDetailScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: false,
+              ),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () => ChurchSnapNavigation.closeAllWindows(
+                dialogContext,
+                result: true,
+              ),
               child: const Text('Remove'),
             ),
           ],
