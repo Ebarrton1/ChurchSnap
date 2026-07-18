@@ -9,6 +9,7 @@ import '../state/auth_controller.dart';
 import 'account_disabled_screen.dart';
 import 'email_verification_screen.dart';
 import 'login_screen.dart';
+import 'required_name_gate.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -70,7 +71,13 @@ class _AuthGateState extends State<AuthGate> {
           _scheduleNotificationInitialization(user);
         }
 
-        return ChurchSnapShell(authController: authController);
+        return RequiredNameGate(
+          churchId: user.churchId,
+          userId: user.id,
+          existingDisplayName: user.displayName,
+          authController: authController,
+          child: ChurchSnapShell(authController: authController),
+        );
       },
     );
   }

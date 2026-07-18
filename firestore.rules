@@ -163,6 +163,27 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin(churchId);
 
       match /members/{memberId} {
+        // ChurchSnap required first-and-last-name completion.
+        allow update: if signedIn()
+          && memberId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'firstName',
+              'lastName',
+              'displayName',
+              'profileNameComplete',
+              'profileNameCompletedAt',
+              'updatedAt'
+            ])
+          && request.resource.data.firstName is string
+          && request.resource.data.lastName is string
+          && request.resource.data.displayName is string
+          && request.resource.data.firstName.size() > 0
+          && request.resource.data.firstName.size() <= 60
+          && request.resource.data.lastName.size() > 0
+          && request.resource.data.lastName.size() <= 60
+          && request.resource.data.displayName.size() > 2
+          && request.resource.data.displayName.size() <= 121;
         allow get: if signedIn()
           && (
             memberId == currentUserId()
