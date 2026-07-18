@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../members/models/member_count_summary.dart';
+
 class DashboardRepository {
   DashboardRepository({
     FirebaseFirestore? firestore,
@@ -16,7 +18,11 @@ class DashboardRepository {
     return _church
         .collection('members')
         .snapshots()
-        .map((snapshot) => snapshot.docs.length);
+        .map(
+          (snapshot) => snapshot.docs.where((document) {
+            return MemberCountPolicy.countsInOverview(document.data());
+          }).length,
+        );
   }
 
   Stream<int> watchEventCount() {

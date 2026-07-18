@@ -10,6 +10,7 @@ import 'admin_home_appearance_screen.dart';
 import 'admin_pastor_picture_screen.dart';
 import 'admin_church_connection_screen.dart';
 import 'admin_member_directory_screen.dart';
+import 'admin_member_count_management_screen.dart';
 import 'admin_member_demographics_screen.dart';
 import 'admin_recent_baptisms_screen.dart';
 import 'admin_upcoming_celebrations_screen.dart';
@@ -93,6 +94,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           ],
         ),
 
+        _AdminNavCard(
+          icon: Icons.manage_accounts_rounded,
+          title: 'Manage Members Count',
+          subtitle: 'Recalculate or safely clear the overview count',
+          screen: AdminMemberCountManagementScreen(churchId: churchId),
+        ),
         const SectionTitle(title: 'Content'),
         _AdminNavCard(
           icon: Icons.library_books_rounded,
