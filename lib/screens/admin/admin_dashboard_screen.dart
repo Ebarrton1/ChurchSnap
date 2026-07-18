@@ -96,8 +96,8 @@ class AdminDashboardScreen extends ConsumerWidget {
 
         _AdminNavCard(
           icon: Icons.manage_accounts_rounded,
-          title: 'Manage Members Count',
-          subtitle: 'Recalculate or safely clear the overview count',
+          title: 'Members Count',
+          subtitle: 'Exclude only members removed from the directory',
           screen: AdminMemberCountManagementScreen(churchId: churchId),
         ),
         const SectionTitle(title: 'Content'),

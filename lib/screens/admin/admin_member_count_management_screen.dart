@@ -19,7 +19,7 @@ class _AdminMemberCountManagementScreenState
   late final MemberCountManagementRepository _repository;
   late Stream<MemberCountSummary> _summaryStream;
 
-  bool _isWorking = false;
+  bool _isRecalculating = false;
   DateTime? _lastRecalculatedAt;
 
   @override
@@ -33,20 +33,20 @@ class _AdminMemberCountManagementScreenState
   Widget build(BuildContext context) {
     return Material(
       child: ChurchSnapScreen(
-        title: 'Manage Members Count',
-        subtitle: 'Control which member records appear in Church Overview.',
+        title: 'Members Count',
+        subtitle: 'Removed members are excluded automatically.',
         children: [
           const AppCard(
             child: ListTile(
-              leading: CircleAvatar(child: Icon(Icons.calculate_outlined)),
+              leading: CircleAvatar(child: Icon(Icons.people_alt_outlined)),
               title: Text(
-                'Live and protected count',
+                'Only removed members leave the count',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
               subtitle: Text(
-                'Church Overview counts active, directory-visible congregation '
-                'members. Removed members, inactive records, visitors, pastors, '
-                'and administrators are excluded automatically.',
+                'A member remains in Church Overview until an administrator '
+                'uses Remove from Directory. No additional members are hidden '
+                'or deleted by this screen.',
               ),
             ),
           ),
@@ -81,13 +81,9 @@ class _AdminMemberCountManagementScreenState
                     totalRecords: 0,
                     overviewCount: 0,
                     removedCount: 0,
-                    inactiveCount: 0,
-                    protectedCount: 0,
-                    visitorCount: 0,
-                    explicitDemoCount: 0,
                   );
 
-              return _buildManagementControls(summary);
+              return _buildSummary(summary);
             },
           ),
         ],
@@ -95,7 +91,7 @@ class _AdminMemberCountManagementScreenState
     );
   }
 
-  Widget _buildManagementControls(MemberCountSummary summary) {
+  Widget _buildSummary(MemberCountSummary summary) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -104,32 +100,17 @@ class _AdminMemberCountManagementScreenState
           runSpacing: 12,
           children: [
             _CountCard(
-              label: 'Overview Members',
+              label: 'Current Members Count',
               value: summary.overviewCount,
               icon: Icons.people_alt_rounded,
             ),
             _CountCard(
-              label: 'Removed',
+              label: 'Removed from Count',
               value: summary.removedCount,
               icon: Icons.person_off_rounded,
             ),
             _CountCard(
-              label: 'Inactive',
-              value: summary.inactiveCount,
-              icon: Icons.pause_circle_outline_rounded,
-            ),
-            _CountCard(
-              label: 'Protected Staff',
-              value: summary.protectedCount,
-              icon: Icons.shield_outlined,
-            ),
-            _CountCard(
-              label: 'Visitors',
-              value: summary.visitorCount,
-              icon: Icons.person_pin_circle_outlined,
-            ),
-            _CountCard(
-              label: 'All Records',
+              label: 'Stored Member Records',
               value: summary.totalRecords,
               icon: Icons.storage_rounded,
             ),
@@ -140,60 +121,38 @@ class _AdminMemberCountManagementScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Count maintenance',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 10),
               FilledButton.icon(
-                onPressed: _isWorking ? null : _recalculateNow,
+                onPressed: _isRecalculating ? null : _recalculate,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Recalculate Count'),
+                label: const Text('Recalculate Members Count'),
               ),
               if (_lastRecalculatedAt != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
-                  'Last checked: ${_formatDateTime(_lastRecalculatedAt!)}',
+                  'Last recalculated: '
+                  '${_formatDateTime(_lastRecalculatedAt!)}',
                   textAlign: TextAlign.center,
                 ),
               ],
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _isWorking || summary.explicitDemoCount == 0
-                    ? null
-                    : () => _confirmClearDemoMembers(summary.explicitDemoCount),
-                icon: const Icon(Icons.science_outlined),
-                label: Text(
-                  'Clear Demo Members (${summary.explicitDemoCount})',
-                ),
-              ),
-              const SizedBox(height: 10),
-              FilledButton.icon(
-                onPressed: _isWorking || summary.overviewCount == 0
-                    ? null
-                    : () => _confirmClearOverview(summary.overviewCount),
-                icon: const Icon(Icons.person_remove_alt_1_rounded),
-                label: Text('Clear Members Count (${summary.overviewCount})'),
-              ),
             ],
           ),
         ),
         const SizedBox(height: 14),
         const AppCard(
           child: ListTile(
-            leading: Icon(Icons.restore_rounded),
+            leading: Icon(Icons.info_outline_rounded),
             title: Text(
-              'Records are preserved',
+              'How to reduce the count',
               style: TextStyle(fontWeight: FontWeight.w900),
             ),
             subtitle: Text(
-              'Clearing the count hides qualifying members from the directory; '
-              'it does not delete accounts, profiles, giving, attendance, RSVP, '
-              'or prayer history. Restore members from Church Member Directory.',
+              'Open Church Member Directory and choose Remove from Directory '
+              'for the specific member. The overview count will decrease '
+              'automatically. Restore the member to add the person back.',
             ),
           ),
         ),
-        if (_isWorking) ...[
+        if (_isRecalculating) ...[
           const SizedBox(height: 14),
           const LinearProgressIndicator(),
         ],
@@ -201,13 +160,13 @@ class _AdminMemberCountManagementScreenState
     );
   }
 
-  Future<void> _recalculateNow() async {
+  Future<void> _recalculate() async {
     setState(() {
-      _isWorking = true;
+      _isRecalculating = true;
     });
 
     try {
-      final summary = await _repository.getSummary();
+      final summary = await _repository.recalculate();
 
       if (!mounted) {
         return;
@@ -221,169 +180,27 @@ class _AdminMemberCountManagementScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Church Overview member count: ${summary.overviewCount}.',
+            'Members count recalculated: ${summary.overviewCount}. '
+            '${summary.removedCount} removed member'
+            '${summary.removedCount == 1 ? '' : 's'} excluded.',
           ),
         ),
       );
     } catch (error) {
-      _showError('Unable to recalculate the count: $error');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isWorking = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _confirmClearDemoMembers(int count) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Clear $count demo member${count == 1 ? '' : 's'}?'),
-        content: const Text(
-          'Only member records explicitly marked as demo or sample data will '
-          'be removed from the directory. Protected administrator and pastor '
-          'records will remain.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            icon: const Icon(Icons.science_outlined),
-            label: const Text('Clear Demo Members'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
-    await _runBulkAction(
-      operation: _repository.clearExplicitDemoMembers,
-      completedLabel: 'demo members cleared from the overview',
-    );
-  }
-
-  Future<void> _confirmClearOverview(int count) async {
-    final confirmationController = TextEditingController();
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        var canClear = false;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: Text('Clear the members count of $count?'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'All active, visible congregation members will be hidden '
-                    'from Church Overview and the directory. Administrator, '
-                    'pastor, visitor, inactive, and already removed records '
-                    'will not be changed.',
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: confirmationController,
-                    autocorrect: false,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: 'Type CLEAR MEMBERS to continue',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      setDialogState(() {
-                        canClear =
-                            value.trim().toUpperCase() == 'CLEAR MEMBERS';
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton.icon(
-                onPressed: canClear
-                    ? () => Navigator.of(dialogContext).pop(true)
-                    : null,
-                icon: const Icon(Icons.person_remove_alt_1_rounded),
-                label: const Text('Clear Members Count'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    confirmationController.dispose();
-
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
-    await _runBulkAction(
-      operation: _repository.clearOverviewMemberCount,
-      completedLabel: 'members removed from the overview count',
-    );
-  }
-
-  Future<void> _runBulkAction({
-    required Future<int> Function() operation,
-    required String completedLabel,
-  }) async {
-    setState(() {
-      _isWorking = true;
-    });
-
-    try {
-      final changedCount = await operation();
-
       if (!mounted) {
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            changedCount == 0
-                ? 'No matching member records were found.'
-                : '$changedCount $completedLabel.',
-          ),
-        ),
+        SnackBar(content: Text('Unable to recalculate members count: $error')),
       );
-    } catch (error) {
-      _showError('Unable to update the members count: $error');
     } finally {
       if (mounted) {
         setState(() {
-          _isWorking = false;
+          _isRecalculating = false;
         });
       }
     }
-  }
-
-  void _showError(String message) {
-    if (!mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   static String _formatDateTime(DateTime value) {
@@ -411,7 +228,7 @@ class _CountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 165,
+      width: 175,
       child: AppCard(
         child: Column(
           children: [
