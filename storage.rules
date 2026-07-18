@@ -68,6 +68,25 @@ service firebase.storage {
 
       allow delete: if isAdmin(churchId);
     }
+    // ChurchSnap member self-service profile pictures.
+    match /churches/{churchId}/member_profile_photos/{memberId}/{allPaths=**} {
+      allow read: if request.auth != null;
+
+      allow create, update: if request.auth != null
+        && (
+          request.auth.uid == memberId
+          || isAdmin(churchId)
+        )
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType != null
+        && request.resource.contentType.matches('image/.*');
+
+      allow delete: if request.auth != null
+        && (
+          request.auth.uid == memberId
+          || isAdmin(churchId)
+        );
+    }
 
     match /churches/{churchId}/media/{allPaths=**} {
       allow read: if true;

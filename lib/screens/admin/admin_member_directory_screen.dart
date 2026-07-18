@@ -196,8 +196,8 @@ class _AdminMemberDirectoryScreenState
     final isCurrentUser = currentUserId == entry.id;
     final isBusy = _busyMemberIds.contains(entry.id);
     final details = <String>[
-      if (entry.email.isNotEmpty) entry.email,
-      if (entry.phone.isNotEmpty) entry.phone,
+      if (entry.directoryEmail.isNotEmpty) entry.directoryEmail,
+      if (entry.directoryPhone.isNotEmpty) entry.directoryPhone,
       _roleLabel(entry.role),
       entry.isActive ? 'Active account' : 'Inactive account',
     ];

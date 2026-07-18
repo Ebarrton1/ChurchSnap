@@ -10,6 +10,8 @@ class MemberDirectoryEntry {
     required this.role,
     required this.isActive,
     required this.directoryVisible,
+    this.directoryEmailVisible = true,
+    this.directoryPhoneVisible = true,
     required this.removalReason,
     required this.removedAt,
     required this.removedBy,
@@ -25,6 +27,8 @@ class MemberDirectoryEntry {
   final String role;
   final bool isActive;
   final bool directoryVisible;
+  final bool directoryEmailVisible;
+  final bool directoryPhoneVisible;
   final String removalReason;
   final DateTime? removedAt;
   final String removedBy;
@@ -33,8 +37,15 @@ class MemberDirectoryEntry {
 
   bool get isRemoved => !directoryVisible;
 
-  String get searchableText =>
-      [displayName, email, phone, role].join(' ').toLowerCase();
+  String get directoryEmail => directoryEmailVisible ? email : '';
+  String get directoryPhone => directoryPhoneVisible ? phone : '';
+
+  String get searchableText => [
+    displayName,
+    directoryEmail,
+    directoryPhone,
+    role,
+  ].join(' ').toLowerCase();
 
   factory MemberDirectoryEntry.fromMap(String id, Map<String, dynamic> map) {
     return MemberDirectoryEntry(
@@ -46,6 +57,8 @@ class MemberDirectoryEntry {
       role: (map['role']?.toString() ?? 'member').trim(),
       isActive: map['isActive'] as bool? ?? true,
       directoryVisible: map['directoryVisible'] as bool? ?? true,
+      directoryEmailVisible: map['directoryEmailVisible'] as bool? ?? true,
+      directoryPhoneVisible: map['directoryPhoneVisible'] as bool? ?? true,
       removalReason: (map['directoryRemovalReason']?.toString() ?? '').trim(),
       removedAt: _dateTimeFromValue(map['directoryRemovedAt']),
       removedBy: (map['directoryRemovedBy']?.toString() ?? '').trim(),

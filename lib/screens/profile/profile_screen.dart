@@ -6,6 +6,7 @@ import '../volunteers/my_schedule_screen.dart';
 import 'attendance_history_screen.dart';
 import 'giving_history_screen.dart';
 import 'my_qr_code_screen.dart';
+import 'edit_my_member_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, required this.authController});
@@ -110,6 +111,42 @@ class ProfileScreen extends StatelessWidget {
                 value: _formatRole(member.role),
               ),
             ],
+          ),
+        ),
+        AppCard(
+          child: ListTile(
+            leading: const CircleAvatar(
+              child: Icon(Icons.manage_accounts_rounded),
+            ),
+            title: const Text(
+              'Complete or Edit My Details',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: const Text(
+              'Update your directory profile and protected personal details',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () async {
+              final updated = await Navigator.of(context).push<bool>(
+                MaterialPageRoute<bool>(
+                  builder: (_) => EditMyMemberProfileScreen(
+                    churchId: churchId,
+                    userId: member.id,
+                    accountEmail: member.email,
+                  ),
+                ),
+              );
+
+              if (updated == true && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Your profile was saved and the member directory updated.',
+                    ),
+                  ),
+                );
+              }
+            },
           ),
         ),
         const SectionTitle(title: 'Quick Actions'),

@@ -163,6 +163,41 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin(churchId);
 
       match /members/{memberId} {
+        // ChurchSnap member self-service directory profile.
+        allow update: if signedIn()
+          && memberId == currentUserId()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'firstName',
+              'middleName',
+              'lastName',
+              'displayName',
+              'phone',
+              'photoUrl',
+              'directoryEmailVisible',
+              'directoryPhoneVisible',
+              'profileNameComplete',
+              'profileNameCompletedAt',
+              'selfProfileUpdatedAt',
+              'updatedAt'
+            ])
+          && request.resource.data.get('firstName', '') is string
+          && request.resource.data.get('firstName', '').size() > 0
+          && request.resource.data.get('firstName', '').size() <= 60
+          && request.resource.data.get('middleName', '') is string
+          && request.resource.data.get('middleName', '').size() <= 60
+          && request.resource.data.get('lastName', '') is string
+          && request.resource.data.get('lastName', '').size() > 0
+          && request.resource.data.get('lastName', '').size() <= 60
+          && request.resource.data.get('displayName', '') is string
+          && request.resource.data.get('displayName', '').size() > 2
+          && request.resource.data.get('displayName', '').size() <= 182
+          && request.resource.data.get('phone', '') is string
+          && request.resource.data.get('phone', '').size() <= 40
+          && request.resource.data.get('photoUrl', '') is string
+          && request.resource.data.get('photoUrl', '').size() <= 2048
+          && request.resource.data.get('directoryEmailVisible', true) is bool
+          && request.resource.data.get('directoryPhoneVisible', true) is bool;
         // ChurchSnap required first-and-last-name completion.
         allow update: if signedIn()
           && memberId == request.auth.uid
