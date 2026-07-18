@@ -7,6 +7,7 @@ class CheckInRecord {
     required this.userId,
     required this.displayName,
     this.checkedInAt,
+    this.checkInMethod = 'manual',
   });
 
   final String id;
@@ -14,42 +15,40 @@ class CheckInRecord {
   final String userId;
   final String displayName;
   final DateTime? checkedInAt;
+  final String checkInMethod;
 
   factory CheckInRecord.fromMap(String id, Map<String, dynamic> data) {
-    final storedUserId =
-        data['memberId'] as String? ?? data['userId'] as String? ?? '';
-
-    final storedDisplayName =
-        data['memberName'] as String? ??
-        data['displayName'] as String? ??
-        'ChurchSnap Member';
-
     final checkedInAtValue = data['checkedInAt'];
 
     return CheckInRecord(
       id: id,
-      eventId: data['eventId'] as String? ?? '',
-      userId: storedUserId,
-      displayName: storedDisplayName,
+      eventId: (data['eventId']?.toString() ?? '').trim(),
+      userId: (data['userId']?.toString() ?? data['memberId']?.toString() ?? '')
+          .trim(),
+      displayName:
+          (data['displayName']?.toString() ??
+                  data['memberName']?.toString() ??
+                  '')
+              .trim(),
       checkedInAt: checkedInAtValue is Timestamp
           ? checkedInAtValue.toDate()
+          : checkedInAtValue is DateTime
+          ? checkedInAtValue
           : null,
+      checkInMethod: (data['checkInMethod']?.toString() ?? 'manual').trim(),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'eventId': eventId,
-
-      // Canonical attendance fields.
-      'memberId': userId,
-      'memberName': displayName,
-      'checkInMethod': 'manual',
-
-      // Legacy compatibility fields.
-      'userId': userId,
-      'displayName': displayName,
-
+      'eventId': eventId.trim(),
+      'userId': userId.trim(),
+      'memberId': userId.trim(),
+      'displayName': displayName.trim(),
+      'memberName': displayName.trim(),
+      'checkInMethod': checkInMethod.trim().isEmpty
+          ? 'manual'
+          : checkInMethod.trim(),
       'checkedInAt': checkedInAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(checkedInAt!),

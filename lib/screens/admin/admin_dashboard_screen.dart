@@ -183,7 +183,7 @@ class AdminDashboardScreen extends ConsumerWidget {
         _AdminNavCard(
           icon: Icons.how_to_reg_rounded,
           title: 'Attendance',
-          subtitle: 'View event check-ins',
+          subtitle: 'Review and clear event check-ins',
           screen: AdminAttendanceScreen(churchId: churchId),
         ),
         _AdminNavCard(
