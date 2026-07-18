@@ -9,7 +9,7 @@ import 'admin_events_screen.dart';
 import 'admin_home_appearance_screen.dart';
 import 'admin_pastor_picture_screen.dart';
 import 'admin_church_connection_screen.dart';
-import 'admin_members_screen.dart';
+import 'admin_member_directory_screen.dart';
 import 'admin_member_demographics_screen.dart';
 import 'admin_recent_baptisms_screen.dart';
 import 'admin_upcoming_celebrations_screen.dart';
@@ -152,9 +152,9 @@ class AdminDashboardScreen extends ConsumerWidget {
         const SectionTitle(title: 'People'),
         _AdminNavCard(
           icon: Icons.people_rounded,
-          title: 'Members',
-          subtitle: 'Manage church members',
-          screen: AdminMembersScreen(churchId: churchId),
+          title: 'Church Member Directory',
+          subtitle: 'Search, remove, and restore directory members',
+          screen: AdminMemberDirectoryScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.pie_chart_rounded,
