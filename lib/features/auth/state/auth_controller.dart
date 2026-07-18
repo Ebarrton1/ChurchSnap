@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../core/auth/app_roles.dart';
 import '../../../core/services/service_result.dart';
 import '../models/churchsnap_user.dart';
+import '../models/live_member_access.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/firebase/firebase_auth_repository_stub.dart';
 
@@ -229,6 +230,23 @@ class AuthController extends ChangeNotifier {
       return;
     }
 
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void applyLiveMemberAccess(LiveMemberAccess access) {
+    final existingUser = _currentUser;
+
+    if (existingUser == null || existingUser.id == 'guest') {
+      return;
+    }
+
+    if (!access.differsFrom(existingUser)) {
+      return;
+    }
+
+    _currentUser = access.mergeWith(existingUser);
+    _status = AuthStatus.authenticated;
     _errorMessage = null;
     notifyListeners();
   }

@@ -9,6 +9,7 @@ import '../state/auth_controller.dart';
 import 'account_disabled_screen.dart';
 import 'email_verification_screen.dart';
 import 'login_screen.dart';
+import 'live_member_session.dart';
 import 'required_name_gate.dart';
 
 class AuthGate extends StatefulWidget {
@@ -76,7 +77,12 @@ class _AuthGateState extends State<AuthGate> {
           userId: user.id,
           existingDisplayName: user.displayName,
           authController: authController,
-          child: ChurchSnapShell(authController: authController),
+          child: LiveMemberSession(
+            churchId: user.churchId,
+            userId: user.id,
+            authController: authController,
+            child: ChurchSnapShell(authController: authController),
+          ),
         );
       },
     );
