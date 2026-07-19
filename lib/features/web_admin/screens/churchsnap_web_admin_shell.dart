@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/auth/app_roles.dart';
+import '../../../screens/admin/admin_giving_confirmations_screen.dart';
 import '../../../screens/admin/admin_member_directory_screen.dart';
 import '../../auth/state/auth_controller.dart';
 import '../models/web_admin_donation_amount.dart';
@@ -634,6 +635,7 @@ class _WebGivingPage extends StatelessWidget {
       subtitle: 'Private finance information for authorized leaders.',
       stream: stream,
       emptyMessage: 'No giving records are available.',
+      banner: _WebPendingGivingBanner(churchId: churchId),
       itemBuilder: (context, document) {
         final data = document.data();
         final member = WebAdminValueFormatter.text(data, const [
@@ -680,6 +682,120 @@ class _WebGivingPage extends StatelessWidget {
   }
 }
 
+class _WebPendingGivingBanner extends StatelessWidget {
+  const _WebPendingGivingBanner({required this.churchId});
+
+  final String churchId;
+
+  @override
+  Widget build(BuildContext context) {
+    final stream = FirebaseFirestore.instance
+        .collection('churches')
+        .doc(churchId)
+        .collection('giving_submissions')
+        .where('status', isEqualTo: 'pending')
+        .snapshots();
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        final documents = snapshot.data?.docs ?? const [];
+        final descriptions = documents
+            .map(
+              (document) => WebAdminValueFormatter.text(document.data(), const [
+                'description',
+                'donationDescription',
+                'memo',
+              ], fallback: ''),
+            )
+            .where((description) => description.isNotEmpty)
+            .take(2)
+            .toList(growable: false);
+
+        final count = documents.length;
+        final title = snapshot.hasError
+            ? 'Pending gift confirmations unavailable'
+            : count == 0
+            ? 'No pending gift confirmations'
+            : '$count pending gift confirmation${count == 1 ? '' : 's'}';
+        final detail = snapshot.hasError
+            ? 'Open the full confirmation screen to retry.'
+            : descriptions.isEmpty
+            ? count == 0
+                  ? 'New donor descriptions will appear here before confirmation.'
+                  : 'Open to review the pending gift details.'
+            : 'Description preview:\n${descriptions.map((value) => '- $value').join('\n')}';
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final summary = Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      child:
+                          snapshot.connectionState == ConnectionState.waiting &&
+                              !snapshot.hasData
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.pending_actions_rounded),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(detail),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+
+                final action = FilledButton.tonalIcon(
+                  onPressed: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          AdminGivingConfirmationsScreen(churchId: churchId),
+                    ),
+                  ),
+                  icon: const Icon(Icons.fact_check_rounded),
+                  label: const Text('Review pending gifts'),
+                );
+
+                if (constraints.maxWidth < 720) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [summary, const SizedBox(height: 14), action],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: summary),
+                    const SizedBox(width: 18),
+                    action,
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _WebRecordPage extends StatelessWidget {
   const _WebRecordPage({
     required this.title,
@@ -687,12 +803,14 @@ class _WebRecordPage extends StatelessWidget {
     required this.stream,
     required this.emptyMessage,
     required this.itemBuilder,
+    this.banner,
   });
 
   final String title;
   final String subtitle;
   final Stream<QuerySnapshot<Map<String, dynamic>>> stream;
   final String emptyMessage;
+  final Widget? banner;
   final Widget Function(
     BuildContext context,
     QueryDocumentSnapshot<Map<String, dynamic>> document,
@@ -704,6 +822,7 @@ class _WebRecordPage extends StatelessWidget {
     return _WebPageFrame(
       title: title,
       subtitle: subtitle,
+      headerContent: banner,
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: stream,
         builder: (context, snapshot) {
@@ -746,10 +865,12 @@ class _WebPageFrame extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.child,
+    this.headerContent,
   });
 
   final String title;
   final String subtitle;
+  final Widget? headerContent;
   final Widget child;
 
   @override
@@ -773,6 +894,11 @@ class _WebPageFrame extends StatelessWidget {
             ],
           ),
         ),
+        if (headerContent != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
+            child: headerContent!,
+          ),
         Expanded(child: child),
       ],
     );
