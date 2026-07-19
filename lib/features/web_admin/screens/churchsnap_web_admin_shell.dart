@@ -6,6 +6,7 @@ import '../../../screens/admin/admin_member_directory_screen.dart';
 import '../../auth/state/auth_controller.dart';
 import '../models/web_admin_value_formatter.dart';
 import 'web_admin_action_center.dart';
+import 'web_admin_operations_reports.dart';
 import 'web_admin_staff_access.dart';
 
 class ChurchSnapWebAdminShell extends StatefulWidget {
@@ -53,6 +54,7 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
         onOpenPrayer: () => _selectPage(3),
         onOpenGiving: () => _selectPage(4),
       ),
+      WebAdminOperationsReports(churchId: _churchId),
     ];
 
     return LayoutBuilder(
@@ -150,6 +152,11 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                       selectedIcon: Icon(Icons.task_alt_rounded),
                       label: Text('Action Center'),
                     ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.analytics_outlined),
+                      selectedIcon: Icon(Icons.analytics_rounded),
+                      label: Text('Reports'),
+                    ),
                   ],
                 ),
               if (useRail) const VerticalDivider(width: 1),
@@ -193,6 +200,11 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                       icon: Icon(Icons.task_alt_outlined),
                       selectedIcon: Icon(Icons.task_alt_rounded),
                       label: 'Action Center',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.analytics_outlined),
+                      selectedIcon: Icon(Icons.analytics_rounded),
+                      label: 'Reports',
                     ),
                   ],
                 ),
