@@ -213,16 +213,9 @@ class _AdminMemberDirectoryScreenState
     return AppCard(
       child: ListTile(
         contentPadding: EdgeInsets.zero,
-        leading: CircleAvatar(
-          backgroundImage: entry.photoUrl.isEmpty
-              ? null
-              : NetworkImage(entry.photoUrl),
-          child: entry.photoUrl.isEmpty
-              ? Text(
-                  displayName.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                )
-              : null,
+        leading: _MemberDirectoryAvatar(
+          photoUrl: entry.photoUrl,
+          displayName: displayName,
         ),
         title: Row(
           children: [
@@ -518,5 +511,52 @@ class _AdminMemberDirectoryScreenState
     final day = localDate.day.toString().padLeft(2, '0');
 
     return '${localDate.year}-$month-$day';
+  }
+}
+
+class _MemberDirectoryAvatar extends StatelessWidget {
+  const _MemberDirectoryAvatar({
+    required this.photoUrl,
+    required this.displayName,
+  });
+
+  final String photoUrl;
+  final String displayName;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedUrl = photoUrl.trim();
+    final initial = displayName.trim().isEmpty
+        ? '?'
+        : displayName.trim().substring(0, 1).toUpperCase();
+    final parsedUrl = Uri.tryParse(normalizedUrl);
+    final canLoadPhoto =
+        parsedUrl != null &&
+        (parsedUrl.scheme == 'https' || parsedUrl.scheme == 'http');
+
+    Widget fallback() {
+      return Center(
+        child: Text(
+          initial,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+      );
+    }
+
+    return CircleAvatar(
+      radius: 24,
+      child: ClipOval(
+        child: canLoadPhoto
+            ? Image.network(
+                normalizedUrl,
+                width: 48,
+                height: 48,
+                fit: BoxFit.cover,
+                webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+                errorBuilder: (_, _, _) => fallback(),
+              )
+            : SizedBox(width: 48, height: 48, child: fallback()),
+      ),
+    );
   }
 }

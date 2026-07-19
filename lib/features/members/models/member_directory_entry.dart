@@ -53,7 +53,14 @@ class MemberDirectoryEntry {
       displayName: (map['displayName']?.toString() ?? '').trim(),
       email: (map['email']?.toString() ?? '').trim(),
       phone: (map['phone']?.toString() ?? '').trim(),
-      photoUrl: (map['photoUrl']?.toString() ?? '').trim(),
+      photoUrl: _firstText(map, const [
+        'photoUrl',
+        'photoURL',
+        'profilePhotoUrl',
+        'profileImageUrl',
+        'imageUrl',
+        'avatarUrl',
+      ]),
       role: (map['role']?.toString() ?? 'member').trim(),
       isActive: map['isActive'] as bool? ?? true,
       directoryVisible: map['directoryVisible'] as bool? ?? true,
@@ -77,6 +84,18 @@ class MemberDirectoryEntry {
       role: role,
       isActive: isActive,
     );
+  }
+
+  static String _firstText(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      final value = (map[key]?.toString() ?? '').trim();
+
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return '';
   }
 
   static DateTime? _dateTimeFromValue(dynamic value) {

@@ -447,3 +447,6 @@ Branch: `churchsnap-testing-stabilization`
 ## Stabilization outcome
 
 The Windows Staff Access member model did not read the canonical `photoUrl` field, and each member card always rendered an initial. The stabilization fix carries `photoUrl` from the Firestore member document into `WebAdminStaffMember` and renders an HTTP/HTTPS network photo with an initials fallback for missing, invalid, or failed images.
+## Church Member Directory web rendering
+
+The Church Member Directory already read the canonical `photoUrl`, but its `CircleAvatar` used the default Flutter web byte-fetching image provider. The stabilization fix uses `Image.network` with `WebHtmlElementStrategy.fallback`, preserves initials for missing or failed images, and accepts a small set of legacy photo field aliases.

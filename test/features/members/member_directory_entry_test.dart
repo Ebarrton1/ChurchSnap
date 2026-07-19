@@ -55,5 +55,24 @@ void main() {
       expect(member.phone, '555-0110');
       expect(member.isActive, isFalse);
     });
+    test('reads canonical and legacy member photo field names', () {
+      final canonical = MemberDirectoryEntry.fromMap(
+        'member-photo-1',
+        const <String, dynamic>{
+          'displayName': 'Canonical Photo',
+          'photoUrl': ' https://example.com/canonical.jpg ',
+        },
+      );
+      final legacy = MemberDirectoryEntry.fromMap(
+        'member-photo-2',
+        const <String, dynamic>{
+          'displayName': 'Legacy Photo',
+          'profilePhotoUrl': ' https://example.com/legacy.jpg ',
+        },
+      );
+
+      expect(canonical.photoUrl, 'https://example.com/canonical.jpg');
+      expect(legacy.photoUrl, 'https://example.com/legacy.jpg');
+    });
   });
 }
