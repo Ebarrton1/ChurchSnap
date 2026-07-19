@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../../firebase/firebase_paths.dart';
 import '../models/giving_currency.dart';
 import '../models/giving_submission.dart';
+import '../services/giving_confirmation_ledger.dart';
 
 class GivingSubmissionRepository {
   GivingSubmissionRepository({
@@ -17,10 +19,11 @@ class GivingSubmissionRepository {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
 
-  CollectionReference<Map<String, dynamic>> get _collection => _firestore
-      .collection('churches')
-      .doc(_churchId)
-      .collection('giving_submissions');
+  CollectionReference<Map<String, dynamic>> get _collection =>
+      _firestore.collection(FirebasePaths.givingSubmissions(_churchId));
+
+  CollectionReference<Map<String, dynamic>> get _donations =>
+      _firestore.collection(FirebasePaths.donations(_churchId));
 
   Stream<List<GivingSubmission>> watchAll() {
     return _collection.snapshots().map((snapshot) {
@@ -132,14 +135,75 @@ class GivingSubmissionRepository {
       );
     }
 
-    await _collection.doc(submission.id).update({
-      'status': GivingSubmissionStatus.confirmed.name,
-      'confirmedAmountMinorUnits': confirmedAmountMinorUnits,
-      'confirmedCurrencyCode': confirmedCurrency.code,
-      'confirmedCurrencySymbol': confirmedCurrency.symbol,
-      'confirmedByUid': firebaseUser.uid,
-      'confirmedAt': FieldValue.serverTimestamp(),
-      'adminNote': adminNote.trim(),
+    final submissionId = GivingConfirmationLedger.donationDocumentId(
+      submission.id,
+    );
+    final submissionReference = _collection.doc(submissionId);
+    final donationReference = _donations.doc(submissionId);
+    final cleanAdminNote = adminNote.trim();
+
+    await _firestore.runTransaction((transaction) async {
+      final submissionSnapshot = await transaction.get(submissionReference);
+
+      if (!submissionSnapshot.exists) {
+        throw StateError('The giving submission no longer exists.');
+      }
+
+      final currentSubmission = GivingSubmission.fromDocument(
+        submissionSnapshot,
+      );
+
+      if (currentSubmission.status == GivingSubmissionStatus.rejected) {
+        throw StateError('A rejected gift submission cannot be confirmed.');
+      }
+
+      final donationSnapshot = await transaction.get(donationReference);
+      final alreadyConfirmed =
+          currentSubmission.status == GivingSubmissionStatus.confirmed;
+
+      if (alreadyConfirmed &&
+          !GivingConfirmationLedger.matchesConfirmedSubmission(
+            submission: currentSubmission,
+            confirmedAmountMinorUnits: confirmedAmountMinorUnits,
+            confirmedCurrency: confirmedCurrency,
+            adminNote: cleanAdminNote,
+          )) {
+        throw StateError(
+          'This gift was already confirmed with different details.',
+        );
+      }
+
+      if (alreadyConfirmed && donationSnapshot.exists) {
+        return;
+      }
+
+      final timestamp = FieldValue.serverTimestamp();
+      final donationData = GivingConfirmationLedger.donationFields(
+        submission: currentSubmission,
+        confirmedAmountMinorUnits: confirmedAmountMinorUnits,
+        confirmedCurrency: confirmedCurrency,
+        confirmedByUid: firebaseUser.uid,
+        adminNote: cleanAdminNote,
+      );
+
+      transaction.set(donationReference, <String, dynamic>{
+        ...donationData,
+        if (!donationSnapshot.exists) 'createdAt': timestamp,
+        if (!donationSnapshot.exists) 'receivedAt': timestamp,
+        'updatedAt': timestamp,
+      }, SetOptions(merge: true));
+
+      if (!alreadyConfirmed) {
+        transaction.update(submissionReference, <String, dynamic>{
+          'status': GivingSubmissionStatus.confirmed.name,
+          'confirmedAmountMinorUnits': confirmedAmountMinorUnits,
+          'confirmedCurrencyCode': confirmedCurrency.code,
+          'confirmedCurrencySymbol': confirmedCurrency.symbol,
+          'confirmedByUid': firebaseUser.uid,
+          'confirmedAt': timestamp,
+          'adminNote': cleanAdminNote,
+        });
+      }
     });
   }
 
