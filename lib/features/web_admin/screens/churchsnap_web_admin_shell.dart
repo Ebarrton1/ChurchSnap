@@ -5,6 +5,7 @@ import '../../../core/auth/app_roles.dart';
 import '../../../screens/admin/admin_member_directory_screen.dart';
 import '../../auth/state/auth_controller.dart';
 import '../models/web_admin_value_formatter.dart';
+import '../widgets/web_admin_responsive_navigation.dart';
 import 'web_admin_action_center.dart';
 import 'web_admin_operations_reports.dart';
 import 'web_admin_staff_access.dart';
@@ -167,7 +168,7 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
           ),
           bottomNavigationBar: useRail
               ? null
-              : NavigationBar(
+              : WebAdminResponsiveNavigation(
                   selectedIndex: _selectedIndex,
                   onDestinationSelected: _selectPage,
                   destinations: const [
