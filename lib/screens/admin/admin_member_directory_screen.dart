@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/members/models/member_directory_entry.dart';
 import '../../features/members/providers/member_directory_providers.dart';
+import '../../features/members/utils/member_directory_date_formatter.dart';
 import 'admin_member_profile_screen.dart';
 
 enum _DirectoryView { visible, removed }
@@ -207,7 +208,9 @@ class _AdminMemberDirectoryScreenState
     }
 
     if (entry.isRemoved && entry.removedAt != null) {
-      details.add('Removed: ${_formatDate(entry.removedAt!)}');
+      details.add(
+        'Removed: ${MemberDirectoryDateFormatter.format(entry.removedAt)}',
+      );
     }
 
     return AppCard(
@@ -503,14 +506,6 @@ class _AdminMemberDirectoryScreenState
 
         return normalized;
     }
-  }
-
-  static String _formatDate(DateTime date) {
-    final localDate = date.toLocal();
-    final month = localDate.month.toString().padLeft(2, '0');
-    final day = localDate.day.toString().padLeft(2, '0');
-
-    return '${localDate.year}-$month-$day';
   }
 }
 
