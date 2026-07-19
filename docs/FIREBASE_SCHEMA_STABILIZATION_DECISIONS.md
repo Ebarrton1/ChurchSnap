@@ -31,6 +31,7 @@ These decisions interpret the static Firebase source audits. They do not claim t
 - A confirmed submission maps to the deterministic donation document ID equal to the submission ID.
 - Confirmation writes the donation ledger record and updates the submission in one Firestore transaction.
 - Retrying the same confirmation cannot create a duplicate donation.
+- Windows administrative readers accept canonical `amountCents` values and legacy `amount` values during stabilization. Canonical cents are divided by 100 for display and reporting.
 - A confirmed submission cannot silently be reconfirmed with different amount, currency, or note details.
 
 ## Attendance

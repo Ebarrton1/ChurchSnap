@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/web_admin_donation_amount.dart';
 import '../models/web_admin_report_snapshot.dart';
 
 class WebAdminReportBuilder {
@@ -107,7 +108,7 @@ class WebAdminReportBuilder {
         continue;
       }
 
-      final amount = _amount(data['amount']);
+      final amount = _amount(WebAdminDonationAmount.read(data));
 
       if (amount == null) {
         continue;

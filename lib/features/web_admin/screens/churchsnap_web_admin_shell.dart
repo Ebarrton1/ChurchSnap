@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/auth/app_roles.dart';
 import '../../../screens/admin/admin_member_directory_screen.dart';
 import '../../auth/state/auth_controller.dart';
+import '../models/web_admin_donation_amount.dart';
 import '../models/web_admin_value_formatter.dart';
 import '../widgets/web_admin_responsive_navigation.dart';
 import 'web_admin_action_center.dart';
@@ -652,7 +653,7 @@ class _WebGivingPage extends StatelessWidget {
           'currency',
         ], fallback: 'USD');
         final amount = WebAdminValueFormatter.money(
-          data['amount'],
+          WebAdminDonationAmount.read(data),
           currency: currency,
         );
 

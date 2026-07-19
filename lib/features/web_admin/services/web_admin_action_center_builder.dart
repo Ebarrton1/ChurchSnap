@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/web_admin_action_item.dart';
+import '../models/web_admin_donation_amount.dart';
 
 class WebAdminActionCenterBuilder {
   const WebAdminActionCenterBuilder._();
@@ -214,7 +215,7 @@ class WebAdminActionCenterBuilder {
         'category',
       ], fallback: 'Fund not set');
       final amount = _money(
-        data['amount'],
+        WebAdminDonationAmount.read(data),
         currency: _text(data, const ['currency'], fallback: 'USD'),
       );
       final urgent =
