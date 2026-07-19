@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/auth/app_roles.dart';
 import '../models/web_admin_staff_member.dart';
 import '../services/web_admin_staff_access_service.dart';
+import 'web_admin_audit_log.dart';
 
 class WebAdminStaffAccessScreen extends StatefulWidget {
   const WebAdminStaffAccessScreen({
@@ -61,6 +62,22 @@ class _WebAdminStaffAccessScreenState extends State<WebAdminStaffAccessScreen> {
           'Staff Access',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Administrative activity',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => WebAdminAuditLogScreen(
+                    churchId: widget.churchId,
+                    currentUserRole: widget.currentUserRole,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.history_rounded),
+          ),
+        ],
       ),
       body: StreamBuilder<List<WebAdminStaffMember>>(
         stream: _service.watchMembers(),
