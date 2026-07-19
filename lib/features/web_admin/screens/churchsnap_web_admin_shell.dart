@@ -663,7 +663,7 @@ class _WebGivingPage extends StatelessWidget {
             amount,
             style: const TextStyle(fontWeight: FontWeight.w900),
           ),
-          subtitle: Text('$member\n$fund â€¢ $status'),
+          subtitle: Text('$member\n$fund - $status'),
           isThreeLine: true,
         );
       },

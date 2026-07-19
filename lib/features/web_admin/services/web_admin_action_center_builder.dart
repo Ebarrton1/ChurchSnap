@@ -229,7 +229,7 @@ class WebAdminActionCenterBuilder {
             ? WebAdminActionPriority.urgent
             : WebAdminActionPriority.normal,
         sourceId: source.id,
-        title: '$amount â€¢ $donor',
+        title: '$amount - $donor',
         detail: '$fund â€¢ ${status.isEmpty ? 'Status not set' : status}',
         dueAt: _firstDate(data, const ['createdAt', 'updatedAt', 'date']),
       );

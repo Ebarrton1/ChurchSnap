@@ -122,7 +122,7 @@ class WebAdminReportBuilder {
         'fund',
         'category',
       ], fallback: 'Unspecified fund');
-      final fundKey = '$currency â€¢ $fund';
+      final fundKey = '$currency - $fund';
 
       recordedDonationCount++;
       givingByCurrency.update(

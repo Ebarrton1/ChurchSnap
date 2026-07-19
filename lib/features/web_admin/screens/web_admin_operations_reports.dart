@@ -496,7 +496,7 @@ class _MoneyBreakdown extends StatelessWidget {
     return Column(
       children: values.entries
           .map((entry) {
-            final currency = entry.key.split(' â€¢ ').first;
+            final currency = entry.key.split(' - ').first;
             final valueLabel =
                 '$currency ${_WebAdminReportFormatting.amount(entry.value)}';
             final progress = maximum <= 0 ? 0.0 : entry.value / maximum;

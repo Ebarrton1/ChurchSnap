@@ -81,7 +81,7 @@ void main() {
 
       expect(report.recordedDonationCount, 1);
       expect(report.givingByCurrency, {'USD': 100});
-      expect(report.givingByFund, {'USD â€¢ Tithe': 100});
+      expect(report.givingByFund, {'USD - Tithe': 100});
     });
 
     test('counts prayer workload and sorts upcoming events', () {
@@ -148,7 +148,7 @@ void main() {
       );
 
       expect(report.givingByCurrency, {'JMD': 5000, 'USD': 100});
-      expect(report.givingByFund.keys, {'JMD â€¢ Tithe', 'USD â€¢ Tithe'});
+      expect(report.givingByFund.keys, {'JMD - Tithe', 'USD - Tithe'});
     });
   });
 }
