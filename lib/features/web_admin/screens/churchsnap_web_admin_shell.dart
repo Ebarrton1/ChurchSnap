@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../screens/admin/admin_member_directory_screen.dart';
 import '../../auth/state/auth_controller.dart';
 import '../models/web_admin_value_formatter.dart';
+import 'web_admin_action_center.dart';
 
 class ChurchSnapWebAdminShell extends StatefulWidget {
   const ChurchSnapWebAdminShell({super.key, required this.authController});
@@ -43,6 +44,13 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
       _WebEventsPage(churchId: _churchId),
       _WebPrayerPage(churchId: _churchId),
       _WebGivingPage(churchId: _churchId),
+      WebAdminActionCenter(
+        churchId: _churchId,
+        onOpenMembers: () => _selectPage(1),
+        onOpenEvents: () => _selectPage(2),
+        onOpenPrayer: () => _selectPage(3),
+        onOpenGiving: () => _selectPage(4),
+      ),
     ];
 
     return LayoutBuilder(
@@ -119,6 +127,11 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                       selectedIcon: Icon(Icons.payments_rounded),
                       label: Text('Giving'),
                     ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.task_alt_outlined),
+                      selectedIcon: Icon(Icons.task_alt_rounded),
+                      label: Text('Action Center'),
+                    ),
                   ],
                 ),
               if (useRail) const VerticalDivider(width: 1),
@@ -157,6 +170,11 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                       icon: Icon(Icons.payments_outlined),
                       selectedIcon: Icon(Icons.payments_rounded),
                       label: 'Giving',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.task_alt_outlined),
+                      selectedIcon: Icon(Icons.task_alt_rounded),
+                      label: 'Action Center',
                     ),
                   ],
                 ),
