@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:churchsnap/platform/churchsnap_platform_shell.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../../../screens/home/churchsnap_shell.dart';
 import '../../notifications/repositories/notification_repository.dart';
 import '../../notifications/services/notification_service.dart';
 import '../models/churchsnap_user.dart';
@@ -69,7 +70,9 @@ class _AuthGateState extends State<AuthGate> {
         if (user.isGuest) {
           _clearNotificationService();
         } else {
-          _scheduleNotificationInitialization(user);
+          if (!kIsWeb) {
+            _scheduleNotificationInitialization(user);
+          }
         }
 
         return RequiredNameGate(
@@ -81,7 +84,7 @@ class _AuthGateState extends State<AuthGate> {
             churchId: user.churchId,
             userId: user.id,
             authController: authController,
-            child: ChurchSnapShell(authController: authController),
+            child: ChurchSnapPlatformShell(authController: authController),
           ),
         );
       },
