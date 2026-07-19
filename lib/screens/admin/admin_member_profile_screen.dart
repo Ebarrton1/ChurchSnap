@@ -364,6 +364,7 @@ class _MemberIdentityCard extends StatelessWidget {
                     )
                   : Image.network(
                       photoUrl,
+                      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
                       width: 160,
                       height: 160,
                       fit: BoxFit.cover,
