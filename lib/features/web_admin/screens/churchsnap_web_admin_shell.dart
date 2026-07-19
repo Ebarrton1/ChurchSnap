@@ -649,6 +649,11 @@ class _WebGivingPage extends StatelessWidget {
         final status = WebAdminValueFormatter.text(data, const [
           'status',
         ], fallback: 'Status not set');
+        final description = WebAdminValueFormatter.text(data, const [
+          'description',
+          'donationDescription',
+          'memo',
+        ], fallback: '');
         final currency = WebAdminValueFormatter.text(data, const [
           'currency',
         ], fallback: 'USD');
@@ -663,7 +668,11 @@ class _WebGivingPage extends StatelessWidget {
             amount,
             style: const TextStyle(fontWeight: FontWeight.w900),
           ),
-          subtitle: Text('$member\n$fund - $status'),
+          subtitle: Text(
+            description.isEmpty
+                ? '$member\n$fund - $status'
+                : '$member\n$fund - $status\n$description',
+          ),
           isThreeLine: true,
         );
       },

@@ -103,6 +103,8 @@ class GivingHistoryScreen extends StatelessWidget {
                             _formatStatus(record.status),
                             if (record.reference.isNotEmpty)
                               'Ref: ${record.reference}',
+                            if (record.description.isNotEmpty)
+                              'Description: ${record.description}',
                           ].where((value) => value.isNotEmpty).join(' • '),
                         ),
                         trailing: Text(

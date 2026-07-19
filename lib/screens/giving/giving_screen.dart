@@ -26,6 +26,7 @@ class _GivingScreenState extends State<GivingScreen> {
   static const _fallbackFunds = StandardGivingFunds.fallbackFunds;
 
   final TextEditingController _customAmountController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
   int _selectedAmount = 50;
   String? _selectedFundId;
@@ -55,6 +56,7 @@ class _GivingScreenState extends State<GivingScreen> {
   @override
   void dispose() {
     _customAmountController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -264,6 +266,22 @@ class _GivingScreenState extends State<GivingScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _descriptionController,
+                        enabled: !_submitting,
+                        textCapitalization: TextCapitalization.sentences,
+                        minLines: 2,
+                        maxLines: 4,
+                        maxLength: 500,
+                        decoration: const InputDecoration(
+                          labelText: 'Donation description (optional)',
+                          hintText:
+                              'Add a purpose, dedication, or short message.',
+                          prefixIcon: Icon(Icons.notes_rounded),
+                          helperText: 'Visible to you and authorized leaders.',
+                        ),
+                      ),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         value: _recurring,
@@ -363,6 +381,7 @@ class _GivingScreenState extends State<GivingScreen> {
   ) async {
     final member = widget.authController.currentUser;
     final amountMinorUnits = _amountMinorUnits;
+    final description = _descriptionController.text.trim();
 
     if (member == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -379,6 +398,9 @@ class _GivingScreenState extends State<GivingScreen> {
     }
 
     final amount = currency.formatMinorUnits(amountMinorUnits);
+    final descriptionText = description.isEmpty
+        ? ''
+        : 'Description: $description\n';
     final shouldSubmit = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -388,7 +410,8 @@ class _GivingScreenState extends State<GivingScreen> {
           content: Text(
             '$amount ${currency.code}\n'
             'Fund: ${fund.name}\n'
-            'Type: ${_recurring ? 'Recurring' : 'One-time'}\n\n'
+            'Type: ${_recurring ? 'Recurring' : 'One-time'}\n'
+            '$descriptionText\n'
             'The church administrator will confirm the actual amount and '
             'currency received. No exchange-rate conversion will be made.',
           ),
@@ -429,12 +452,14 @@ class _GivingScreenState extends State<GivingScreen> {
         amountMinorUnits: amountMinorUnits,
         currency: currency,
         recurring: _recurring,
+        description: description,
       );
 
       if (!mounted) return;
 
       setState(() {
         _customAmountController.clear();
+        _descriptionController.clear();
         _selectedAmount = 50;
         _recurring = false;
       });

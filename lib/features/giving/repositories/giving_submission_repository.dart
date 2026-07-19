@@ -79,6 +79,7 @@ class GivingSubmissionRepository {
     required int amountMinorUnits,
     required GivingCurrency currency,
     required bool recurring,
+    String description = '',
   }) async {
     final firebaseUser = _auth.currentUser;
 
@@ -96,6 +97,16 @@ class GivingSubmissionRepository {
       );
     }
 
+    final cleanDescription = description.trim();
+
+    if (cleanDescription.length > 500) {
+      throw ArgumentError.value(
+        description,
+        'description',
+        'Donation description must be 500 characters or fewer.',
+      );
+    }
+
     final document = await _collection.add({
       'giverId': giverId,
       'createdByUid': firebaseUser.uid,
@@ -104,6 +115,7 @@ class GivingSubmissionRepository {
           : giverName.trim(),
       'fundId': fundId,
       'fundName': fundName,
+      'description': cleanDescription,
       'amountMinorUnits': amountMinorUnits,
       'currencyCode': currency.code,
       'currencySymbol': currency.symbol,

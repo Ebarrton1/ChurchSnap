@@ -218,6 +218,8 @@ class AdminGivingScreen extends StatelessWidget {
                           _formatStatus(record.status),
                           if (record.reference.isNotEmpty)
                             'Ref: ${record.reference}',
+                          if (record.description.isNotEmpty)
+                            'Description: ${record.description}',
                         ].join(' • '),
                       ),
                       trailing: Row(
@@ -364,6 +366,7 @@ class AdminGivingScreen extends StatelessWidget {
       status: result.status,
       recurring: result.recurring,
       reference: result.reference,
+      description: result.description,
       receivedAt: existingDonation?.receivedAt ?? DateTime.now(),
       createdAt: existingDonation?.createdAt,
     );
@@ -564,6 +567,7 @@ class _DonationDialogState extends State<_DonationDialog> {
   late final TextEditingController _memberNameController;
   late final TextEditingController _amountController;
   late final TextEditingController _referenceController;
+  late final TextEditingController _descriptionController;
   late String _fundId;
   late String _status;
   late bool _recurring;
@@ -597,6 +601,9 @@ class _DonationDialogState extends State<_DonationDialog> {
     _referenceController = TextEditingController(
       text: donation?.reference ?? '',
     );
+    _descriptionController = TextEditingController(
+      text: donation?.description ?? '',
+    );
 
     final existingFundId = donation?.fundId ?? '';
     _fundId = funds.any((fund) => fund.id == existingFundId)
@@ -612,6 +619,7 @@ class _DonationDialogState extends State<_DonationDialog> {
     _memberNameController.dispose();
     _amountController.dispose();
     _referenceController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -691,6 +699,18 @@ class _DonationDialogState extends State<_DonationDialog> {
                 helperText: 'Receipt, check, or processor reference.',
               ),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _descriptionController,
+              textCapitalization: TextCapitalization.sentences,
+              minLines: 2,
+              maxLines: 4,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'Donation description (optional)',
+                helperText: 'Purpose, dedication, or giver message.',
+              ),
+            ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: _recurring,
@@ -753,6 +773,7 @@ class _DonationDialogState extends State<_DonationDialog> {
         status: _status,
         recurring: _recurring,
         reference: _referenceController.text.trim(),
+        description: _descriptionController.text.trim(),
       ),
     );
   }
@@ -782,6 +803,7 @@ class _DonationFormResult {
     required this.status,
     required this.recurring,
     required this.reference,
+    required this.description,
   });
 
   final String memberId;
@@ -792,4 +814,5 @@ class _DonationFormResult {
   final String status;
   final bool recurring;
   final String reference;
+  final String description;
 }

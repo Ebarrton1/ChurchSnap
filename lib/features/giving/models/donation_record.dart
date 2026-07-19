@@ -12,6 +12,7 @@ class DonationRecord {
     this.status = 'completed',
     this.recurring = false,
     this.reference = '',
+    this.description = '',
     this.receivedAt,
     this.createdAt,
   });
@@ -26,6 +27,7 @@ class DonationRecord {
   final String status;
   final bool recurring;
   final String reference;
+  final String description;
   final DateTime? receivedAt;
   final DateTime? createdAt;
 
@@ -43,6 +45,11 @@ class DonationRecord {
       status: map['status'] as String? ?? 'completed',
       recurring: map['recurring'] as bool? ?? false,
       reference: map['reference'] as String? ?? '',
+      description:
+          (map['description'] as String?)?.trim() ??
+          (map['donationDescription'] as String?)?.trim() ??
+          (map['memo'] as String?)?.trim() ??
+          '',
       receivedAt: _dateFromValue(map['receivedAt']),
       createdAt: _dateFromValue(map['createdAt']),
     );
@@ -59,6 +66,7 @@ class DonationRecord {
       'status': status.trim().isEmpty ? 'completed' : status.trim(),
       'recurring': recurring,
       'reference': reference.trim(),
+      'description': description.trim(),
       'receivedAt': receivedAt,
     };
   }

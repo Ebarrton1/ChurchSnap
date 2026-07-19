@@ -54,6 +54,7 @@ class GivingConfirmationLedger {
       'fundName': submission.fundName.trim().isEmpty
           ? 'General Giving'
           : submission.fundName.trim(),
+      'description': submission.description.trim(),
       'amountCents': confirmedAmountMinorUnits,
       'currency': confirmedCurrency.code,
       'status': 'completed',
