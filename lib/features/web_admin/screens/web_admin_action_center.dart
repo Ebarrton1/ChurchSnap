@@ -225,7 +225,7 @@ class _WebAdminActionCenterState extends State<WebAdminActionCenter> {
                     setState(() => _selectedKind = WebAdminActionKind.event),
               ),
               _SummaryCard(
-                label: 'Members',
+                label: 'Member follow-up',
                 count: _count(items, WebAdminActionKind.member),
                 icon: Icons.people_rounded,
                 selected: _selectedKind == WebAdminActionKind.member,
