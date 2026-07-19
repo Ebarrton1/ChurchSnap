@@ -1,9 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/auth/app_roles.dart';
 import '../../../screens/admin/admin_member_directory_screen.dart';
 import '../../auth/state/auth_controller.dart';
 import '../models/web_admin_value_formatter.dart';
+import '../widgets/web_admin_responsive_navigation.dart';
+import 'web_admin_action_center.dart';
+import 'web_admin_operations_reports.dart';
+import 'web_admin_staff_access.dart';
 
 class ChurchSnapWebAdminShell extends StatefulWidget {
   const ChurchSnapWebAdminShell({super.key, required this.authController});
@@ -43,6 +48,14 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
       _WebEventsPage(churchId: _churchId),
       _WebPrayerPage(churchId: _churchId),
       _WebGivingPage(churchId: _churchId),
+      WebAdminActionCenter(
+        churchId: _churchId,
+        onOpenMembers: () => _selectPage(1),
+        onOpenEvents: () => _selectPage(2),
+        onOpenPrayer: () => _selectPage(3),
+        onOpenGiving: () => _selectPage(4),
+      ),
+      WebAdminOperationsReports(churchId: _churchId),
     ];
 
     return LayoutBuilder(
@@ -74,6 +87,22 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                   ),
                 ),
               ),
+              if (user.role == AppRoles.admin)
+                IconButton(
+                  tooltip: 'Staff access',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => WebAdminStaffAccessScreen(
+                          churchId: _churchId,
+                          currentUserId: user.id,
+                          currentUserRole: user.role,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.admin_panel_settings_rounded),
+                ),
               IconButton(
                 tooltip: 'Sign out',
                 onPressed: widget.authController.signOut,
@@ -119,6 +148,16 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                       selectedIcon: Icon(Icons.payments_rounded),
                       label: Text('Giving'),
                     ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.task_alt_outlined),
+                      selectedIcon: Icon(Icons.task_alt_rounded),
+                      label: Text('Action Center'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.analytics_outlined),
+                      selectedIcon: Icon(Icons.analytics_rounded),
+                      label: Text('Reports'),
+                    ),
                   ],
                 ),
               if (useRail) const VerticalDivider(width: 1),
@@ -129,7 +168,7 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
           ),
           bottomNavigationBar: useRail
               ? null
-              : NavigationBar(
+              : WebAdminResponsiveNavigation(
                   selectedIndex: _selectedIndex,
                   onDestinationSelected: _selectPage,
                   destinations: const [
@@ -157,6 +196,16 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                       icon: Icon(Icons.payments_outlined),
                       selectedIcon: Icon(Icons.payments_rounded),
                       label: 'Giving',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.task_alt_outlined),
+                      selectedIcon: Icon(Icons.task_alt_rounded),
+                      label: 'Action Center',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.analytics_outlined),
+                      selectedIcon: Icon(Icons.analytics_rounded),
+                      label: 'Reports',
                     ),
                   ],
                 ),
