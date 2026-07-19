@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/auth/app_roles.dart';
 import '../../../screens/admin/admin_member_directory_screen.dart';
 import '../../auth/state/auth_controller.dart';
 import '../models/web_admin_value_formatter.dart';
 import 'web_admin_action_center.dart';
+import 'web_admin_staff_access.dart';
 
 class ChurchSnapWebAdminShell extends StatefulWidget {
   const ChurchSnapWebAdminShell({super.key, required this.authController});
@@ -82,6 +84,22 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                   ),
                 ),
               ),
+              if (user.role == AppRoles.admin)
+                IconButton(
+                  tooltip: 'Staff access',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => WebAdminStaffAccessScreen(
+                          churchId: _churchId,
+                          currentUserId: user.id,
+                          currentUserRole: user.role,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.admin_panel_settings_rounded),
+                ),
               IconButton(
                 tooltip: 'Sign out',
                 onPressed: widget.authController.signOut,

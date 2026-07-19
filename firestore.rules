@@ -68,6 +68,13 @@ service cloud.firestore {
         && memberRole(churchId) in ['admin', 'pastor'];
     }
 
+    function isRoleAdmin(churchId) {
+      return memberExists(churchId)
+        && get(
+          /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
+        ).data.role == 'admin';
+    }
+
     function isMinistryLeader(churchId) {
       return isActiveMember(churchId)
         && memberRole(churchId) == 'ministryLeader';
@@ -270,13 +277,9 @@ service cloud.firestore {
             == resource.data.get('isActive', true)
         )
         || (
-          isAdmin(churchId)
+          isRoleAdmin(churchId)
           && memberId != currentUserId()
-          && (
-            request.resource.data.get('role', 'member')
-              == resource.data.get('role', 'member')
-            || validRole(request.resource.data.get('role', 'member'))
-          )
+          && validRole(request.resource.data.get('role', 'member'))
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'displayName',
             'email',
@@ -290,11 +293,14 @@ service cloud.firestore {
             'directoryRemovedAt',
             'directoryRemovedBy',
             'directoryRestoredAt',
-            'directoryRestoredBy',            'updatedAt'
+            'directoryRestoredBy',
+            'roleUpdatedAt',
+            'roleUpdatedBy',
+            'updatedAt'
           ])
         );
 
-        allow delete: if isAdmin(churchId)
+        allow delete: if isRoleAdmin(churchId)
           && memberId != currentUserId();
 
         match /sermonBookmarks/{sermonId} {
@@ -763,6 +769,11 @@ service cloud.firestore {
 
       match /giving/{givingId} {
         allow read, write: if false;
+      }
+
+      match /admin_audit_logs/{auditId} {
+        allow read, create: if isRoleAdmin(churchId);
+        allow update, delete: if false;
       }
     }
   }
