@@ -5,6 +5,7 @@ class WebAdminStaffMember {
     required this.id,
     required this.displayName,
     required this.email,
+    this.photoUrl = '',
     required this.role,
     required this.isActive,
   });
@@ -31,10 +32,12 @@ class WebAdminStaffMember {
         ? data['active'] as bool
         : true;
 
+    final photoUrl = (data['photoUrl']?.toString() ?? '').trim();
     return WebAdminStaffMember(
       id: id,
       displayName: name,
       email: email,
+      photoUrl: photoUrl,
       role: role,
       isActive: isActive,
     );
@@ -43,6 +46,7 @@ class WebAdminStaffMember {
   final String id;
   final String displayName;
   final String email;
+  final String photoUrl;
   final String role;
   final bool isActive;
 
@@ -53,11 +57,16 @@ class WebAdminStaffMember {
     AppRoles.admin,
   }.contains(role);
 
-  WebAdminStaffMember copyWith({String? role, bool? isActive}) {
+  WebAdminStaffMember copyWith({
+    String? photoUrl,
+    String? role,
+    bool? isActive,
+  }) {
     return WebAdminStaffMember(
       id: id,
       displayName: displayName,
       email: email,
+      photoUrl: photoUrl ?? this.photoUrl,
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
     );
