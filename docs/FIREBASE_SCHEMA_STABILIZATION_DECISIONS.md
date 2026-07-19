@@ -60,3 +60,12 @@ These decisions interpret the static Firebase source audits. They do not claim t
 ## Security
 
 The existing Firestore rules already allow administrators to update `giving_submissions` and create or update `donations`. No rules change is required for the transactional confirmation correction.
+## Attendance stabilization
+
+- `eventCheckIns` is the canonical active attendance collection.
+- QR and manual check-ins use the same deterministic document ID: `{eventId}_{memberId}`.
+- The deterministic ID and Firestore transaction prevent simultaneous duplicate check-ins for the same member and event.
+- New check-ins write both canonical fields (`memberId`, `memberName`) and compatibility aliases (`userId`, `displayName`).
+- Member Attendance History queries records by ownership fields instead of reading the entire collection and filtering locally.
+- Canonical `memberId` records remain live; legacy `userId` records are merged when permitted.
+- The legacy `attendance` rules path remains reserved until a separate live-data occupancy review is completed.
