@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/auth/app_roles.dart';
+import '../../../screens/admin/admin_dashboard_screen.dart';
 import '../../../screens/admin/admin_giving_confirmations_screen.dart';
 import '../../../screens/admin/admin_member_directory_screen.dart';
 import '../../auth/state/auth_controller.dart';
@@ -41,21 +42,22 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
     final pages = <Widget>[
       _WebOverviewPage(
         churchId: _churchId,
-        onOpenMembers: () => _selectPage(1),
-        onOpenEvents: () => _selectPage(2),
-        onOpenPrayer: () => _selectPage(3),
-        onOpenGiving: () => _selectPage(4),
+        onOpenMembers: () => _selectPage(2),
+        onOpenEvents: () => _selectPage(3),
+        onOpenPrayer: () => _selectPage(4),
+        onOpenGiving: () => _selectPage(5),
       ),
+      AdminDashboardScreen(churchId: _churchId),
       AdminMemberDirectoryScreen(churchId: _churchId),
       _WebEventsPage(churchId: _churchId),
       _WebPrayerPage(churchId: _churchId),
       _WebGivingPage(churchId: _churchId),
       WebAdminActionCenter(
         churchId: _churchId,
-        onOpenMembers: () => _selectPage(1),
-        onOpenEvents: () => _selectPage(2),
-        onOpenPrayer: () => _selectPage(3),
-        onOpenGiving: () => _selectPage(4),
+        onOpenMembers: () => _selectPage(2),
+        onOpenEvents: () => _selectPage(3),
+        onOpenPrayer: () => _selectPage(4),
+        onOpenGiving: () => _selectPage(5),
       ),
       WebAdminOperationsReports(churchId: _churchId),
     ];
@@ -131,6 +133,11 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                       label: Text('Overview'),
                     ),
                     NavigationRailDestination(
+                      icon: Icon(Icons.grid_view_outlined),
+                      selectedIcon: Icon(Icons.grid_view_rounded),
+                      label: Text('All Tools'),
+                    ),
+                    NavigationRailDestination(
                       icon: Icon(Icons.people_outline_rounded),
                       selectedIcon: Icon(Icons.people_rounded),
                       label: Text('Members'),
@@ -178,6 +185,11 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                       icon: Icon(Icons.dashboard_outlined),
                       selectedIcon: Icon(Icons.dashboard_rounded),
                       label: 'Overview',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.grid_view_outlined),
+                      selectedIcon: Icon(Icons.grid_view_rounded),
+                      label: 'All Tools',
                     ),
                     NavigationDestination(
                       icon: Icon(Icons.people_outline_rounded),
