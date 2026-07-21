@@ -8,6 +8,7 @@ import 'admin_calendar_screen.dart';
 import 'admin_events_screen.dart';
 import 'admin_home_appearance_screen.dart';
 import 'admin_pastor_picture_screen.dart';
+import 'admin_platform_tools_screen.dart';
 import 'admin_church_connection_screen.dart';
 import 'admin_member_directory_screen.dart';
 import 'admin_member_count_management_screen.dart';
@@ -19,7 +20,6 @@ import 'admin_ministries_screen.dart';
 import 'admin_media_screen.dart';
 import '../../features/dashboard/providers/dashboard_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'admin_role_management_screen.dart';
 import 'admin_notifications_screen.dart';
 import 'admin_prayer_requests_screen.dart';
 import 'admin_qr_scanner_screen.dart';
@@ -99,6 +99,25 @@ class AdminDashboardScreen extends ConsumerWidget {
           title: 'Members Count',
           subtitle: 'Exclude only members removed from the directory',
           screen: AdminMemberCountManagementScreen(churchId: churchId),
+        ),
+        const SectionTitle(title: 'Operations & Governance'),
+        _AdminNavCard(
+          icon: Icons.task_alt_rounded,
+          title: 'Action Center',
+          subtitle: 'Review prayer, event, member, and giving follow-up',
+          screen: AdminActionCenterScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
+          icon: Icons.analytics_rounded,
+          title: 'Operations Reports',
+          subtitle: 'View live membership, giving, prayer, and event reports',
+          screen: AdminOperationsReportsScreen(churchId: churchId),
+        ),
+        _AdminNavCard(
+          icon: Icons.history_rounded,
+          title: 'Administrative Activity',
+          subtitle: 'Review protected administrative audit records',
+          screen: AdminActivityLogScreen(churchId: churchId),
         ),
         const SectionTitle(title: 'Content'),
         _AdminNavCard(
@@ -183,9 +202,9 @@ class AdminDashboardScreen extends ConsumerWidget {
         ),
         _AdminNavCard(
           icon: Icons.admin_panel_settings_rounded,
-          title: 'Roles & Permissions',
-          subtitle: 'Manage user roles and access',
-          screen: AdminRoleManagementScreen(churchId: churchId),
+          title: 'Staff Access',
+          subtitle: 'Manage roles with protected audit logging',
+          screen: AdminStaffAccessScreen(churchId: churchId),
         ),
         _AdminNavCard(
           icon: Icons.how_to_reg_rounded,

@@ -12,6 +12,7 @@ import '../giving/giving_screen.dart';
 import '../media/media_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../profile/profile_screen.dart';
+import '../resources/resources_screen.dart';
 import '../sermons/sermons_screen.dart';
 import 'home_screen.dart';
 
@@ -101,6 +102,7 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
       GuestAccountScreen(authController: widget.authController)
     else
       ProfileScreen(authController: widget.authController),
+    ResourcesScreen(churchId: _churchId),
     if (widget.authController.isAdmin)
       AdminDashboardScreen(churchId: _churchId),
   ];
@@ -140,6 +142,11 @@ class _ChurchSnapShellState extends State<ChurchSnapShell> {
       label: _isGuest ? 'Account' : 'Profile',
       assetName: 'profile',
       fallbackIcon: _isGuest ? Icons.login_rounded : Icons.person_rounded,
+    ),
+    const _ShellDestination(
+      label: 'Resources',
+      assetName: 'bible',
+      fallbackIcon: Icons.menu_book_rounded,
     ),
     if (widget.authController.isAdmin)
       const _ShellDestination(

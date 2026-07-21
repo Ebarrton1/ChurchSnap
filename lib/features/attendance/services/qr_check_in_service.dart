@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/attendance_check_in_document.dart';
+
 class QrCheckInResult {
   const QrCheckInResult({
     required this.success,
@@ -62,7 +64,10 @@ class QrCheckInService {
           ? (memberData['displayName'] as String).trim()
           : 'ChurchSnap Member';
 
-      final checkInId = '${cleanEventId}_$cleanMemberId';
+      final checkInId = AttendanceCheckInDocument.documentId(
+        eventId: cleanEventId,
+        memberId: cleanMemberId,
+      );
 
       final checkInRef = _churchRef.collection('eventCheckIns').doc(checkInId);
 
@@ -83,14 +88,16 @@ class QrCheckInService {
           throw StateError('duplicate-check-in');
         }
 
-        transaction.set(checkInRef, {
-          'churchId': churchId,
-          'eventId': cleanEventId,
-          'memberId': cleanMemberId,
-          'memberName': memberName,
-          'checkedInAt': FieldValue.serverTimestamp(),
-          'checkInMethod': 'qr',
-        });
+        transaction.set(
+          checkInRef,
+          AttendanceCheckInDocument.fields(
+            churchId: churchId,
+            eventId: cleanEventId,
+            memberId: cleanMemberId,
+            memberName: memberName,
+            checkInMethod: 'qr',
+          ),
+        );
       });
 
       return QrCheckInResult(

@@ -666,6 +666,7 @@ service cloud.firestore {
             'giverName',
             'fundId',
             'fundName',
+            'description',
             'amountMinorUnits',
             'currencyCode',
             'currencySymbol',
@@ -699,6 +700,8 @@ service cloud.firestore {
           && request.resource.data.fundName is string
           && request.resource.data.fundName.size() > 0
           && request.resource.data.fundName.size() <= 120
+          && request.resource.data.get('description', '') is string
+          && request.resource.data.get('description', '').size() <= 500
           && request.resource.data.amountMinorUnits is int
           && request.resource.data.amountMinorUnits > 0
           && request.resource.data.amountMinorUnits <= 100000000000
@@ -736,6 +739,7 @@ service cloud.firestore {
           && request.resource.data.giverName == resource.data.giverName
           && request.resource.data.fundId == resource.data.fundId
           && request.resource.data.fundName == resource.data.fundName
+          && request.resource.data.get('description', '') == resource.data.get('description', '')
           && request.resource.data.amountMinorUnits
             == resource.data.amountMinorUnits
           && request.resource.data.currencyCode == resource.data.currencyCode
@@ -778,4 +782,3 @@ service cloud.firestore {
     }
   }
 }
-

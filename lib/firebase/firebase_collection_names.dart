@@ -9,6 +9,7 @@ class FirebaseCollectionNames {
   static const testimonies = 'testimonies';
   static const volunteers = 'volunteers';
   static const givingFunds = 'giving_funds';
+  static const givingSubmissions = 'giving_submissions';
   static const donations = 'donations';
   static const notifications = 'notifications';
   static const readingPlans = 'reading_plans';

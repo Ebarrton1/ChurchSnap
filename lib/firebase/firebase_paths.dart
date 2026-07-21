@@ -17,6 +17,8 @@ class FirebasePaths {
       '${church(churchId)}/${FirebaseCollectionNames.ministries}';
   static String givingFunds(String churchId) =>
       '${church(churchId)}/${FirebaseCollectionNames.givingFunds}';
+  static String givingSubmissions(String churchId) =>
+      '${church(churchId)}/${FirebaseCollectionNames.givingSubmissions}';
   static String donations(String churchId) =>
       '${church(churchId)}/${FirebaseCollectionNames.donations}';
   static String settings(String churchId) =>

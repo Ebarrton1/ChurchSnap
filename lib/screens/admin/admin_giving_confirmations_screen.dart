@@ -157,7 +157,8 @@ class AdminGivingConfirmationsScreen extends StatelessWidget {
                         'Submitted: ${submission.submittedAmountLabel} '
                         '${submission.currencyCode}\n'
                         'Giver: ${submission.giverName}\n'
-                        'Fund: ${submission.fundName}',
+                        'Fund: ${submission.fundName}'
+                        '${submission.description.isEmpty ? '' : '\nDescription: ${submission.description}'}',
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -367,6 +368,9 @@ class _SubmissionCard extends StatelessWidget {
         ? ''
         : '\nConfirmed: $confirmedLabel '
               '${submission.confirmedCurrencyCode ?? submission.currencyCode}';
+    final descriptionText = submission.description.isEmpty
+        ? ''
+        : '\nDescription: ${submission.description}';
     final noteText = submission.adminNote?.isNotEmpty == true
         ? '\nNote: ${submission.adminNote}'
         : '';
@@ -392,7 +396,8 @@ class _SubmissionCard extends StatelessWidget {
               'Submitted: ${submission.submittedAmountLabel} '
               '${submission.currencyCode}\n'
               'Fund: ${submission.fundName}\n'
-              'Type: ${submission.recurring ? 'Recurring' : 'One-time'}\n'
+              'Type: ${submission.recurring ? 'Recurring' : 'One-time'}'
+              '$descriptionText\n'
               'Status: $statusLabel'
               '$confirmedText'
               '$noteText',

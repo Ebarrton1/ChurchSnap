@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/services/external_media_launcher.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/media/models/media_item.dart';
 import '../../features/media/providers/media_providers.dart';
@@ -63,6 +64,9 @@ class AdminMediaScreen extends ConsumerWidget {
                     _ => Icons.video_library_rounded,
                   };
 
+                  final mediaUrl = item.mediaUrl.trim();
+                  final canOpen = mediaUrl.isNotEmpty;
+
                   return AppCard(
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -76,8 +80,35 @@ class AdminMediaScreen extends ConsumerWidget {
                         '${item.speaker.isEmpty ? 'No speaker' : item.speaker}',
                       ),
                       isThreeLine: true,
-                      trailing: Chip(
-                        label: Text(item.published ? 'Published' : 'Draft'),
+                      onTap: canOpen
+                          ? () => ExternalMediaLauncher.open(
+                              context,
+                              rawUrl: mediaUrl,
+                              contentLabel: item.title,
+                            )
+                          : null,
+                      trailing: Wrap(
+                        spacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (canOpen)
+                            IconButton(
+                              tooltip: _mediaActionLabel(item.mediaType),
+                              onPressed: () => ExternalMediaLauncher.open(
+                                context,
+                                rawUrl: mediaUrl,
+                                contentLabel: item.title,
+                              ),
+                              icon: Icon(
+                                item.mediaType.toLowerCase() == 'audio'
+                                    ? Icons.play_arrow_rounded
+                                    : Icons.open_in_new_rounded,
+                              ),
+                            ),
+                          Chip(
+                            label: Text(item.published ? 'Published' : 'Draft'),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -89,6 +120,13 @@ class AdminMediaScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _mediaActionLabel(String mediaType) {
+  return switch (mediaType.toLowerCase()) {
+    'audio' || 'video' || 'livestream' => 'Play media',
+    _ => 'Open media',
+  };
 }
 
 class _MediaDialog extends ConsumerStatefulWidget {

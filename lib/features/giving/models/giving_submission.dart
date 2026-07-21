@@ -24,6 +24,7 @@ class GivingSubmission {
     required this.giverName,
     required this.fundId,
     required this.fundName,
+    this.description = '',
     required this.amountMinorUnits,
     required this.currencyCode,
     required this.currencySymbol,
@@ -43,6 +44,7 @@ class GivingSubmission {
   final String giverName;
   final String fundId;
   final String fundName;
+  final String description;
   final int amountMinorUnits;
   final String currencyCode;
   final String currencySymbol;
@@ -93,6 +95,11 @@ class GivingSubmission {
       giverName: (data['giverName'] as String?)?.trim() ?? 'ChurchSnap Giver',
       fundId: (data['fundId'] as String?)?.trim() ?? '',
       fundName: (data['fundName'] as String?)?.trim() ?? 'General Giving',
+      description:
+          (data['description'] as String?)?.trim() ??
+          (data['donationDescription'] as String?)?.trim() ??
+          (data['memo'] as String?)?.trim() ??
+          '',
       amountMinorUnits: readInt(data['amountMinorUnits']) ?? 0,
       currencyCode: (data['currencyCode'] as String?)?.trim() ?? 'USD',
       currencySymbol: (data['currencySymbol'] as String?)?.trim() ?? r'$',

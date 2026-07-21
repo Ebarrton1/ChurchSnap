@@ -446,13 +446,7 @@ class _StaffMemberCard extends StatelessWidget {
           builder: (context, constraints) {
             final identity = Row(
               children: [
-                CircleAvatar(
-                  child: Text(
-                    member.displayName.isEmpty
-                        ? '?'
-                        : member.displayName[0].toUpperCase(),
-                  ),
-                ),
+                _StaffMemberAvatar(member: member),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -637,6 +631,47 @@ class _StaffAccessDenied extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StaffMemberAvatar extends StatelessWidget {
+  const _StaffMemberAvatar({required this.member});
+
+  final WebAdminStaffMember member;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = member.displayName.isEmpty
+        ? '?'
+        : member.displayName[0].toUpperCase();
+    final photoUri = Uri.tryParse(member.photoUrl);
+    final canLoadPhoto =
+        photoUri != null &&
+        (photoUri.scheme == 'https' || photoUri.scheme == 'http');
+
+    Widget fallback() {
+      return Center(
+        child: Text(
+          initial,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      );
+    }
+
+    return CircleAvatar(
+      radius: 24,
+      child: ClipOval(
+        child: canLoadPhoto
+            ? Image.network(
+                member.photoUrl,
+                width: 48,
+                height: 48,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => fallback(),
+              )
+            : SizedBox(width: 48, height: 48, child: fallback()),
       ),
     );
   }

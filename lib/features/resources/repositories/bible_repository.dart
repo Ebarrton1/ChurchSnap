@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'package:http/http.dart' as http;
 
 import '../models/bible_models.dart';
 
@@ -13,13 +13,13 @@ abstract interface class BibleRepository {
 }
 
 class NetworkBibleRepository implements BibleRepository {
-  NetworkBibleRepository({HttpClient? httpClient, String? licensedProxyUrl})
-    : _httpClient = httpClient ?? HttpClient(),
+  NetworkBibleRepository({http.Client? httpClient, String? licensedProxyUrl})
+    : _httpClient = httpClient ?? http.Client(),
       _licensedProxyUrl =
           licensedProxyUrl ??
           const String.fromEnvironment('CHURCHSNAP_BIBLE_PROXY_URL');
 
-  final HttpClient _httpClient;
+  final http.Client _httpClient;
   final String _licensedProxyUrl;
   final Map<String, Future<BiblePassage>> _cache = {};
 
@@ -144,42 +144,29 @@ class NetworkBibleRepository implements BibleRepository {
   }
 
   Future<Map<String, dynamic>> _getJson(Uri uri) async {
-    HttpClientRequest request;
+    late final http.Response response;
 
     try {
-      request = await _httpClient
-          .getUrl(uri)
+      response = await _httpClient
+          .get(
+            uri,
+            headers: const <String, String>{'Accept': 'application/json'},
+          )
           .timeout(const Duration(seconds: 20));
     } on TimeoutException {
       throw const BibleRepositoryException(
         'The Bible service took too long to respond. Please try again.',
       );
-    } on SocketException {
+    } on http.ClientException {
       throw const BibleRepositoryException(
         'ChurchSnap could not reach the Bible service. Check your internet '
         'connection and try again.',
       );
-    }
-
-    request.headers
-      ..set(HttpHeaders.acceptHeader, 'application/json')
-      ..set(HttpHeaders.userAgentHeader, 'ChurchSnap Android');
-
-    HttpClientResponse response;
-
-    try {
-      response = await request.close().timeout(const Duration(seconds: 20));
-    } on TimeoutException {
-      throw const BibleRepositoryException(
-        'The Bible service took too long to respond. Please try again.',
-      );
-    } on SocketException {
+    } catch (_) {
       throw const BibleRepositoryException(
         'The Bible connection was interrupted. Please try again.',
       );
     }
-
-    final body = await utf8.decoder.bind(response).join();
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       if (response.statusCode == 429) {
@@ -197,7 +184,7 @@ class NetworkBibleRepository implements BibleRepository {
     Object? decoded;
 
     try {
-      decoded = jsonDecode(body);
+      decoded = jsonDecode(utf8.decode(response.bodyBytes));
     } on FormatException {
       throw const BibleRepositoryException(
         'The Bible service returned an unreadable response.',

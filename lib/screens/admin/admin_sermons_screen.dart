@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:churchsnap/core/navigation/churchsnap_navigation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/services/external_media_launcher.dart';
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/sermons/providers/sermon_providers.dart';
 import '../../models/sermon.dart';
@@ -60,6 +61,10 @@ class AdminSermonsScreen extends ConsumerWidget {
                     if (sermon.scripture.isNotEmpty) sermon.scripture,
                     if (sermon.duration.isNotEmpty) sermon.duration,
                   ].join(' • ');
+                  final videoUrl = sermon.videoUrl.trim();
+                  final audioUrl = sermon.audioUrl.trim();
+                  final notesUrl = sermon.notesUrl.trim();
+                  final playbackUrl = videoUrl.isNotEmpty ? videoUrl : audioUrl;
 
                   return AppCard(
                     child: ListTile(
@@ -105,8 +110,33 @@ class AdminSermonsScreen extends ConsumerWidget {
                         ],
                       ),
                       isThreeLine: true,
+                      onTap: playbackUrl.isEmpty
+                          ? null
+                          : () => ExternalMediaLauncher.open(
+                              context,
+                              rawUrl: playbackUrl,
+                              contentLabel: sermon.title,
+                            ),
                       trailing: PopupMenuButton<String>(
                         onSelected: (value) {
+                          if (value == 'play') {
+                            ExternalMediaLauncher.open(
+                              context,
+                              rawUrl: playbackUrl,
+                              contentLabel: sermon.title,
+                            );
+                            return;
+                          }
+
+                          if (value == 'notes') {
+                            ExternalMediaLauncher.open(
+                              context,
+                              rawUrl: notesUrl,
+                              contentLabel: '${sermon.title} notes',
+                            );
+                            return;
+                          }
+
                           if (value == 'edit') {
                             _openSermonDialog(context, sermon: sermon);
                             return;
@@ -127,6 +157,24 @@ class AdminSermonsScreen extends ConsumerWidget {
                           }
                         },
                         itemBuilder: (_) => [
+                          if (playbackUrl.isNotEmpty)
+                            const PopupMenuItem<String>(
+                              value: 'play',
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(Icons.play_arrow_rounded),
+                                title: Text('Play Sermon'),
+                              ),
+                            ),
+                          if (notesUrl.isNotEmpty)
+                            const PopupMenuItem<String>(
+                              value: 'notes',
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(Icons.description_outlined),
+                                title: Text('Open Notes'),
+                              ),
+                            ),
                           const PopupMenuItem<String>(
                             value: 'edit',
                             child: ListTile(

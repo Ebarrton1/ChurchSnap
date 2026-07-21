@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/web_admin_action_item.dart';
+import '../models/web_admin_donation_amount.dart';
 
 class WebAdminActionCenterBuilder {
   const WebAdminActionCenterBuilder._();
@@ -214,7 +215,7 @@ class WebAdminActionCenterBuilder {
         'category',
       ], fallback: 'Fund not set');
       final amount = _money(
-        data['amount'],
+        WebAdminDonationAmount.read(data),
         currency: _text(data, const ['currency'], fallback: 'USD'),
       );
       final urgent =
@@ -228,7 +229,7 @@ class WebAdminActionCenterBuilder {
             ? WebAdminActionPriority.urgent
             : WebAdminActionPriority.normal,
         sourceId: source.id,
-        title: '$amount â€¢ $donor',
+        title: '$amount - $donor',
         detail: '$fund â€¢ ${status.isEmpty ? 'Status not set' : status}',
         dueAt: _firstDate(data, const ['createdAt', 'updatedAt', 'date']),
       );

@@ -390,6 +390,7 @@ class _WelcomeHeroImage extends StatelessWidget {
       fit: BoxFit.cover,
       alignment: Alignment.center,
       filterQuality: FilterQuality.high,
+      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
       loadingBuilder: (context, child, progress) {
         if (progress == null) {
           return child;
@@ -538,6 +539,7 @@ class _PastorServiceImage extends StatelessWidget {
       fit: BoxFit.cover,
       alignment: Alignment.center,
       filterQuality: FilterQuality.high,
+      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
       loadingBuilder: (context, child, progress) {
         if (progress == null) {
           return child;

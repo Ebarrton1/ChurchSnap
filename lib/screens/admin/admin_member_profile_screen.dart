@@ -7,6 +7,7 @@ import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/members/models/church_member.dart';
 import '../../features/members/models/member_profile_details.dart';
 import '../../features/members/providers/member_providers.dart';
+import '../../features/members/utils/member_directory_date_formatter.dart';
 
 class AdminMemberProfileScreen extends ConsumerStatefulWidget {
   const AdminMemberProfileScreen({
@@ -364,6 +365,7 @@ class _MemberIdentityCard extends StatelessWidget {
                     )
                   : Image.network(
                       photoUrl,
+                      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
                       width: 160,
                       height: 160,
                       fit: BoxFit.cover,
@@ -470,17 +472,17 @@ class _PersonalDetailsCard extends StatelessWidget {
           _ProfileRow(
             icon: Icons.card_membership_rounded,
             label: 'Membership date',
-            value: _formatDate(context, details.membershipDate),
+            value: MemberDirectoryDateFormatter.format(details.membershipDate),
           ),
           _ProfileRow(
             icon: Icons.favorite_rounded,
             label: 'Marriage date',
-            value: _formatDate(context, details.marriageDate),
+            value: MemberDirectoryDateFormatter.format(details.marriageDate),
           ),
           _ProfileRow(
             icon: Icons.cake_rounded,
             label: 'Date of birth',
-            value: _formatDate(context, details.dateOfBirth),
+            value: MemberDirectoryDateFormatter.format(details.dateOfBirth),
           ),
           _ProfileRow(
             icon: Icons.favorite_border_rounded,
@@ -1104,7 +1106,7 @@ class _DateSelectionTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon),
       title: Text(title),
-      subtitle: Text(_formatDate(context, value)),
+      subtitle: Text(MemberDirectoryDateFormatter.format(value)),
       trailing: onClear == null
           ? const Icon(Icons.calendar_month_rounded)
           : IconButton(
@@ -1127,14 +1129,6 @@ class _MemberEditResult {
 String _valueOrNotProvided(String value) {
   final cleanedValue = value.trim();
   return cleanedValue.isEmpty ? 'Not provided' : cleanedValue;
-}
-
-String _formatDate(BuildContext context, DateTime? value) {
-  if (value == null) {
-    return 'Not provided';
-  }
-
-  return MaterialLocalizations.of(context).formatMediumDate(value.toLocal());
 }
 
 String _safeImageContentType(String? contentType) {

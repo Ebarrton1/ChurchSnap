@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../attendance/models/attendance_check_in_document.dart';
 import '../models/check_in_record.dart';
 
 class CheckInRepository {
@@ -18,8 +19,31 @@ class CheckInRepository {
       .doc(churchId)
       .collection('eventCheckIns');
 
-  Future<void> checkIn(CheckInRecord record) {
-    return _checkIns.add(record.toMap());
+  Future<void> checkIn(CheckInRecord record) async {
+    final checkInId = AttendanceCheckInDocument.documentId(
+      eventId: record.eventId,
+      memberId: record.userId,
+    );
+    final reference = _checkIns.doc(checkInId);
+
+    await _firestore.runTransaction((transaction) async {
+      final existing = await transaction.get(reference);
+
+      if (existing.exists) {
+        throw StateError('duplicate-check-in');
+      }
+
+      transaction.set(
+        reference,
+        AttendanceCheckInDocument.fields(
+          eventId: record.eventId,
+          memberId: record.userId,
+          memberName: record.displayName,
+          checkInMethod: record.checkInMethod,
+          checkedInAt: record.checkedInAt,
+        ),
+      );
+    });
   }
 
   Stream<List<CheckInRecord>> watchCheckIns(String eventId) {
