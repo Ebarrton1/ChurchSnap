@@ -50,3 +50,6 @@ app.*.map.json
 *.backup-*
 
 .firebase/
+
+# Local ChurchSnap backups
+.churchsnap_backups/
