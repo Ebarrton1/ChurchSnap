@@ -470,6 +470,409 @@ test(
   },
 );
 
+async function seedJoinMember(
+  uid,
+  {
+    role = "member",
+    isActive = true,
+  } = {},
+) {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), `churches/alpha/members/${uid}`),
+      {
+        displayName: uid,
+        email: `${uid}@example.test`,
+        role,
+        isActive,
+      },
+    );
+  });
+}
+
+async function seedJoinTarget({
+  targetType = "ministry",
+  targetId = "worship",
+  targetName = "Worship Team",
+  leaderId = "",
+  active = true,
+} = {}) {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+
+    if (targetType === "smallGroup") {
+      await setDoc(
+        doc(firestore, `churches/alpha/small_groups/${targetId}`),
+        {
+          name: targetName,
+          description: "A test small group.",
+          leaderId,
+          leaderName: leaderId,
+          location: "Fellowship Hall",
+          meetingDate: null,
+          capacity: 12,
+          memberIds: [],
+          active,
+        },
+      );
+
+      return;
+    }
+
+    await setDoc(
+      doc(firestore, `churches/alpha/ministries/${targetId}`),
+      {
+        name: targetName,
+        description: "A test ministry.",
+        leaderId,
+        leaderName: leaderId,
+        memberIds: [],
+        isActive: active,
+      },
+    );
+  });
+}
+
+function joinRequestId({
+  userId = "join-member",
+  targetType = "ministry",
+  targetId = "worship",
+} = {}) {
+  return `${targetType}__${targetId}__${userId}`;
+}
+
+function validJoinRequest({
+  userId = "join-member",
+  memberName = "Join Member",
+  targetType = "ministry",
+  targetId = "worship",
+  targetName = "Worship Team",
+  note = "",
+} = {}) {
+  return {
+    userId,
+    memberName,
+    targetType,
+    targetId,
+    targetName,
+    status: "pending",
+    note,
+    createdAt: serverTimestamp(),
+    reviewedAt: null,
+    reviewedByUid: "",
+  };
+}
+
+test(
+  "approved member can request to join an active ministry",
+  async () => {
+    await seedJoinMember("join-member");
+    await seedJoinTarget();
+
+    const memberFirestore =
+      testEnvironment.authenticatedContext("join-member").firestore();
+
+    await assertSucceeds(
+      setDoc(
+        doc(
+          memberFirestore,
+          `churches/alpha/group_ministry_join_requests/${
+            joinRequestId()
+          }`,
+        ),
+        validJoinRequest(),
+      ),
+    );
+  },
+);
+
+test(
+  "visitor cannot request to join a ministry",
+  async () => {
+    await seedJoinMember("join-visitor", { role: "visitor" });
+    await seedJoinTarget();
+
+    const visitorFirestore =
+      testEnvironment.authenticatedContext("join-visitor").firestore();
+
+    await assertFails(
+      setDoc(
+        doc(
+          visitorFirestore,
+          `churches/alpha/group_ministry_join_requests/${
+            joinRequestId({ userId: "join-visitor" })
+          }`,
+        ),
+        validJoinRequest({ userId: "join-visitor" }),
+      ),
+    );
+  },
+);
+
+test(
+  "member cannot forge another member join request",
+  async () => {
+    await seedJoinMember("join-member");
+    await seedJoinTarget();
+
+    const memberFirestore =
+      testEnvironment.authenticatedContext("join-member").firestore();
+
+    await assertFails(
+      setDoc(
+        doc(
+          memberFirestore,
+          `churches/alpha/group_ministry_join_requests/${
+            joinRequestId({ userId: "another-member" })
+          }`,
+        ),
+        validJoinRequest({ userId: "another-member" }),
+      ),
+    );
+  },
+);
+
+test(
+  "member can read own join request but another member cannot",
+  async () => {
+    await seedJoinMember("join-member");
+    await seedJoinMember("join-other");
+    await seedJoinTarget();
+
+    const memberFirestore =
+      testEnvironment.authenticatedContext("join-member").firestore();
+
+    const requestReference = doc(
+      memberFirestore,
+      `churches/alpha/group_ministry_join_requests/${joinRequestId()}`,
+    );
+
+    await assertSucceeds(
+      setDoc(requestReference, validJoinRequest()),
+    );
+
+    await assertSucceeds(getDoc(requestReference));
+
+    const otherFirestore =
+      testEnvironment.authenticatedContext("join-other").firestore();
+
+    await assertFails(
+      getDoc(
+        doc(
+          otherFirestore,
+          `churches/alpha/group_ministry_join_requests/${
+            joinRequestId()
+          }`,
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "member cannot approve own join request",
+  async () => {
+    await seedJoinMember("join-member");
+    await seedJoinTarget();
+
+    const memberFirestore =
+      testEnvironment.authenticatedContext("join-member").firestore();
+
+    const requestReference = doc(
+      memberFirestore,
+      `churches/alpha/group_ministry_join_requests/${joinRequestId()}`,
+    );
+
+    await assertSucceeds(
+      setDoc(requestReference, validJoinRequest()),
+    );
+
+    await assertFails(
+      updateDoc(requestReference, {
+        status: "approved",
+        reviewedAt: serverTimestamp(),
+        reviewedByUid: "join-member",
+      }),
+    );
+  },
+);
+
+test(
+  "administrator can approve ministry request and add member",
+  async () => {
+    await seedJoinMember("join-member");
+    await seedJoinMember("join-admin", { role: "admin" });
+    await seedJoinTarget();
+
+    const memberFirestore =
+      testEnvironment.authenticatedContext("join-member").firestore();
+
+    await assertSucceeds(
+      setDoc(
+        doc(
+          memberFirestore,
+          `churches/alpha/group_ministry_join_requests/${
+            joinRequestId()
+          }`,
+        ),
+        validJoinRequest(),
+      ),
+    );
+
+    const adminFirestore =
+      testEnvironment.authenticatedContext("join-admin").firestore();
+
+    await assertSucceeds(
+      updateDoc(
+        doc(
+          adminFirestore,
+          `churches/alpha/group_ministry_join_requests/${
+            joinRequestId()
+          }`,
+        ),
+        {
+          status: "approved",
+          reviewedAt: serverTimestamp(),
+          reviewedByUid: "join-admin",
+        },
+      ),
+    );
+
+    await assertSucceeds(
+      updateDoc(
+        doc(adminFirestore, "churches/alpha/ministries/worship"),
+        {
+          memberIds: ["join-member"],
+        },
+      ),
+    );
+  },
+);
+
+test(
+  "unassigned group leader cannot review another leader request",
+  async () => {
+    await seedJoinMember("join-member");
+    await seedJoinMember("group-leader-one", { role: "groupLeader" });
+    await seedJoinMember("group-leader-two", { role: "groupLeader" });
+
+    await seedJoinTarget({
+      targetType: "smallGroup",
+      targetId: "life-group",
+      targetName: "Life Group",
+      leaderId: "group-leader-one",
+    });
+
+    const memberFirestore =
+      testEnvironment.authenticatedContext("join-member").firestore();
+
+    const requestId = joinRequestId({
+      targetType: "smallGroup",
+      targetId: "life-group",
+    });
+
+    await assertSucceeds(
+      setDoc(
+        doc(
+          memberFirestore,
+          `churches/alpha/group_ministry_join_requests/${requestId}`,
+        ),
+        validJoinRequest({
+          targetType: "smallGroup",
+          targetId: "life-group",
+          targetName: "Life Group",
+        }),
+      ),
+    );
+
+    const otherLeaderFirestore =
+      testEnvironment.authenticatedContext(
+        "group-leader-two",
+      ).firestore();
+
+    await assertFails(
+      updateDoc(
+        doc(
+          otherLeaderFirestore,
+          `churches/alpha/group_ministry_join_requests/${requestId}`,
+        ),
+        {
+          status: "approved",
+          reviewedAt: serverTimestamp(),
+          reviewedByUid: "group-leader-two",
+        },
+      ),
+    );
+  },
+);
+
+test(
+  "assigned group leader can approve group request and add member",
+  async () => {
+    await seedJoinMember("join-member");
+    await seedJoinMember("group-leader-one", { role: "groupLeader" });
+
+    await seedJoinTarget({
+      targetType: "smallGroup",
+      targetId: "life-group",
+      targetName: "Life Group",
+      leaderId: "group-leader-one",
+    });
+
+    const memberFirestore =
+      testEnvironment.authenticatedContext("join-member").firestore();
+
+    const requestId = joinRequestId({
+      targetType: "smallGroup",
+      targetId: "life-group",
+    });
+
+    await assertSucceeds(
+      setDoc(
+        doc(
+          memberFirestore,
+          `churches/alpha/group_ministry_join_requests/${requestId}`,
+        ),
+        validJoinRequest({
+          targetType: "smallGroup",
+          targetId: "life-group",
+          targetName: "Life Group",
+        }),
+      ),
+    );
+
+    const leaderFirestore =
+      testEnvironment.authenticatedContext(
+        "group-leader-one",
+      ).firestore();
+
+    await assertSucceeds(
+      updateDoc(
+        doc(
+          leaderFirestore,
+          `churches/alpha/group_ministry_join_requests/${requestId}`,
+        ),
+        {
+          status: "approved",
+          reviewedAt: serverTimestamp(),
+          reviewedByUid: "group-leader-one",
+        },
+      ),
+    );
+
+    await assertSucceeds(
+      updateDoc(
+        doc(
+          leaderFirestore,
+          "churches/alpha/small_groups/life-group",
+        ),
+        {
+          memberIds: ["join-member"],
+        },
+      ),
+    );
+  },
+);
 test(
   "same-church approved member can read profile photo",
   async () => {
