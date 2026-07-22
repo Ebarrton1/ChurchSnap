@@ -485,6 +485,8 @@ class _MemberProfilePhoto extends StatelessWidget {
                             fit: BoxFit.cover,
                             width: 120,
                             height: 120,
+                            webHtmlElementStrategy:
+                                WebHtmlElementStrategy.fallback,
                             errorBuilder: (_, _, _) => fallbackAvatar(),
                           )
                         : fallbackAvatar(),
