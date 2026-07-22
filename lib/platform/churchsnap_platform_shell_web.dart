@@ -49,27 +49,9 @@ class _WebAdminRoute extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ChurchSnapWebAdminShell(authController: authController),
-        Positioned(
-          left: 24,
-          bottom: 24,
-          child: SafeArea(
-            top: false,
-            right: false,
-            child: FloatingActionButton.extended(
-              heroTag: 'returnToChurchSnapMemberHome',
-              tooltip: 'Return to ChurchSnap home',
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              icon: const Icon(Icons.home_rounded),
-              label: const Text('Member Home'),
-            ),
-          ),
-        ),
-      ],
+    return ChurchSnapWebAdminShell(
+      authController: authController,
+      onReturnHome: () => Navigator.of(context).pop(),
     );
   }
 }
