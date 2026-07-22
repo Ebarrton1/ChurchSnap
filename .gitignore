@@ -53,3 +53,5 @@ app.*.map.json
 
 # Local ChurchSnap backups
 .churchsnap_backups/
+
+/rules-tests/node_modules/

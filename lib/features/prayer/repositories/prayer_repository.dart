@@ -17,19 +17,22 @@ class PrayerRepository {
       _firestore.collection(FirebasePaths.prayerRequests(churchId));
 
   Stream<List<PrayerRequest>> watchPublishedPrayerRequests() {
-    return _collection.where('published', isEqualTo: true).snapshots().map((
-      snapshot,
-    ) {
-      final requests = snapshot.docs
-          .map(
-            (document) => PrayerRequest.fromMap(document.id, document.data()),
-          )
-          .where((request) => request.published && !request.isPrivate)
-          .toList();
+    return _collection
+        .where('published', isEqualTo: true)
+        .where('isPrivate', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) {
+          final requests = snapshot.docs
+              .map(
+                (document) =>
+                    PrayerRequest.fromMap(document.id, document.data()),
+              )
+              .where((request) => request.published && !request.isPrivate)
+              .toList();
 
-      _sortNewestFirst(requests);
-      return requests;
-    });
+          _sortNewestFirst(requests);
+          return requests;
+        });
   }
 
   Stream<List<PrayerRequest>> watchAllPrayerRequests() {
