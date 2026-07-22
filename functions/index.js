@@ -58,6 +58,44 @@ async function removeStaleTokens(staleRecipients) {
   );
 }
 
+async function writeNotificationInboxEntries({
+  audienceMembers,
+  notification,
+  notificationId,
+  title,
+  body,
+  targetRole,
+  createdAt,
+}) {
+  for (const memberBatch of chunk(audienceMembers, 450)) {
+    const batch = admin.firestore().batch();
+
+    for (const recipient of memberBatch) {
+      const inboxReference = recipient.memberReference
+        .collection("notificationInbox")
+        .doc(notificationId);
+
+      batch.set(
+        inboxReference,
+        {
+          id: notificationId,
+          sourceNotificationId: notificationId,
+          title,
+          body,
+          type: String(notification.type || "announcement"),
+          targetRole,
+          recipientRole: recipient.role,
+          createdAt,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+    }
+
+    await batch.commit();
+  }
+}
+
 exports.sendNotificationOnCreate = onDocumentCreated(
   "churches/{churchId}/notifications/{notificationId}",
   async (event) => {
@@ -107,6 +145,7 @@ exports.sendNotificationOnCreate = onDocumentCreated(
       .collection("members")
       .get();
 
+    const audienceMembers = [];
     const recipientsByToken = new Map();
 
     for (const memberDocument of membersSnapshot.docs) {
@@ -122,15 +161,36 @@ exports.sendNotificationOnCreate = onDocumentCreated(
         continue;
       }
 
+      const recipient = {
+        memberId: memberDocument.id,
+        memberReference: memberDocument.ref,
+        role,
+      };
+
+      audienceMembers.push(recipient);
+
       if (typeof token !== "string" || token.trim().length === 0) {
         continue;
       }
 
       recipientsByToken.set(token, {
+        ...recipient,
         token,
-        memberReference: memberDocument.ref,
       });
     }
+
+    await writeNotificationInboxEntries({
+      audienceMembers,
+      notification,
+      notificationId,
+      title,
+      body,
+      targetRole,
+      createdAt:
+        notification.createdAt ||
+        snapshot.createTime ||
+        admin.firestore.FieldValue.serverTimestamp(),
+    });
 
     const recipients = Array.from(recipientsByToken.values());
 
@@ -142,6 +202,7 @@ exports.sendNotificationOnCreate = onDocumentCreated(
         successCount: 0,
         failureCount: 0,
         recipientCount: 0,
+        inboxRecipientCount: audienceMembers.length,
         sendResult: "No active device tokens found for this audience",
       });
 
@@ -203,6 +264,7 @@ exports.sendNotificationOnCreate = onDocumentCreated(
         successCount,
         failureCount,
         recipientCount: recipients.length,
+        inboxRecipientCount: audienceMembers.length,
         sendResult:
           failureCount === 0
             ? "Delivery completed"
@@ -219,6 +281,7 @@ exports.sendNotificationOnCreate = onDocumentCreated(
         failureCount:
           Math.max(failureCount, recipients.length - successCount),
         recipientCount: recipients.length,
+        inboxRecipientCount: audienceMembers.length,
         sendResult: error instanceof Error
           ? error.message
           : "Notification delivery failed",
