@@ -10,6 +10,9 @@ import '../../features/events/providers/event_providers.dart';
 import '../../features/home/providers/home_appearance_provider.dart';
 import '../../features/home/providers/pastor_appearance_provider.dart';
 import '../../features/sermons/providers/sermon_providers.dart';
+import '../../features/notifications/models/member_notification.dart';
+import '../../features/notifications/providers/member_notification_providers.dart';
+import '../notifications/notification_center_screen.dart';
 import '../../models/announcement.dart';
 import '../../models/church_event.dart';
 import '../../models/sermon.dart';
@@ -53,6 +56,29 @@ class HomeScreen extends ConsumerWidget {
       data: (announcements) => announcements.length,
       orElse: () => 0,
     );
+    final memberId = member?.id.trim() ?? '';
+    final canOpenNotificationCenter =
+        authController.canAccessMemberPrivate &&
+        memberId.isNotEmpty &&
+        memberId != 'guest';
+
+    var notificationBadgeCount = announcementCount;
+
+    if (canOpenNotificationCenter) {
+      final inboxAsync = ref.watch(
+        memberNotificationInboxProvider((
+          churchId: churchId,
+          memberId: memberId,
+        )),
+      );
+
+      notificationBadgeCount = inboxAsync.maybeWhen(
+        data: (notifications) => notifications
+            .where((MemberNotification notification) => !notification.isRead)
+            .length,
+        orElse: () => 0,
+      );
+    }
 
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -68,8 +94,20 @@ class HomeScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             _HomeHeader(
-              announcementCount: announcementCount,
+              announcementCount: notificationBadgeCount,
               onNotifications: () {
+                if (canOpenNotificationCenter) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => NotificationCenterScreen(
+                        churchId: churchId,
+                        memberId: memberId,
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
                 _showAnnouncements(context, churchId);
               },
             ),
@@ -176,7 +214,7 @@ class _HomeHeader extends StatelessWidget {
                   onPressed: onNotifications,
                   iconSize: 30,
                   color: Colors.white,
-                  tooltip: 'Church updates',
+                  tooltip: 'Notifications',
                   icon: const Icon(Icons.notifications_rounded),
                 ),
                 if (announcementCount > 0)

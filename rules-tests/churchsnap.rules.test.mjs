@@ -1,22 +1,7 @@
-import {
-  after,
-  before,
-  beforeEach,
-  test,
-} from "node:test";
-
-import {
-  readFileSync,
-} from "node:fs";
-
-import {
-  dirname,
-  resolve,
-} from "node:path";
-
-import {
-  fileURLToPath,
-} from "node:url";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { after, before, beforeEach, test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   assertFails,
@@ -27,13 +12,15 @@ import {
 import {
   addDoc,
   collection,
+  deleteDoc,
+  deleteField,
   doc,
   getDoc,
+  getDocs,
   serverTimestamp,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-
 import {
   getMetadata,
   ref,
@@ -1097,6 +1084,549 @@ test(
         new Uint8Array([1, 2, 3]),
         {
           contentType: "image/jpeg",
+        },
+      ),
+    );
+  },
+);
+// CHURCHSNAP_NOTIFICATION_INBOX_AUTHORIZATION_TESTS_V1
+
+beforeEach(async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+
+    const aliceMember = await getDoc(
+      doc(db, "churches/alpha/members/alice"),
+    );
+
+    const aliceRole = aliceMember.data()?.role ?? "member";
+    const nonMatchingRole =
+      aliceRole === "volunteer" ? "member" : "volunteer";
+
+    await Promise.all([
+      setDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-unread",
+        ),
+        {
+          id: "inbox-unread",
+          sourceNotificationId: "source-all",
+          title: "All-member update",
+          body: "This is visible in Alice's private inbox.",
+          type: "announcement",
+          targetRole: "all",
+          recipientRole: aliceRole,
+          read: false,
+          createdAt: new Date("2026-07-22T10:00:00Z"),
+          updatedAt: new Date("2026-07-22T10:00:00Z"),
+        },
+      ),
+      setDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-read",
+        ),
+        {
+          id: "inbox-read",
+          sourceNotificationId: "source-role",
+          title: "Previously read update",
+          body: "This notification starts in the read state.",
+          type: "event",
+          targetRole: aliceRole,
+          recipientRole: aliceRole,
+          read: true,
+          readAt: new Date("2026-07-22T10:01:00Z"),
+          createdAt: new Date("2026-07-22T09:59:00Z"),
+          updatedAt: new Date("2026-07-22T10:01:00Z"),
+        },
+      ),
+      setDoc(
+        doc(db, "churches/alpha/announcements/public-announcement"),
+        {
+          title: "Published announcement",
+          body: "Visible publicly.",
+          published: true,
+          createdAt: new Date("2026-07-22T09:00:00Z"),
+        },
+      ),
+      setDoc(
+        doc(db, "churches/alpha/announcements/private-announcement"),
+        {
+          title: "Draft announcement",
+          body: "Visible only to church administrators.",
+          published: false,
+          createdAt: new Date("2026-07-22T09:05:00Z"),
+        },
+      ),
+      setDoc(
+        doc(db, "churches/alpha/notifications/source-all"),
+        {
+          title: "All-member source",
+          body: "Visible to all active approved members.",
+          type: "announcement",
+          targetRole: "all",
+          createdAt: new Date("2026-07-22T09:10:00Z"),
+        },
+      ),
+      setDoc(
+        doc(db, "churches/alpha/notifications/source-matching-role"),
+        {
+          title: "Matching-role source",
+          body: "Visible to Alice's role.",
+          type: "volunteer",
+          targetRole: aliceRole,
+          createdAt: new Date("2026-07-22T09:15:00Z"),
+        },
+      ),
+      setDoc(
+        doc(db, "churches/alpha/notifications/source-other-role"),
+        {
+          title: "Other-role source",
+          body: "Not visible to Alice.",
+          type: "volunteer",
+          targetRole: nonMatchingRole,
+          createdAt: new Date("2026-07-22T09:20:00Z"),
+        },
+      ),
+    ]);
+  });
+});
+
+test(
+  "member can read own notification inbox item",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertSucceeds(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-unread",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "member can list own notification inbox",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertSucceeds(
+      getDocs(
+        collection(
+          db,
+          "churches/alpha/members/alice/notificationInbox",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "member cannot read another member notification inbox",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("bob").firestore();
+
+    await assertFails(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-unread",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "member cannot list another member notification inbox",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("bob").firestore();
+
+    await assertFails(
+      getDocs(
+        collection(
+          db,
+          "churches/alpha/members/alice/notificationInbox",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "administrator can read member notification inbox",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("admin").firestore();
+
+    await assertSucceeds(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-unread",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "member can mark own notification read",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertSucceeds(
+      updateDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-unread",
+        ),
+        {
+          read: true,
+          readAt: new Date("2026-07-22T10:30:00Z"),
+        },
+      ),
+    );
+  },
+);
+
+test(
+  "member can mark own notification unread",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertSucceeds(
+      updateDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-read",
+        ),
+        {
+          read: false,
+          readAt: deleteField(),
+        },
+      ),
+    );
+  },
+);
+
+test(
+  "member cannot alter notification inbox content",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertFails(
+      updateDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-unread",
+        ),
+        {
+          title: "Tampered title",
+        },
+      ),
+    );
+  },
+);
+
+test(
+  "member cannot create notification inbox item",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertFails(
+      setDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/client-created",
+        ),
+        {
+          title: "Client-created notification",
+          body: "This must be denied.",
+          type: "announcement",
+          targetRole: "all",
+          read: false,
+          createdAt: new Date("2026-07-22T10:35:00Z"),
+        },
+      ),
+    );
+  },
+);
+
+test(
+  "member cannot delete notification inbox item",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertFails(
+      deleteDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-unread",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "published announcement remains publicly readable",
+  async () => {
+    const db =
+      testEnvironment.unauthenticatedContext().firestore();
+
+    await assertSucceeds(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/announcements/public-announcement",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "normal member cannot read unpublished announcement",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertFails(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/announcements/private-announcement",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "administrator can read unpublished announcement",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("admin").firestore();
+
+    await assertSucceeds(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/announcements/private-announcement",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "member can read notification targeted to own role",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertSucceeds(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/notifications/source-matching-role",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "member cannot read notification targeted to another role",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertFails(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/notifications/source-other-role",
+        ),
+      ),
+    );
+  },
+);
+// CHURCHSNAP_NOTIFICATION_UNREAD_READAT_HARDENING_V1
+
+test(
+  "member cannot retain readAt when marking notification unread",
+  async () => {
+    const db =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    await assertFails(
+      updateDoc(
+        doc(
+          db,
+          "churches/alpha/members/alice/notificationInbox/inbox-read",
+        ),
+        {
+          read: false,
+        },
+      ),
+    );
+  },
+);
+// CHURCHSNAP_NOTIFICATION_INBOX_MEMBERSHIP_HARDENING_V1
+
+test(
+  "cross-church account cannot read inbox under own uid",
+  async () => {
+    await testEnvironment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(
+          context.firestore(),
+          "churches/alpha/members/charlie/notificationInbox/cross-church",
+        ),
+        {
+          title: "Private Alpha notification",
+          body: "Charlie does not belong to Alpha.",
+          type: "announcement",
+          targetRole: "all",
+          read: false,
+          createdAt: new Date("2026-07-22T11:00:00Z"),
+        },
+      );
+    });
+
+    const db =
+      testEnvironment.authenticatedContext("charlie").firestore();
+
+    await assertFails(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/members/charlie/notificationInbox/cross-church",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "visitor cannot read own notification inbox",
+  async () => {
+    await testEnvironment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(
+          context.firestore(),
+          "churches/alpha/members/visitor/notificationInbox/visitor-entry",
+        ),
+        {
+          title: "Member-only notification",
+          body: "Visitors must not read private member notifications.",
+          type: "announcement",
+          targetRole: "all",
+          read: false,
+          createdAt: new Date("2026-07-22T11:01:00Z"),
+        },
+      );
+    });
+
+    const db =
+      testEnvironment.authenticatedContext("visitor").firestore();
+
+    await assertFails(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/members/visitor/notificationInbox/visitor-entry",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "inactive member cannot read own notification inbox",
+  async () => {
+    await testEnvironment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(
+          context.firestore(),
+          "churches/alpha/members/inactive-admin/notificationInbox/inactive-entry",
+        ),
+        {
+          title: "Active-member notification",
+          body: "Inactive accounts must not retain inbox access.",
+          type: "announcement",
+          targetRole: "administrator",
+          read: false,
+          createdAt: new Date("2026-07-22T11:02:00Z"),
+        },
+      );
+    });
+
+    const db =
+      testEnvironment
+        .authenticatedContext("inactive-admin")
+        .firestore();
+
+    await assertFails(
+      getDoc(
+        doc(
+          db,
+          "churches/alpha/members/inactive-admin/notificationInbox/inactive-entry",
+        ),
+      ),
+    );
+  },
+);
+
+test(
+  "inactive member cannot update own notification inbox",
+  async () => {
+    await testEnvironment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(
+          context.firestore(),
+          "churches/alpha/members/inactive-admin/notificationInbox/inactive-update",
+        ),
+        {
+          title: "Inactive account notification",
+          body: "This entry must not be editable by an inactive account.",
+          type: "announcement",
+          targetRole: "administrator",
+          read: false,
+          createdAt: new Date("2026-07-22T11:03:00Z"),
+        },
+      );
+    });
+
+    const db =
+      testEnvironment
+        .authenticatedContext("inactive-admin")
+        .firestore();
+
+    await assertFails(
+      updateDoc(
+        doc(
+          db,
+          "churches/alpha/members/inactive-admin/notificationInbox/inactive-update",
+        ),
+        {
+          read: true,
+          readAt: new Date("2026-07-22T11:04:00Z"),
         },
       ),
     );

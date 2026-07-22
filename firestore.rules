@@ -459,7 +459,7 @@ service cloud.firestore {
 
       match /announcements/{announcementId} {
         allow read: if resource.data.get('published', false) == true
-          || isApprovedMember(churchId);
+          || isAdmin(churchId);
 
         allow create, update, delete: if isAdmin(churchId);
       }
@@ -616,6 +616,38 @@ service cloud.firestore {
             'pastorAppearance',
             'givingCurrency'
           ]);
+      }
+
+      match /members/{memberId}/notificationInbox/{notificationId} {
+        allow get, list: if signedIn()
+          && (
+            (
+              memberId == currentUserId()
+              && isApprovedMember(churchId)
+            )
+            || isAdmin(churchId)
+          );
+
+        allow create, delete: if false;
+
+        allow update: if signedIn()
+          && memberId == currentUserId()
+          && isApprovedMember(churchId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'read',
+            'readAt'
+          ])
+          && request.resource.data.get('read', false) is bool
+          && (
+            (
+              request.resource.data.get('read', false) == true
+              && request.resource.data.get('readAt', null) is timestamp
+            )
+            || (
+              request.resource.data.get('read', false) == false
+              && !request.resource.data.keys().hasAny(['readAt'])
+            )
+          );
       }
 
       match /notifications/{notificationId} {
