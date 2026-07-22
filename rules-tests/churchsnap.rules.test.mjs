@@ -28,6 +28,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -66,12 +67,14 @@ function memberData({
 }
 
 function validPrayer({
+  uid = "alice",
   name = "Test Member",
   request = "Please pray for this test request.",
   isPrivate = false,
   published = true,
 } = {}) {
   return {
+    createdByUid: uid,
     name,
     request,
     isPrivate,
@@ -299,6 +302,53 @@ test(
           published: true,
         }),
       ),
+    );
+  },
+);
+
+test(
+  "member can read own private prayer",
+  async () => {
+    const aliceFirestore =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    const prayerReference = await addDoc(
+      collection(
+        aliceFirestore,
+        "churches/alpha/prayer_requests",
+      ),
+      validPrayer({
+        isPrivate: true,
+        published: false,
+      }),
+    );
+
+    await assertSucceeds(getDoc(prayerReference));
+  },
+);
+
+test(
+  "another member cannot read a private prayer",
+  async () => {
+    const aliceFirestore =
+      testEnvironment.authenticatedContext("alice").firestore();
+
+    const prayerReference = await addDoc(
+      collection(
+        aliceFirestore,
+        "churches/alpha/prayer_requests",
+      ),
+      validPrayer({
+        isPrivate: true,
+        published: false,
+      }),
+    );
+
+    const bobFirestore =
+      testEnvironment.authenticatedContext("bob").firestore();
+
+    await assertFails(
+      getDoc(doc(bobFirestore, prayerReference.path)),
     );
   },
 );
