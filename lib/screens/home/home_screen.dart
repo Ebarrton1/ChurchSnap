@@ -1,5 +1,6 @@
 import '../../features/worship/providers/worship_settings_providers.dart';
 import '../../features/worship/models/worship_settings.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -90,77 +91,95 @@ class HomeScreen extends ConsumerWidget {
       ),
       child: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-          children: [
-            _HomeHeader(
-              announcementCount: notificationBadgeCount,
-              onNotifications: () {
-                if (canOpenNotificationCenter) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => NotificationCenterScreen(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWideWeb = kIsWeb && constraints.maxWidth >= 760;
+            final horizontalPadding = isWideWeb ? 28.0 : 16.0;
+            final contentMaxWidth = isWideWeb ? 1040.0 : double.infinity;
+
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    8,
+                    horizontalPadding,
+                    28,
+                  ),
+                  children: [
+                    _HomeHeader(
+                      announcementCount: notificationBadgeCount,
+                      onNotifications: () {
+                        if (canOpenNotificationCenter) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => NotificationCenterScreen(
+                                churchId: churchId,
+                                memberId: memberId,
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        _showAnnouncements(context, churchId);
+                      },
+                    ),
+                    // ChurchSnap view-only Welcome and Today Service cards.
+                    const SizedBox(height: 12),
+                    AbsorbPointer(
+                      absorbing: true,
+                      child: _WelcomeHero(
                         churchId: churchId,
-                        memberId: memberId,
+                        firstName: firstName,
+                        onJoinUs: () => onSelectTab(3),
                       ),
                     ),
-                  );
-                  return;
-                }
-
-                _showAnnouncements(context, churchId);
-              },
-            ),
-            // ChurchSnap view-only Welcome and Today Service cards.
-            const SizedBox(height: 12),
-            AbsorbPointer(
-              absorbing: true,
-              child: _WelcomeHero(
-                churchId: churchId,
-                firstName: firstName,
-                onJoinUs: () => onSelectTab(3),
+                    const SizedBox(height: 12),
+                    AbsorbPointer(
+                      absorbing: true,
+                      child: _TodayServiceCard(
+                        churchId: churchId,
+                        onOpen: () => onSelectTab(3),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _QuickActions(
+                      onSermons: () => onSelectTab(1),
+                      onPrayer: () => onSelectTab(4),
+                      onEvents: () => onSelectTab(3),
+                      onGiving: () => onSelectTab(5),
+                    ),
+                    const SizedBox(height: 22),
+                    _ResourcesHomeCard(
+                      onOpen: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => ResourcesScreen(churchId: churchId),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 22),
+                    _UpcomingEventsSection(
+                      churchId: churchId,
+                      onViewAll: () => onSelectTab(3),
+                    ),
+                    const SizedBox(height: 22),
+                    _FeaturedMessageSection(churchId: churchId),
+                    const SizedBox(height: 22),
+                    _ChurchUpdateSection(
+                      churchId: churchId,
+                      onViewAll: () {
+                        _showAnnouncements(context, churchId);
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            AbsorbPointer(
-              absorbing: true,
-              child: _TodayServiceCard(
-                churchId: churchId,
-                onOpen: () => onSelectTab(3),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _QuickActions(
-              onSermons: () => onSelectTab(1),
-              onPrayer: () => onSelectTab(4),
-              onEvents: () => onSelectTab(3),
-              onGiving: () => onSelectTab(5),
-            ),
-            const SizedBox(height: 22),
-            _ResourcesHomeCard(
-              onOpen: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ResourcesScreen(churchId: churchId),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 22),
-            _UpcomingEventsSection(
-              churchId: churchId,
-              onViewAll: () => onSelectTab(3),
-            ),
-            const SizedBox(height: 22),
-            _FeaturedMessageSection(churchId: churchId),
-            const SizedBox(height: 22),
-            _ChurchUpdateSection(
-              churchId: churchId,
-              onViewAll: () {
-                _showAnnouncements(context, churchId);
-              },
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -304,99 +323,106 @@ class _WelcomeHero extends ConsumerWidget {
         ? 'We\u2019re glad\nyou\u2019re here!'
         : 'We\u2019re glad you\u2019re\nhere, $firstName!';
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(17),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onJoinUs,
-        child: SizedBox(
-          height: 270,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Positioned.fill(
-                child: _WelcomeHeroImage(
-                  imageUrl: homeAppearance.backgroundImageUrl,
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideWeb = kIsWeb && constraints.maxWidth >= 760;
+        final heroHeight = isWideWeb ? 300.0 : 270.0;
 
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white24),
-                  borderRadius: BorderRadius.circular(17),
-                ),
+        return Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(17),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onJoinUs,
+            child: SizedBox(
+              height: heroHeight,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned.fill(
+                    child: _WelcomeHeroImage(
+                      imageUrl: homeAppearance.backgroundImageUrl,
+                    ),
+                  ),
+
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white24),
+                      borderRadius: BorderRadius.circular(17),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(19, 25, 19, 17),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'WELCOME',
+                          style: TextStyle(
+                            color: Color(0xFFBDEAFF),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          welcomeText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 31,
+                            height: 1.04,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.9,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const SizedBox(
+                          width: 205,
+                          child: Text(
+                            'Growing together in faith, love, and purpose.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              height: 1.4,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        FilledButton(
+                          onPressed: onJoinUs,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF0879E6),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 17,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            joinButtonText,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              height: 1.15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(19, 25, 19, 17),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'WELCOME',
-                      style: TextStyle(
-                        color: Color(0xFFBDEAFF),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      welcomeText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 31,
-                        height: 1.04,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.9,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const SizedBox(
-                      width: 205,
-                      child: Text(
-                        'Growing together in faith, love, and purpose.',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          height: 1.4,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    FilledButton(
-                      onPressed: onJoinUs,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF0879E6),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 17,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        joinButtonText,
-                        maxLines: 2,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.15,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -482,6 +508,8 @@ class _TodayServiceCard extends ConsumerWidget {
     final leader = configuredLeader.isEmpty
         ? 'Pastor and Worship Team'
         : configuredLeader;
+    final isWideWeb = kIsWeb && MediaQuery.sizeOf(context).width >= 760;
+    final serviceCardHeight = isWideWeb ? 300.0 : 180.0;
 
     return Material(
       color: const Color(0xFFF8FAFC),
@@ -490,11 +518,11 @@ class _TodayServiceCard extends ConsumerWidget {
       child: InkWell(
         onTap: onOpen,
         child: SizedBox(
-          height: 180,
+          height: serviceCardHeight,
           child: Row(
             children: [
               Expanded(
-                flex: 12,
+                flex: isWideWeb ? 9 : 12,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(17, 17, 5, 15),
                   child: Column(
@@ -535,7 +563,7 @@ class _TodayServiceCard extends ConsumerWidget {
                 ),
               ),
               Expanded(
-                flex: 10,
+                flex: isWideWeb ? 11 : 10,
                 child: SizedBox.expand(
                   child: _PastorServiceImage(
                     imageUrl: pastorAppearance.imageUrl,
@@ -572,20 +600,31 @@ class _PastorServiceImage extends StatelessWidget {
       return _fallbackImage();
     }
 
-    return Image.network(
-      normalizedUrl,
-      fit: BoxFit.cover,
-      alignment: Alignment.center,
-      filterQuality: FilterQuality.high,
-      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) {
-          return child;
-        }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showFullPhoto = kIsWeb && constraints.maxWidth >= 280;
 
-        return _fallbackImage();
+        return ColoredBox(
+          color: const Color(0xFF0B2F4B),
+          child: Image.network(
+            normalizedUrl,
+            width: double.infinity,
+            height: double.infinity,
+            fit: showFullPhoto ? BoxFit.contain : BoxFit.cover,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.high,
+            webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) {
+                return child;
+              }
+
+              return _fallbackImage();
+            },
+            errorBuilder: (_, _, _) => _fallbackImage(),
+          ),
+        );
       },
-      errorBuilder: (_, _, _) => _fallbackImage(),
     );
   }
 }
@@ -643,18 +682,24 @@ class _QuickActions extends StatelessWidget {
       _HomeAction(label: 'Giving', assetName: 'giving', onTap: onGiving),
     ];
 
-    return GridView.builder(
-      itemCount: actions.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 7,
-        mainAxisSpacing: 7,
-        childAspectRatio: 0.71,
-      ),
-      itemBuilder: (context, index) {
-        return _QuickActionTile(action: actions[index]);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideWeb = kIsWeb && constraints.maxWidth >= 760;
+
+        return GridView.builder(
+          itemCount: actions.length,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: isWideWeb ? 14 : 7,
+            mainAxisSpacing: isWideWeb ? 14 : 7,
+            childAspectRatio: isWideWeb ? 1.65 : 0.71,
+          ),
+          itemBuilder: (context, index) {
+            return _QuickActionTile(action: actions[index]);
+          },
+        );
       },
     );
   }
