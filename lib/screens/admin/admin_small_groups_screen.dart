@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/small_group/models/small_group.dart';
+import '../../features/groups_ministries/models/group_ministry_join_request.dart';
 import '../../features/small_group/providers/small_group_providers.dart';
+import 'admin_group_ministry_join_requests_screen.dart';
 
 class AdminSmallGroupsScreen extends ConsumerWidget {
   const AdminSmallGroupsScreen({super.key, required this.churchId});
@@ -19,10 +21,30 @@ class AdminSmallGroupsScreen extends ConsumerWidget {
         title: 'Small Groups',
         subtitle: 'Manage church small groups.',
         children: [
-          FilledButton.icon(
-            onPressed: () => _openGroupDialog(context, ref),
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Create Group'),
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                onPressed: () => _openGroupDialog(context, ref),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Create Group'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AdminGroupMinistryJoinRequestsScreen(
+                        churchId: churchId,
+                        targetType: GroupMinistryJoinRequest.smallGroupType,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.how_to_reg_rounded),
+                label: const Text('Join Requests'),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           StreamBuilder<List<SmallGroup>>(

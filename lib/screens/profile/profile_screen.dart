@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../groups/groups_and_ministries_screen.dart';
 import '../prayer/my_prayer_requests_screen.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
@@ -243,6 +244,30 @@ class ProfileScreen extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (_) =>
                       MyScheduleScreen(authController: authController),
+                ),
+              );
+            },
+          ),
+        ),
+        AppCard(
+          child: ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.groups_rounded)),
+            title: const Text(
+              'Groups & Ministries',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: const Text(
+              'Browse opportunities, request to join, and view your status',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => GroupsAndMinistriesScreen(
+                    churchId: churchId,
+                    userId: member.id,
+                    memberName: displayName,
+                  ),
                 ),
               );
             },

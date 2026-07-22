@@ -107,6 +107,82 @@ service cloud.firestore {
         ).data.get('leaderId', '') == currentUserId();
     }
 
+    function smallGroupExists(churchId, groupId) {
+      return groupId is string
+        && groupId.size() > 0
+        && exists(
+          /databases/$(database)/documents/churches/$(churchId)/small_groups/$(groupId)
+        );
+    }
+
+    function leadsSmallGroup(churchId, groupId) {
+      return isGroupLeader(churchId)
+        && smallGroupExists(churchId, groupId)
+        && get(
+          /databases/$(database)/documents/churches/$(churchId)/small_groups/$(groupId)
+        ).data.get('leaderId', '') == currentUserId();
+    }
+
+    function validJoinTargetType(targetType) {
+      return targetType in ['ministry', 'smallGroup'];
+    }
+
+    function joinTargetExists(churchId, targetType, targetId) {
+      return (
+        targetType == 'ministry'
+        && ministryExists(churchId, targetId)
+      )
+      || (
+        targetType == 'smallGroup'
+        && smallGroupExists(churchId, targetId)
+      );
+    }
+
+    function joinTargetIsActive(churchId, targetType, targetId) {
+      return (
+        targetType == 'ministry'
+        && get(
+          /databases/$(database)/documents/churches/$(churchId)/ministries/$(targetId)
+        ).data.get('isActive', true) == true
+      )
+      || (
+        targetType == 'smallGroup'
+        && get(
+          /databases/$(database)/documents/churches/$(churchId)/small_groups/$(targetId)
+        ).data.get('active', true) == true
+      );
+    }
+
+    function joinTargetNameMatches(
+      churchId,
+      targetType,
+      targetId,
+      targetName
+    ) {
+      return (
+        targetType == 'ministry'
+        && get(
+          /databases/$(database)/documents/churches/$(churchId)/ministries/$(targetId)
+        ).data.get('name', '') == targetName
+      )
+      || (
+        targetType == 'smallGroup'
+        && get(
+          /databases/$(database)/documents/churches/$(churchId)/small_groups/$(targetId)
+        ).data.get('name', '') == targetName
+      );
+    }
+
+    function leadsJoinTarget(churchId, data) {
+      return (
+        data.get('targetType', '') == 'ministry'
+        && leadsMinistry(churchId, data.get('targetId', ''))
+      )
+      || (
+        data.get('targetType', '') == 'smallGroup'
+        && leadsSmallGroup(churchId, data.get('targetId', ''))
+      );
+    }
     function ownsAttendanceRecord(data) {
       return signedIn()
         && (
@@ -609,6 +685,108 @@ service cloud.firestore {
           );
       }
 
+      match /group_ministry_join_requests/{requestId} {
+        allow read: if isAdmin(churchId)
+          || leadsJoinTarget(churchId, resource.data)
+          || (
+            isApprovedMember(churchId)
+            && resource.data.get('userId', '') == currentUserId()
+          );
+
+        allow create: if isApprovedMember(churchId)
+          && request.resource.data.keys().hasOnly([
+            'userId',
+            'memberName',
+            'targetType',
+            'targetId',
+            'targetName',
+            'status',
+            'note',
+            'createdAt',
+            'reviewedAt',
+            'reviewedByUid'
+          ])
+          && request.resource.data.keys().hasAll([
+            'userId',
+            'memberName',
+            'targetType',
+            'targetId',
+            'targetName',
+            'status',
+            'note',
+            'createdAt',
+            'reviewedAt',
+            'reviewedByUid'
+          ])
+          && request.resource.data.get('userId', '') == currentUserId()
+          && request.resource.data.get('memberName', '') is string
+          && request.resource.data.get('memberName', '').size() > 0
+          && request.resource.data.get('memberName', '').size() <= 120
+          && validJoinTargetType(
+            request.resource.data.get('targetType', '')
+          )
+          && request.resource.data.get('targetId', '') is string
+          && request.resource.data.get('targetId', '').size() > 0
+          && request.resource.data.get('targetName', '') is string
+          && request.resource.data.get('targetName', '').size() > 0
+          && request.resource.data.get('targetName', '').size() <= 160
+          && request.resource.data.get('status', '') == 'pending'
+          && request.resource.data.get('note', '') is string
+          && request.resource.data.get('note', '').size() <= 500
+          && request.resource.data.get('createdAt', request.time)
+            == request.time
+          && request.resource.data.get('reviewedAt', null) == null
+          && request.resource.data.get('reviewedByUid', '') == ''
+          && requestId
+            == request.resource.data.get('targetType', '')
+              + '__'
+              + request.resource.data.get('targetId', '')
+              + '__'
+              + currentUserId()
+          && joinTargetExists(
+            churchId,
+            request.resource.data.get('targetType', ''),
+            request.resource.data.get('targetId', '')
+          )
+          && joinTargetIsActive(
+            churchId,
+            request.resource.data.get('targetType', ''),
+            request.resource.data.get('targetId', '')
+          )
+          && joinTargetNameMatches(
+            churchId,
+            request.resource.data.get('targetType', ''),
+            request.resource.data.get('targetId', ''),
+            request.resource.data.get('targetName', '')
+          );
+
+        allow update: if (
+          isAdmin(churchId)
+          || leadsJoinTarget(churchId, resource.data)
+        )
+        && resource.data.get('status', '') == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'status',
+            'reviewedAt',
+            'reviewedByUid'
+          ])
+        && request.resource.data.get('status', '')
+          in ['approved', 'declined']
+        && request.resource.data.get('reviewedAt', request.time)
+          == request.time
+        && request.resource.data.get('reviewedByUid', '')
+          == currentUserId();
+
+        allow delete: if isAdmin(churchId)
+          || leadsJoinTarget(churchId, resource.data)
+          || (
+            isApprovedMember(churchId)
+            && resource.data.get('userId', '') == currentUserId()
+            && resource.data.get('status', '')
+              in ['pending', 'declined']
+          );
+      }
       match /volunteer_assignments/{assignmentId} {
         allow read: if isAdmin(churchId)
           || (

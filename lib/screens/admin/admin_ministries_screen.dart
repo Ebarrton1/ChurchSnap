@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/ministries/models/ministry.dart';
+import '../../features/groups_ministries/models/group_ministry_join_request.dart';
 import '../../features/ministries/providers/ministry_providers.dart';
+import 'admin_group_ministry_join_requests_screen.dart';
 
 class AdminMinistriesScreen extends ConsumerWidget {
   const AdminMinistriesScreen({super.key, required this.churchId});
@@ -19,10 +21,30 @@ class AdminMinistriesScreen extends ConsumerWidget {
         title: 'Ministries',
         subtitle: 'Manage church ministries and volunteer teams.',
         children: [
-          FilledButton.icon(
-            onPressed: () => _openMinistryDialog(context, ref),
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Add Ministry'),
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                onPressed: () => _openMinistryDialog(context, ref),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Add Ministry'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AdminGroupMinistryJoinRequestsScreen(
+                        churchId: churchId,
+                        targetType: GroupMinistryJoinRequest.ministryType,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.how_to_reg_rounded),
+                label: const Text('Join Requests'),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           StreamBuilder<List<Ministry>>(
