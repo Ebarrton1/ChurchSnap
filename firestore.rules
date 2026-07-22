@@ -443,10 +443,15 @@ service cloud.firestore {
           resource.data.get('published', false) == true
           && resource.data.get('isPrivate', false) == false
         )
-        || isLeader(churchId);
+        || isLeader(churchId)
+        || (
+          isApprovedMember(churchId)
+          && resource.data.get('createdByUid', '') == currentUserId()
+        );
 
         allow create: if isApprovedMember(churchId)
           && request.resource.data.keys().hasOnly([
+            'createdByUid',
             'name',
             'request',
             'isPrivate',
@@ -454,12 +459,14 @@ service cloud.firestore {
             'createdAt'
           ])
           && request.resource.data.keys().hasAll([
+            'createdByUid',
             'name',
             'request',
             'isPrivate',
             'published',
             'createdAt'
           ])
+          && request.resource.data.get('createdByUid', '') == currentUserId()
           && request.resource.data.get('name', '') is string
           && request.resource.data.get('name', '').size() > 0
           && request.resource.data.get('name', '').size() <= 120

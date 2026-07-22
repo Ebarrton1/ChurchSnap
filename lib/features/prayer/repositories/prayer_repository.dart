@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../firebase/firebase_paths.dart';
 import '../../../models/prayer_request.dart';
@@ -6,11 +7,14 @@ import '../../../models/prayer_request.dart';
 class PrayerRepository {
   PrayerRepository({
     FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
     String churchId = 'demo-church',
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance,
        churchId = churchId.trim().isEmpty ? 'demo-church' : churchId.trim();
 
   final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
   final String churchId;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
@@ -49,7 +53,18 @@ class PrayerRepository {
   }
 
   Future<void> addPrayerRequest(PrayerRequest request) {
-    return _collection.add(request.toMap());
+    final authenticatedUser = _auth.currentUser;
+
+    if (authenticatedUser == null) {
+      throw StateError(
+        'A Firebase-authenticated member is required to submit a prayer request.',
+      );
+    }
+
+    return _collection.add({
+      ...request.toMap(),
+      'createdByUid': authenticatedUser.uid,
+    });
   }
 
   Future<void> setPublished({

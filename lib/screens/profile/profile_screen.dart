@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../prayer/my_prayer_requests_screen.dart';
+
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
 import '../volunteers/my_schedule_screen.dart';
@@ -246,15 +248,27 @@ class ProfileScreen extends StatelessWidget {
             },
           ),
         ),
-        const AppCard(
+        AppCard(
           child: ListTile(
-            leading: CircleAvatar(child: Icon(Icons.favorite_rounded)),
-            title: Text(
+            leading: const CircleAvatar(child: Icon(Icons.favorite_rounded)),
+            title: const Text(
               'My Prayer Requests',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
-            subtitle: Text('Review prayer requests you have submitted'),
-            trailing: Chip(label: Text('Coming soon')),
+            subtitle: const Text(
+              'Review public and private requests you have submitted',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => MyPrayerRequestsScreen(
+                    churchId: churchId,
+                    userId: member.id,
+                  ),
+                ),
+              );
+            },
           ),
         ),
         AppCard(
