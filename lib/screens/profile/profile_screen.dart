@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
@@ -60,15 +61,44 @@ class ProfileScreen extends StatelessWidget {
         AppCard(
           child: Column(
             children: [
-              CircleAvatar(
-                radius: 52,
-                child: Text(
-                  initial,
-                  style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+              StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                stream: FirebaseFirestore.instance
+                    .collection('churches')
+                    .doc(churchId)
+                    .collection('members')
+                    .doc(member.id)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final photoUrl =
+                      (snapshot.data?.data()?['photoUrl'] as String? ?? '')
+                          .trim();
+
+                  return _MemberProfilePhoto(
+                    photoUrl: photoUrl,
+                    initial: initial,
+                    onEdit: () async {
+                      final updated = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute<bool>(
+                          builder: (_) => EditMyMemberProfileScreen(
+                            churchId: churchId,
+                            userId: member.id,
+                            accountEmail: member.email,
+                          ),
+                        ),
+                      );
+
+                      if (updated == true && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Your profile picture and member details were saved.',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  );
+                },
               ),
               const SizedBox(height: 18),
               Text(
@@ -384,6 +414,103 @@ class _ProfileDetailTile extends StatelessWidget {
         value,
         style: const TextStyle(fontWeight: FontWeight.w700),
       ),
+    );
+  }
+}
+
+class _MemberProfilePhoto extends StatelessWidget {
+  const _MemberProfilePhoto({
+    required this.photoUrl,
+    required this.initial,
+    required this.onEdit,
+  });
+
+  final String photoUrl;
+  final String initial;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedPhotoUrl = photoUrl.trim();
+    final hasPhoto = normalizedPhotoUrl.isNotEmpty;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    Widget fallbackAvatar() {
+      return ColoredBox(
+        color: colorScheme.primaryContainer,
+        child: Center(
+          child: Text(
+            initial,
+            style: TextStyle(
+              color: colorScheme.onPrimaryContainer,
+              fontSize: 40,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Semantics(
+          button: true,
+          label: hasPhoto ? 'Change profile picture' : 'Add profile picture',
+          child: InkWell(
+            onTap: onEdit,
+            customBorder: const CircleBorder(),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colorScheme.primary, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).shadowColor.withValues(alpha: 0.18),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: hasPhoto
+                        ? Image.network(
+                            normalizedPhotoUrl,
+                            fit: BoxFit.cover,
+                            width: 120,
+                            height: 120,
+                            errorBuilder: (_, _, _) => fallbackAvatar(),
+                          )
+                        : fallbackAvatar(),
+                  ),
+                ),
+                Positioned(
+                  right: -2,
+                  bottom: 4,
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    child: const Icon(Icons.camera_alt_rounded, size: 21),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextButton.icon(
+          onPressed: onEdit,
+          icon: const Icon(Icons.add_a_photo_rounded),
+          label: Text(hasPhoto ? 'Change Picture' : 'Add Picture'),
+        ),
+      ],
     );
   }
 }
