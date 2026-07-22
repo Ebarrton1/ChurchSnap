@@ -6,40 +6,62 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function memberPath(churchId) {
+      return /databases/(default)/documents/churches/$(churchId)/members/$(request.auth.uid);
+    }
+
     function memberExists(churchId) {
-      return signedIn()
-        && firestore.exists(
-          /databases/(default)/documents/churches/$(churchId)/members/$(request.auth.uid)
-        );
+      return signedIn() && firestore.exists(memberPath(churchId));
+    }
+
+    function isActiveMember(churchId) {
+      return memberExists(churchId)
+        && firestore.get(memberPath(churchId)).data.get('isActive', true)
+          == true;
+    }
+
+    function memberRole(churchId) {
+      return firestore.get(memberPath(churchId)).data.get('role', 'member');
+    }
+
+    function isApprovedMember(churchId) {
+      return isActiveMember(churchId)
+        && memberRole(churchId) != 'visitor';
     }
 
     function isAdmin(churchId) {
-      return memberExists(churchId)
-        && firestore.get(
-          /databases/(default)/documents/churches/$(churchId)/members/$(request.auth.uid)
-        ).data.role in ['admin', 'pastor'];
+      return isActiveMember(churchId)
+        && memberRole(churchId) in ['admin', 'pastor'];
     }
 
-    match /churches/{churchId}/member_profile_photos/{memberId}/{fileName} {
-      allow read: if signedIn()
-        && (
-          memberId == request.auth.uid
-          || isAdmin(churchId)
-        );
+    function resourcePublished(churchId, resourceId) {
+      return firestore.exists(
+        /databases/(default)/documents/churches/$(churchId)/resources/$(resourceId)
+      )
+      && firestore.get(
+        /databases/(default)/documents/churches/$(churchId)/resources/$(resourceId)
+      ).data.get('published', false) == true;
+    }
 
-      allow create, update: if signedIn()
-        && (
-          memberId == request.auth.uid
+    match /churches/{churchId}/member_profile_photos/{memberId}/{allPaths=**} {
+      allow read: if isApprovedMember(churchId);
+
+      allow create, update: if (
+          (
+            isApprovedMember(churchId)
+            && request.auth.uid == memberId
+          )
           || isAdmin(churchId)
         )
         && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType != null
         && request.resource.contentType.matches('image/.*');
 
-      allow delete: if signedIn()
-        && (
-          memberId == request.auth.uid
-          || isAdmin(churchId)
-        );
+      allow delete: if (
+        isApprovedMember(churchId)
+        && request.auth.uid == memberId
+      )
+      || isAdmin(churchId);
     }
 
     match /churches/{churchId}/home/{fileName} {
@@ -47,12 +69,15 @@ service firebase.storage {
 
       allow create, update: if isAdmin(churchId)
         && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType != null
         && request.resource.contentType.matches('image/.*');
 
       allow delete: if isAdmin(churchId);
     }
-    match /churches/{churchId}/resources/{allPaths=**} {
-      allow read: if true;
+
+    match /churches/{churchId}/resources/{resourceId}/{allPaths=**} {
+      allow read: if resourcePublished(churchId, resourceId)
+        || isAdmin(churchId);
 
       allow create, update: if isAdmin(churchId)
         && request.resource.size < 25 * 1024 * 1024
@@ -68,29 +93,23 @@ service firebase.storage {
 
       allow delete: if isAdmin(churchId);
     }
-    // ChurchSnap member self-service profile pictures.
-    match /churches/{churchId}/member_profile_photos/{memberId}/{allPaths=**} {
-      allow read: if request.auth != null;
-
-      allow create, update: if request.auth != null
-        && (
-          request.auth.uid == memberId
-          || isAdmin(churchId)
-        )
-        && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType != null
-        && request.resource.contentType.matches('image/.*');
-
-      allow delete: if request.auth != null
-        && (
-          request.auth.uid == memberId
-          || isAdmin(churchId)
-        );
-    }
 
     match /churches/{churchId}/media/{allPaths=**} {
+      // Existing public media paths do not contain the Firestore media ID,
+      // so publication-aware file authorization requires a future path migration.
       allow read: if true;
-      allow create, update, delete: if isAdmin(churchId);
+
+      allow create, update: if isAdmin(churchId)
+        && request.resource.size < 500 * 1024 * 1024
+        && request.resource.contentType != null
+        && (
+          request.resource.contentType.matches('video/.*')
+          || request.resource.contentType.matches('audio/.*')
+          || request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('application/pdf')
+        );
+
+      allow delete: if isAdmin(churchId);
     }
 
     match /{allPaths=**} {

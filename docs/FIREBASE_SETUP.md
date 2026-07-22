@@ -74,10 +74,16 @@ churches/{churchId}/settings/app
 
 ## 6. Deploy rules
 
-Copy `firebase/firestore.rules` into your Firebase project and deploy:
+The active Firebase configuration is defined in the root `firebase.json` and uses:
+
+- `firestore.rules`
+- `firestore.indexes.json`
+- `storage.rules`
+
+Deploy the active Firestore and Storage rules from the project root:
 
 ```powershell
-firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
 ## 7. Next implementation step
