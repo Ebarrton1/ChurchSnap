@@ -14,9 +14,14 @@ import 'web_admin_operations_reports.dart';
 import 'web_admin_staff_access.dart';
 
 class ChurchSnapWebAdminShell extends StatefulWidget {
-  const ChurchSnapWebAdminShell({super.key, required this.authController});
+  const ChurchSnapWebAdminShell({
+    super.key,
+    required this.authController,
+    required this.onReturnHome,
+  });
 
   final AuthController authController;
+  final VoidCallback onReturnHome;
 
   @override
   State<ChurchSnapWebAdminShell> createState() =>
@@ -82,6 +87,11 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
               ],
             ),
             actions: [
+              IconButton(
+                tooltip: 'Return to ChurchSnap home',
+                onPressed: widget.onReturnHome,
+                icon: const Icon(Icons.home_rounded),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Center(
@@ -122,8 +132,10 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
                   selectedIndex: _selectedIndex,
                   onDestinationSelected: _selectPage,
                   labelType: NavigationRailLabelType.all,
+                  scrollable: true,
+                  groupAlignment: -1,
                   leading: const Padding(
-                    padding: EdgeInsets.only(top: 12, bottom: 18),
+                    padding: EdgeInsets.only(top: 8, bottom: 10),
                     child: _WebBadge(),
                   ),
                   destinations: const [
