@@ -401,6 +401,7 @@ class _WebAdminActionCenterState extends State<WebAdminActionCenter> {
                 return _ActionCard(
                   item: item,
                   onOpen: _openCallback(item.kind),
+                  highlightAction: query.isNotEmpty,
                 );
               }, childCount: (visibleItems.length * 2) - 1),
             ),
@@ -492,10 +493,15 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.item, required this.onOpen});
+  const _ActionCard({
+    required this.item,
+    required this.onOpen,
+    required this.highlightAction,
+  });
 
   final WebAdminActionItem item;
   final VoidCallback onOpen;
+  final bool highlightAction;
 
   @override
   Widget build(BuildContext context) {
@@ -511,6 +517,36 @@ class _ActionCard extends StatelessWidget {
       WebAdminActionKind.member => 'Members',
       WebAdminActionKind.giving => 'Giving',
     };
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final buttonStyle = highlightAction
+        ? FilledButton.styleFrom(
+            backgroundColor: colorScheme.tertiary,
+            foregroundColor: colorScheme.onTertiary,
+            side: BorderSide(color: colorScheme.tertiary, width: 3),
+            elevation: 10,
+            shadowColor: colorScheme.tertiary.withValues(alpha: 0.55),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+          )
+        : null;
+
+    Widget buildOpenButton() {
+      return Tooltip(
+        message: highlightAction
+            ? 'Matching search result - open $section'
+            : 'Open $section',
+        child: FilledButton.icon(
+          style: buttonStyle,
+          onPressed: onOpen,
+          icon: Icon(
+            highlightAction
+                ? Icons.ads_click_rounded
+                : Icons.open_in_new_rounded,
+          ),
+          label: Text('Open $section'),
+        ),
+      );
+    }
 
     return Card(
       child: Padding(
@@ -562,11 +598,7 @@ class _ActionCard extends StatelessWidget {
                 children: [
                   details,
                   const SizedBox(height: 14),
-                  FilledButton.icon(
-                    onPressed: onOpen,
-                    icon: const Icon(Icons.open_in_new_rounded),
-                    label: Text('Open $section'),
-                  ),
+                  buildOpenButton(),
                 ],
               );
             }
@@ -575,11 +607,7 @@ class _ActionCard extends StatelessWidget {
               children: [
                 Expanded(child: details),
                 const SizedBox(width: 18),
-                FilledButton.icon(
-                  onPressed: onOpen,
-                  icon: const Icon(Icons.open_in_new_rounded),
-                  label: Text('Open $section'),
-                ),
+                buildOpenButton(),
               ],
             );
           },
