@@ -27,6 +27,8 @@ class WebAdminActionCenter extends StatefulWidget {
 }
 
 class _WebAdminActionCenterState extends State<WebAdminActionCenter> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   final List<StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>
   _subscriptions = [];
 
@@ -114,6 +116,8 @@ class _WebAdminActionCenterState extends State<WebAdminActionCenter> {
     for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());
     }
+    _searchController.dispose();
+    _searchFocusNode.dispose();
 
     super.dispose();
   }
@@ -164,130 +168,244 @@ class _WebAdminActionCenterState extends State<WebAdminActionCenter> {
         .where((item) {
           final kindMatches =
               _selectedKind == null || item.kind == _selectedKind;
-          final searchMatches =
-              query.isEmpty ||
-              item.title.toLowerCase().contains(query) ||
-              item.detail.toLowerCase().contains(query);
+
+          final categoryText = switch (item.kind) {
+            WebAdminActionKind.prayer =>
+              'prayer prayers prayer care pastoral care',
+            WebAdminActionKind.event => 'event events upcoming event',
+            WebAdminActionKind.member =>
+              'member members member follow-up profile',
+            WebAdminActionKind.giving =>
+              'giving donation donations payment payments',
+          };
+
+          final priorityText = switch (item.priority) {
+            WebAdminActionPriority.urgent => 'urgent emergency high priority',
+            WebAdminActionPriority.normal => 'normal priority',
+            WebAdminActionPriority.low => 'low priority',
+          };
+
+          final searchableText =
+              '${item.title} ${item.detail} $categoryText '
+                      '$priorityText ${item.sourceId}'
+                  .toLowerCase();
+
+          final searchMatches = query.isEmpty || searchableText.contains(query);
 
           return kindMatches && searchMatches;
         })
         .toList(growable: false);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Action Center',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
+    final resultLabel = query.isEmpty
+        ? '${visibleItems.length} of ${items.length} actions'
+        : '${visibleItems.length} ${visibleItems.length == 1 ? 'result' : 'results'} '
+              'for "${_search.trim()}"';
+
+    return CustomScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          sliver: SliverToBoxAdapter(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => _searchFocusNode.requestFocus(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Search the action queue',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    enabled: true,
+                    readOnly: false,
+                    showCursor: true,
+                    keyboardType: TextInputType.text,
+                    textInputAction: TextInputAction.search,
+                    onTap: () => _searchFocusNode.requestFocus(),
+                    onChanged: (value) {
+                      setState(() {
+                        _search = value;
+
+                        if (value.trim().isNotEmpty) {
+                          _selectedKind = null;
+                        }
+                      });
+                    },
+                    onFieldSubmitted: (_) => _searchFocusNode.unfocus(),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      hintText: 'Search Action Center records',
+                      border: const OutlineInputBorder(),
+                      helperText: resultLabel,
+                      helperMaxLines: 2,
+                      helperStyle: const TextStyle(
+                        fontSize: 18,
+                        height: 1.35,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      suffixIcon: query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Clear search',
+                              icon: const Icon(Icons.clear_rounded),
+                              onPressed: () {
+                                _searchController.clear();
+                                _searchFocusNode.unfocus();
+
+                                setState(() {
+                                  _search = '';
+                                });
+                              },
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Action Center',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'One live queue for pastoral care, upcoming events, member '
-                'follow-up, and giving exceptions.',
-              ),
-            ],
+                const SizedBox(height: 6),
+                const Text(
+                  'One live queue for pastoral care, upcoming events, member '
+                  'follow-up, and giving exceptions.',
+                ),
+              ],
+            ),
           ),
         ),
-        Padding(
+        SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _SummaryCard(
-                label: 'All actions',
-                count: items.length,
-                icon: Icons.task_alt_rounded,
-                selected: _selectedKind == null,
-                onTap: () => setState(() => _selectedKind = null),
-              ),
-              _SummaryCard(
-                label: 'Prayer care',
-                count: _count(items, WebAdminActionKind.prayer),
-                icon: Icons.volunteer_activism_rounded,
-                selected: _selectedKind == WebAdminActionKind.prayer,
-                onTap: () =>
-                    setState(() => _selectedKind = WebAdminActionKind.prayer),
-              ),
-              _SummaryCard(
-                label: 'Events',
-                count: _count(items, WebAdminActionKind.event),
-                icon: Icons.event_rounded,
-                selected: _selectedKind == WebAdminActionKind.event,
-                onTap: () =>
-                    setState(() => _selectedKind = WebAdminActionKind.event),
-              ),
-              _SummaryCard(
-                label: 'Member follow-up',
-                count: _count(items, WebAdminActionKind.member),
-                icon: Icons.people_rounded,
-                selected: _selectedKind == WebAdminActionKind.member,
-                onTap: () =>
-                    setState(() => _selectedKind = WebAdminActionKind.member),
-              ),
-              _SummaryCard(
-                label: 'Giving',
-                count: _count(items, WebAdminActionKind.giving),
-                icon: Icons.payments_rounded,
-                selected: _selectedKind == WebAdminActionKind.giving,
-                onTap: () =>
-                    setState(() => _selectedKind = WebAdminActionKind.giving),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
-          child: TextField(
-            onChanged: (value) => setState(() => _search = value),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search_rounded),
-              labelText: 'Search the action queue',
-              hintText: 'Search names, requests, events, funds, or statuses',
-              border: OutlineInputBorder(),
+          sliver: SliverToBoxAdapter(
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _SummaryCard(
+                  label: 'All actions',
+                  count: items.length,
+                  icon: Icons.task_alt_rounded,
+                  selected: _selectedKind == null,
+                  onTap: () => setState(() => _selectedKind = null),
+                ),
+                _SummaryCard(
+                  label: 'Prayer care',
+                  count: _count(items, WebAdminActionKind.prayer),
+                  icon: Icons.volunteer_activism_rounded,
+                  selected: _selectedKind == WebAdminActionKind.prayer,
+                  onTap: () =>
+                      setState(() => _selectedKind = WebAdminActionKind.prayer),
+                ),
+                _SummaryCard(
+                  label: 'Events',
+                  count: _count(items, WebAdminActionKind.event),
+                  icon: Icons.event_rounded,
+                  selected: _selectedKind == WebAdminActionKind.event,
+                  onTap: () =>
+                      setState(() => _selectedKind = WebAdminActionKind.event),
+                ),
+                _SummaryCard(
+                  label: 'Member follow-up',
+                  count: _count(items, WebAdminActionKind.member),
+                  icon: Icons.people_rounded,
+                  selected: _selectedKind == WebAdminActionKind.member,
+                  onTap: () =>
+                      setState(() => _selectedKind = WebAdminActionKind.member),
+                ),
+                _SummaryCard(
+                  label: 'Giving',
+                  count: _count(items, WebAdminActionKind.giving),
+                  icon: Icons.payments_rounded,
+                  selected: _selectedKind == WebAdminActionKind.giving,
+                  onTap: () =>
+                      setState(() => _selectedKind = WebAdminActionKind.giving),
+                ),
+              ],
             ),
           ),
         ),
         if (_error != null)
-          Padding(
+          SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Card(
-              child: ListTile(
-                leading: const Icon(Icons.error_outline_rounded),
-                title: const Text(
-                  'Some Action Center records could not be loaded',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+            sliver: SliverToBoxAdapter(
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(Icons.error_outline_rounded),
+                  title: const Text(
+                    'Some Action Center records could not be loaded',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text('$_error'),
                 ),
-                subtitle: Text('$_error'),
               ),
             ),
           ),
-        Expanded(
-          child: !_allLoaded
-              ? const Center(child: CircularProgressIndicator())
-              : visibleItems.isEmpty
-              ? const _EmptyActionCenter()
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
-                  itemCount: visibleItems.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final item = visibleItems[index];
+        if (!_allLoaded)
+          const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (visibleItems.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: query.isEmpty
+                ? const _EmptyActionCenter()
+                : Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.search_off_rounded),
+                          title: const Text(
+                            'No matching actions',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          subtitle: Text(
+                            'No Action Center records match '
+                            '"${_search.trim()}".',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                if (index.isOdd) {
+                  return const SizedBox(height: 10);
+                }
 
-                    return _ActionCard(
-                      item: item,
-                      onOpen: _openCallback(item.kind),
-                    );
-                  },
-                ),
-        ),
+                final item = visibleItems[index ~/ 2];
+
+                return _ActionCard(
+                  item: item,
+                  onOpen: _openCallback(item.kind),
+                );
+              }, childCount: (visibleItems.length * 2) - 1),
+            ),
+          ),
+        const SliverToBoxAdapter(child: SizedBox(height: 40)),
       ],
     );
   }
