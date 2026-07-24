@@ -1,10 +1,9 @@
 ﻿$ErrorActionPreference = "Stop"
 
-$expectedBranch = "churchsnap-release-readiness-hardening"
-$currentBranch = git branch --show-current
+$currentBranch = (git branch --show-current).Trim()
 
-if ($currentBranch -ne $expectedBranch) {
-    throw "Expected branch '$expectedBranch', but current branch is '$currentBranch'."
+if ([string]::IsNullOrWhiteSpace($currentBranch)) {
+    throw "Firebase Rules tests must run from a named Git branch."
 }
 
 $requiredFiles = @(
@@ -28,6 +27,9 @@ foreach ($command in @("node", "npm", "java", "firebase")) {
 }
 
 Write-Host ""
+Write-Host "Current branch: $currentBranch"
+
+Write-Host ""
 Write-Host "=== INSTALL RULE-TEST DEPENDENCIES ==="
 
 npm install `
@@ -36,11 +38,19 @@ npm install `
     "@firebase/rules-unit-testing" `
     "firebase"
 
+if ($LASTEXITCODE -ne 0) {
+    throw "The Rules test dependency installation failed."
+}
+
 Write-Host ""
 Write-Host "=== JAVASCRIPT SYNTAX CHECK ==="
 
 node --check `
     ".\firebase\rules-tests\release_readiness.rules.test.cjs"
+
+if ($LASTEXITCODE -ne 0) {
+    throw "The JavaScript syntax check failed."
+}
 
 Write-Host ""
 Write-Host "=== FIREBASE EMULATOR RULE TESTS ==="
@@ -50,13 +60,9 @@ firebase emulators:exec `
     --only "firestore,storage" `
     "npm --prefix firebase/rules-tests test"
 
-Write-Host ""
-Write-Host "=== CREATED TEST FILES ==="
-
-Get-ChildItem `
-    -Path ".\firebase\rules-tests" `
-    -File |
-    Select-Object Name, Length, LastWriteTime
+if ($LASTEXITCODE -ne 0) {
+    throw "The Firebase authorization test suite failed."
+}
 
 Write-Host ""
 Write-Host "=== GIT STATUS ==="
