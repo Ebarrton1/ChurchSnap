@@ -1,7 +1,7 @@
-name: churchsnap
+﻿name: churchsnap
 description: "A newly created Flutter project."
 publish_to: 'none'
-version: 1.0.7+9
+version: 1.0.8+10
 environment:
   sdk: ^3.12.2
 
