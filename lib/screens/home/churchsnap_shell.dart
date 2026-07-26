@@ -259,6 +259,18 @@ class _BottomDestination extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final prominent = destination.label == 'Resources';
+    final emphasized = selected || prominent;
+    final foregroundColor = emphasized ? _shellAccent : Colors.white;
+    final iconContainerWidth = prominent ? 54.0 : 46.0;
+    final iconContainerHeight = prominent ? 56.0 : 48.0;
+    final iconSize = selected
+        ? (prominent ? 51.0 : 45.0)
+        : (prominent ? 48.0 : 41.0);
+    final fallbackIconSize = selected
+        ? (prominent ? 41.0 : 35.0)
+        : (prominent ? 38.0 : 32.0);
+
     return Semantics(
       selected: selected,
       button: true,
@@ -267,7 +279,7 @@ class _BottomDestination extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(prominent ? 15 : 12),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 1),
             child: Column(
@@ -275,36 +287,38 @@ class _BottomDestination extends StatelessWidget {
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  width: 46,
-                  height: 48,
+                  width: iconContainerWidth,
+                  height: iconContainerHeight,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(13),
+                    borderRadius: BorderRadius.circular(prominent ? 16 : 13),
                     color: selected
-                        ? _shellAccent.withValues(alpha: 0.10)
+                        ? _shellAccent.withValues(alpha: 0.28)
+                        : prominent
+                        ? _shellAccent.withValues(alpha: 0.16)
                         : Colors.transparent,
-                    boxShadow: selected
-                        ? [
-                            BoxShadow(
-                              color: _shellAccent.withValues(alpha: 0.55),
-                              blurRadius: 15,
-                              spreadRadius: 1,
+                    border: prominent
+                        ? Border.all(
+                            color: Colors.white.withValues(
+                              alpha: selected ? 1.0 : 0.88,
                             ),
-                          ]
-                        : const [],
+                            width: selected ? 2.0 : 1.6,
+                          )
+                        : null,
+                    boxShadow: const <BoxShadow>[],
                   ),
                   child: Image.asset(
                     'assets/icons/'
                     '${destination.assetName}.png',
-                    width: selected ? 45 : 41,
-                    height: selected ? 45 : 41,
+                    width: iconSize,
+                    height: iconSize,
                     fit: BoxFit.contain,
                     filterQuality: FilterQuality.high,
                     errorBuilder: (_, _, _) {
                       return Icon(
                         destination.fallbackIcon,
-                        color: selected ? _shellAccent : Colors.white,
-                        size: selected ? 35 : 32,
+                        color: foregroundColor,
+                        size: fallbackIconSize,
                       );
                     },
                   ),
@@ -314,10 +328,11 @@ class _BottomDestination extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.visible,
                   style: TextStyle(
-                    color: selected ? _shellAccent : Colors.white,
-                    fontSize: 8.5,
+                    color: Colors.white,
+                    fontSize: prominent ? 9.75 : 8.5,
                     height: 1,
-                    fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+                    fontWeight: emphasized ? FontWeight.w900 : FontWeight.w600,
+                    letterSpacing: prominent ? 0.10 : 0,
                   ),
                 ),
               ],
