@@ -9,6 +9,7 @@ import 'admin_events_screen.dart';
 import 'admin_home_appearance_screen.dart';
 import 'admin_pastor_picture_screen.dart';
 import 'admin_platform_tools_screen.dart';
+import 'admin_data_management_screen.dart';
 import 'admin_church_connection_screen.dart';
 import 'admin_member_directory_screen.dart';
 import 'admin_member_count_management_screen.dart';
@@ -113,6 +114,13 @@ class AdminDashboardScreen extends ConsumerWidget {
           subtitle: 'View live membership, giving, prayer, and event reports',
           screen: AdminOperationsReportsScreen(churchId: churchId),
         ),
+        _AdminNavCard(
+          icon: Icons.backup_rounded,
+          title: 'Data Management',
+          subtitle: 'Create an encrypted local church backup',
+          screen: AdminDataManagementScreen(churchId: churchId),
+        ),
+
         _AdminNavCard(
           icon: Icons.history_rounded,
           title: 'Administrative Activity',
