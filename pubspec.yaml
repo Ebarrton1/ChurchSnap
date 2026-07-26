@@ -1,4 +1,4 @@
-﻿name: churchsnap
+name: churchsnap
 description: "A newly created Flutter project."
 publish_to: 'none'
 version: 1.0.8+10
@@ -24,6 +24,7 @@ dependencies:
   path_provider: ^2.1.6
   image_picker: ^1.2.3
   file_picker: 10.3.10
+  cryptography: 2.9.0
   pdfrx: 2.4.7
   shared_preferences: ^2.5.5
   http: ^1.6.0
