@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../groups/groups_and_ministries_screen.dart';
 import '../prayer/my_prayer_requests_screen.dart';
 import '../settings/help_legal_account_screen.dart';
+import '../settings/account_deletion_screen.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
@@ -345,6 +346,33 @@ class ProfileScreen extends StatelessWidget {
         ),
         AppCard(
           child: ListTile(
+            leading: Icon(
+              Icons.delete_forever_rounded,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(
+              'Delete My Account',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            subtitle: const Text(
+              'Permanently delete your login and personal account data',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      AccountDeletionScreen(authController: authController),
+                ),
+              );
+            },
+          ),
+        ),
+        AppCard(
+          child: ListTile(
             leading: const Icon(Icons.logout_rounded),
             title: const Text(
               'Sign Out',
@@ -436,6 +464,34 @@ class ProfileScreen extends StatelessWidget {
             },
           ),
         ),
+        if (!authController.isGuest)
+          AppCard(
+            child: ListTile(
+              leading: Icon(
+                Icons.delete_forever_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                'Delete My Account',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              subtitle: const Text(
+                'Permanently delete this registered visitor account',
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        AccountDeletionScreen(authController: authController),
+                  ),
+                );
+              },
+            ),
+          ),
         AppCard(
           child: ListTile(
             leading: const Icon(Icons.logout_rounded),

@@ -635,3 +635,8 @@ exports.sendUpcomingCelebrationAlerts = onSchedule(
       }
     },
 );
+const {
+  deleteChurchSnapAccount,
+} = require("./account_deletion");
+
+exports.deleteChurchSnapAccount = deleteChurchSnapAccount;

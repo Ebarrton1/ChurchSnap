@@ -242,20 +242,20 @@ class HelpLegalAccountScreen extends StatelessWidget {
                       'need a ChurchSnap account.',
                 ),
                 _InformationSection(
-                  title: 'Request account-data deletion',
+                  title: 'Delete your registered account',
                   body:
-                      'Contact the administrator of the church connected to '
-                      'your account. Identify the account email and clearly '
-                      'state that you are requesting deletion of your '
-                      'ChurchSnap account data.',
+                      'Open Profile, choose Delete My Account, review the removal and '
+                      'retention information, enter your password, and type DELETE. '
+                      'Leadership accounts must transfer protected responsibilities '
+                      'before deletion can continue.',
                 ),
                 _InformationSection(
-                  title: 'Current deletion limitation',
+                  title: 'Deletion and retained records',
                   body:
-                      'ChurchSnap currently provides deletion guidance rather '
-                      'than an automatic deletion button. A verified in-app '
-                      'deletion workflow must be completed before public '
-                      'app-store release.',
+                      'Deletion removes the login and personal account data. Confirmed '
+                      'giving records may be retained in anonymized form, while security '
+                      'and administrator audit history and earlier encrypted backups may '
+                      'remain for legitimate recordkeeping and recovery.',
                 ),
               ],
             ),

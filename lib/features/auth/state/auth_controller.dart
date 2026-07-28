@@ -30,6 +30,7 @@ class AuthController extends ChangeNotifier {
   AuthStatus _status = AuthStatus.loading;
   String? _errorMessage;
   bool _endingReplacedSession = false;
+  bool _accountDeletionInProgress = false;
 
   ChurchSnapUser? get currentUser => _currentUser;
   AuthStatus get status => _status;
@@ -277,7 +278,7 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> endSessionReplaced() async {
-    if (_endingReplacedSession) {
+    if (_endingReplacedSession || _accountDeletionInProgress) {
       return;
     }
 
@@ -299,6 +300,23 @@ class AuthController extends ChangeNotifier {
         'This device has been signed out for your protection.';
     _endingReplacedSession = false;
 
+    notifyListeners();
+  }
+
+  void beginAccountDeletion() {
+    _accountDeletionInProgress = true;
+  }
+
+  void cancelAccountDeletion() {
+    _accountDeletionInProgress = false;
+  }
+
+  void completeAccountDeletion() {
+    _accountDeletionInProgress = false;
+    _endingReplacedSession = false;
+    _currentUser = null;
+    _status = AuthStatus.unauthenticated;
+    _errorMessage = null;
     notifyListeners();
   }
 
