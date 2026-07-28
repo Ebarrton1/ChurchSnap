@@ -35,6 +35,7 @@ import 'admin_giving_confirmations_screen.dart';
 import 'admin_worship_settings_screen.dart';
 
 import 'admin_resources_screen.dart';
+import 'admin_launch_readiness_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key, required this.churchId});
@@ -102,6 +103,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           screen: AdminMemberCountManagementScreen(churchId: churchId),
         ),
         const SectionTitle(title: 'Operations & Governance'),
+        _AdminNavCard(
+          icon: Icons.fact_check_rounded,
+          title: 'Launch Readiness',
+          subtitle: 'Review legal, support, security, and store requirements',
+          screen: const AdminLaunchReadinessScreen(),
+        ),
         _AdminNavCard(
           icon: Icons.task_alt_rounded,
           title: 'Action Center',
