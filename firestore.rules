@@ -241,6 +241,36 @@ service cloud.firestore {
         );
     }
 
+    match /accountSessions/{userId} {
+      allow read, delete: if signedIn()
+        && userId == currentUserId();
+
+      allow create, update: if signedIn()
+        && userId == currentUserId()
+        && request.resource.data.keys().hasOnly([
+          'sessionId',
+          'churchId',
+          'platform',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'sessionId',
+          'churchId',
+          'platform',
+          'updatedAt'
+        ])
+        && request.resource.data.sessionId is string
+        && request.resource.data.sessionId.size() >= 32
+        && request.resource.data.sessionId.size() <= 128
+        && request.resource.data.churchId is string
+        && request.resource.data.churchId.size() > 0
+        && request.resource.data.churchId.size() <= 128
+        && request.resource.data.platform is string
+        && request.resource.data.platform.size() > 0
+        && request.resource.data.platform.size() <= 32
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedAt == request.time;
+    }
     match /churches/{churchId} {
       allow read: if true;
       allow create, update, delete: if isAdmin(churchId);

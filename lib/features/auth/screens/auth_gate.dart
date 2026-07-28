@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:churchsnap/platform/churchsnap_platform_shell.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -9,9 +9,10 @@ import '../models/churchsnap_user.dart';
 import '../state/auth_controller.dart';
 import 'account_disabled_screen.dart';
 import 'email_verification_screen.dart';
-import 'login_screen.dart';
 import 'live_member_session.dart';
+import 'login_screen.dart';
 import 'required_name_gate.dart';
+import 'single_device_session_guard.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -69,23 +70,36 @@ class _AuthGateState extends State<AuthGate> {
 
         if (user.isGuest) {
           _clearNotificationService();
-        } else {
-          if (!kIsWeb) {
-            _scheduleNotificationInitialization(user);
-          }
+        } else if (!kIsWeb) {
+          _scheduleNotificationInitialization(user);
         }
+
+        final platformShell = ChurchSnapPlatformShell(
+          authController: authController,
+        );
+
+        final liveMemberSession = LiveMemberSession(
+          churchId: user.churchId,
+          userId: user.id,
+          authController: authController,
+          child: platformShell,
+        );
+
+        final protectedSession = user.isGuest
+            ? liveMemberSession
+            : SingleDeviceSessionGuard(
+                userId: user.id,
+                expectedSessionId: authController.currentSessionId,
+                authController: authController,
+                child: liveMemberSession,
+              );
 
         return RequiredNameGate(
           churchId: user.churchId,
           userId: user.id,
           existingDisplayName: user.displayName,
           authController: authController,
-          child: LiveMemberSession(
-            churchId: user.churchId,
-            userId: user.id,
-            authController: authController,
-            child: ChurchSnapPlatformShell(authController: authController),
-          ),
+          child: protectedSession,
         );
       },
     );

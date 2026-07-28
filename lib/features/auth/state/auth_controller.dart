@@ -6,24 +6,35 @@ import '../models/churchsnap_user.dart';
 import '../models/live_member_access.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/firebase/firebase_auth_repository_stub.dart';
+import '../services/account_session_service.dart';
 
 enum AuthStatus { authenticated, unauthenticated, loading }
 
 class AuthController extends ChangeNotifier {
-  AuthController({AuthRepository? repository})
-    : _repository = repository ?? FirebaseAuthRepository() {
+  AuthController({
+    AuthRepository? repository,
+    AccountSessionService? accountSessionService,
+  }) : _repository = repository ?? FirebaseAuthRepository(),
+       _accountSessionService =
+           accountSessionService ??
+           (repository == null
+               ? FirebaseAccountSessionService()
+               : NoopAccountSessionService()) {
     _restoreSession();
   }
 
   final AuthRepository _repository;
+  final AccountSessionService _accountSessionService;
 
   ChurchSnapUser? _currentUser;
   AuthStatus _status = AuthStatus.loading;
   String? _errorMessage;
+  bool _endingReplacedSession = false;
 
   ChurchSnapUser? get currentUser => _currentUser;
   AuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
+  String? get currentSessionId => _accountSessionService.currentSessionId;
 
   bool get isSignedIn =>
       _status == AuthStatus.authenticated && _currentUser != null;
@@ -45,12 +56,36 @@ class AuthController extends ChangeNotifier {
     return user.email.trim().isEmpty;
   }
 
+  Stream<AccountSessionRecord> watchAccountSession(String userId) {
+    return _accountSessionService.watchSession(userId);
+  }
+
   Future<void> _restoreSession() async {
     _status = AuthStatus.loading;
     _errorMessage = null;
 
     try {
       final restoredUser = await _repository.restoreCurrentUser();
+
+      if (restoredUser != null && !_isGuestUser(restoredUser)) {
+        final sessionIsActive = await _accountSessionService.restoreSession(
+          userId: restoredUser.id,
+          churchId: restoredUser.churchId,
+        );
+
+        if (!sessionIsActive) {
+          await _repository.signOut();
+
+          _currentUser = null;
+          _status = AuthStatus.unauthenticated;
+          _errorMessage =
+              'Your ChurchSnap account is active on another device. '
+              'Sign in again to use this device instead.';
+
+          notifyListeners();
+          return;
+        }
+      }
 
       _currentUser = restoredUser;
       _status = restoredUser == null
@@ -73,6 +108,10 @@ class AuthController extends ChangeNotifier {
     final signedIn = _handleAuthResult(result);
 
     if (!signedIn) {
+      return false;
+    }
+
+    if (!await _activateSingleDeviceSession()) {
       return false;
     }
 
@@ -109,7 +148,11 @@ class AuthController extends ChangeNotifier {
       churchId: churchId,
     );
 
-    return _handleAuthResult(result);
+    if (!_handleAuthResult(result)) {
+      return false;
+    }
+
+    return _activateSingleDeviceSession();
   }
 
   Future<bool> continueAsVisitor({required String churchId}) async {
@@ -204,6 +247,14 @@ class AuthController extends ChangeNotifier {
 
     _setLoading();
 
+    if (existingUser != null && !_isGuestUser(existingUser)) {
+      try {
+        await _accountSessionService.releaseSession(userId: existingUser.id);
+      } catch (error) {
+        debugPrint('Unable to release the account session: $error');
+      }
+    }
+
     final result = await _repository.signOut();
 
     if (result.isSuccess) {
@@ -223,6 +274,32 @@ class AuthController extends ChangeNotifier {
 
     notifyListeners();
     return false;
+  }
+
+  Future<void> endSessionReplaced() async {
+    if (_endingReplacedSession) {
+      return;
+    }
+
+    _endingReplacedSession = true;
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.signOut();
+    } catch (error) {
+      debugPrint('Unable to close the replaced account session: $error');
+    }
+
+    _currentUser = null;
+    _status = AuthStatus.unauthenticated;
+    _errorMessage =
+        'Your ChurchSnap account was signed in on another device. '
+        'This device has been signed out for your protection.';
+    _endingReplacedSession = false;
+
+    notifyListeners();
   }
 
   void clearError() {
@@ -249,6 +326,40 @@ class AuthController extends ChangeNotifier {
     _status = AuthStatus.authenticated;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  Future<bool> _activateSingleDeviceSession() async {
+    final user = _currentUser;
+
+    if (user == null || _isGuestUser(user)) {
+      return true;
+    }
+
+    try {
+      await _accountSessionService.claimSession(
+        userId: user.id,
+        churchId: user.churchId,
+      );
+
+      notifyListeners();
+      return true;
+    } catch (error) {
+      debugPrint('Unable to claim the account session: $error');
+      await _repository.signOut();
+
+      _currentUser = null;
+      _status = AuthStatus.unauthenticated;
+      _errorMessage =
+          'ChurchSnap could not secure this device session. '
+          'Check your connection and sign in again.';
+
+      notifyListeners();
+      return false;
+    }
+  }
+
+  bool _isGuestUser(ChurchSnapUser user) {
+    return user.role == 'visitor' && user.email.trim().isEmpty;
   }
 
   void _setLoading() {
