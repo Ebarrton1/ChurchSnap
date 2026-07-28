@@ -362,7 +362,6 @@ class FirebaseAuthRepository implements AuthRepository {
         isActive: data['isActive'] as bool? ?? true,
       );
 
-      await memberReference.set(savedUser.toMap(), SetOptions(merge: true));
       await _saveChurchLink(userId: user.uid, churchId: churchId);
 
       return savedUser;
