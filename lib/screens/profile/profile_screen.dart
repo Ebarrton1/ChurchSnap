@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../groups/groups_and_ministries_screen.dart';
 import '../prayer/my_prayer_requests_screen.dart';
+import '../settings/help_legal_account_screen.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
@@ -51,6 +52,7 @@ class ProfileScreen extends StatelessWidget {
 
     if (member.role == 'visitor') {
       return _buildVisitorProfile(
+        context: context,
         authController: authController,
         displayName: displayName,
         initial: initial,
@@ -323,6 +325,26 @@ class ProfileScreen extends StatelessWidget {
         const SectionTitle(title: 'Account'),
         AppCard(
           child: ListTile(
+            leading: const Icon(Icons.help_center_rounded),
+            title: const Text(
+              'Help, Legal & Account',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: const Text(
+              'Getting started, privacy, terms, support, and data requests',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const HelpLegalAccountScreen(),
+                ),
+              );
+            },
+          ),
+        ),
+        AppCard(
+          child: ListTile(
             leading: const Icon(Icons.logout_rounded),
             title: const Text(
               'Sign Out',
@@ -339,6 +361,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   static Widget _buildVisitorProfile({
+    required BuildContext context,
     required AuthController authController,
     required String displayName,
     required String initial,
@@ -393,6 +416,26 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         const SectionTitle(title: 'Account'),
+        AppCard(
+          child: ListTile(
+            leading: const Icon(Icons.help_center_rounded),
+            title: const Text(
+              'Help, Legal & Account',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: const Text(
+              'Getting started, privacy, terms, support, and data requests',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const HelpLegalAccountScreen(),
+                ),
+              );
+            },
+          ),
+        ),
         AppCard(
           child: ListTile(
             leading: const Icon(Icons.logout_rounded),
