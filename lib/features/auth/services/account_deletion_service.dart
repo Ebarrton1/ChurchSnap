@@ -88,6 +88,13 @@ class FirebaseAccountDeletionService implements AccountDeletionService {
         );
       }
 
+      try {
+        await _auth.signOut();
+      } catch (_) {
+        // The backend account was deleted, but the local Firebase session
+        // may already be invalid. AuthController still clears the app state.
+      }
+
       return const AccountDeletionResult.success();
     } on FirebaseAuthException catch (error) {
       return AccountDeletionResult.failure(_authError(error));

@@ -104,7 +104,9 @@ void main() {
 
     expect(find.byKey(const Key('deletionTestLauncher')), findsOneWidget);
 
+    // The authenticated deletion route must be removed after sign-out.
     expect(find.byType(AccountDeletionScreen), findsNothing);
+    expect(find.text('Open account deletion'), findsOneWidget);
   });
 
   testWidgets('administrator must transfer responsibility first', (

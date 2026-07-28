@@ -330,8 +330,14 @@ class _AccountDeletionScreenState extends State<AccountDeletionScreen> {
       return;
     }
 
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    // Capture the navigator before AuthGate rebuilds the signed-out app.
+    final navigator = Navigator.of(context);
+
     widget.authController.completeAccountDeletion();
+
+    if (navigator.mounted) {
+      navigator.popUntil((route) => route.isFirst);
+    }
   }
 }
 
