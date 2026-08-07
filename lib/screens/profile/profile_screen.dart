@@ -7,6 +7,7 @@ import '../settings/help_legal_account_screen.dart';
 
 import '../../core/widgets/churchsnap_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
+import '../../features/members/models/member_self_profile.dart';
 import '../volunteers/my_schedule_screen.dart';
 import 'attendance_history_screen.dart';
 import 'giving_history_screen.dart';
@@ -125,28 +126,11 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         const SectionTitle(title: 'Member Details'),
-        AppCard(
-          child: Column(
-            children: [
-              _ProfileDetailTile(
-                icon: Icons.badge_rounded,
-                label: 'Member ID',
-                value: member.id,
-              ),
-              const Divider(),
-              _ProfileDetailTile(
-                icon: Icons.email_rounded,
-                label: 'Email',
-                value: member.email,
-              ),
-              const Divider(),
-              _ProfileDetailTile(
-                icon: Icons.security_rounded,
-                label: 'Role',
-                value: _formatRole(member.role),
-              ),
-            ],
-          ),
+        _MemberDetailsCard(
+          churchId: churchId,
+          memberId: member.id,
+          fallbackEmail: member.email,
+          fallbackRole: member.role,
         ),
         AppCard(
           child: ListTile(
@@ -472,6 +456,207 @@ class ProfileScreen extends StatelessWidget {
       default:
         return 'Member';
     }
+  }
+}
+
+class _MemberDetailsCard extends StatelessWidget {
+  const _MemberDetailsCard({
+    required this.churchId,
+    required this.memberId,
+    required this.fallbackEmail,
+    required this.fallbackRole,
+  });
+
+  final String churchId;
+  final String memberId;
+  final String fallbackEmail;
+  final String fallbackRole;
+
+  @override
+  Widget build(BuildContext context) {
+    final memberReference = FirebaseFirestore.instance
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId);
+
+    final privateReference = FirebaseFirestore.instance
+        .collection('churches')
+        .doc(churchId)
+        .collection('memberPrivateProfiles')
+        .doc(memberId);
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: memberReference.snapshots(),
+      builder: (context, memberSnapshot) {
+        if (memberSnapshot.hasError) {
+          return AppCard(
+            child: ListTile(
+              leading: const Icon(Icons.error_outline_rounded),
+              title: const Text('Unable to load member details'),
+              subtitle: Text('${memberSnapshot.error}'),
+            ),
+          );
+        }
+
+        if (!memberSnapshot.hasData) {
+          return const AppCard(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+
+        final memberData = memberSnapshot.data?.data() ?? <String, dynamic>{};
+
+        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: privateReference.snapshots(),
+          builder: (context, privateSnapshot) {
+            if (privateSnapshot.hasError) {
+              return AppCard(
+                child: ListTile(
+                  leading: const Icon(Icons.error_outline_rounded),
+                  title: const Text('Unable to load personal details'),
+                  subtitle: Text('${privateSnapshot.error}'),
+                ),
+              );
+            }
+
+            if (!privateSnapshot.hasData) {
+              return const AppCard(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+
+            final profile = MemberSelfProfileSnapshot.fromMaps(
+              memberData: memberData,
+              privateData: privateSnapshot.data?.data() ?? <String, dynamic>{},
+            );
+
+            final details = profile.details;
+
+            final fullName = [
+              details.firstName.trim(),
+              details.middleName.trim(),
+              details.lastName.trim(),
+            ].where((part) => part.isNotEmpty).join(' ');
+
+            final locality = [
+              details.city.trim(),
+              details.stateOrProvince.trim(),
+              details.postalCode.trim(),
+            ].where((part) => part.isNotEmpty).join(' ');
+
+            final address = [
+              details.addressLine1.trim(),
+              details.addressLine2.trim(),
+              locality,
+              details.country.trim(),
+            ].where((part) => part.isNotEmpty).join(', ');
+
+            final email = profile.email.trim().isEmpty
+                ? fallbackEmail.trim()
+                : profile.email.trim();
+
+            final role = profile.role.trim().isEmpty
+                ? fallbackRole.trim()
+                : profile.role.trim();
+
+            return AppCard(
+              child: Column(
+                children: [
+                  _ProfileDetailTile(
+                    icon: Icons.badge_rounded,
+                    label: 'Member ID',
+                    value: memberId,
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.person_rounded,
+                    label: 'Full Name',
+                    value: _displayValue(fullName),
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.email_rounded,
+                    label: 'Email',
+                    value: _displayValue(email),
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.phone_rounded,
+                    label: 'Phone',
+                    value: _displayValue(profile.phone),
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.home_rounded,
+                    label: 'Home Address',
+                    value: _displayValue(address),
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.cake_rounded,
+                    label: 'Date of Birth',
+                    value: _formatDate(details.dateOfBirth),
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.wc_rounded,
+                    label: 'Gender',
+                    value: _displayValue(details.gender),
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.favorite_rounded,
+                    label: 'Marital Status',
+                    value: _displayValue(details.maritalStatus),
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.favorite_border_rounded,
+                    label: 'Marriage Date',
+                    value: _formatDate(details.marriageDate),
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.church_rounded,
+                    label: 'Membership Date',
+                    value: _formatDate(details.membershipDate),
+                  ),
+                  const Divider(),
+                  _ProfileDetailTile(
+                    icon: Icons.security_rounded,
+                    label: 'Role',
+                    value: ProfileScreen._formatRole(role),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static String _displayValue(String value) {
+    final normalized = value.trim();
+    return normalized.isEmpty ? 'Not provided' : normalized;
+  }
+
+  static String _formatDate(DateTime? date) {
+    if (date == null) {
+      return 'Not provided';
+    }
+
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+
+    return '$month/$day/${date.year}';
   }
 }
 
