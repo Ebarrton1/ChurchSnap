@@ -53,7 +53,10 @@ class _ChurchSnapWebAdminShellState extends State<ChurchSnapWebAdminShell> {
         onOpenGiving: () => _selectPage(5),
       ),
       AdminDashboardScreen(churchId: _churchId),
-      AdminMemberDirectoryScreen(churchId: _churchId),
+      AdminMemberDirectoryScreen(
+        churchId: _churchId,
+        onExit: () => _selectPage(1),
+      ),
       _WebEventsPage(churchId: _churchId),
       _WebPrayerPage(churchId: _churchId),
       _WebGivingPage(churchId: _churchId),
@@ -575,7 +578,7 @@ class _WebEventsPage extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           subtitle: Text(
-            '${WebAdminValueFormatter.date(dateValue)}\n$location â€¢ $status',
+            '${WebAdminValueFormatter.date(dateValue)}\n$location Ã¢â‚¬Â¢ $status',
           ),
           isThreeLine: true,
         );

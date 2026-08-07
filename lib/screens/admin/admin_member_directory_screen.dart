@@ -14,9 +14,14 @@ enum _DirectoryView { visible, removed }
 enum _DirectoryAction { openProfile, remove, restore }
 
 class AdminMemberDirectoryScreen extends ConsumerStatefulWidget {
-  const AdminMemberDirectoryScreen({super.key, required this.churchId});
+  const AdminMemberDirectoryScreen({
+    super.key,
+    required this.churchId,
+    this.onExit,
+  });
 
   final String churchId;
+  final VoidCallback? onExit;
 
   @override
   ConsumerState<AdminMemberDirectoryScreen> createState() =>
@@ -47,6 +52,15 @@ class _AdminMemberDirectoryScreenState
         title: 'Church Member Directory',
         subtitle: 'View, search, remove, and restore directory members.',
         children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: _exitDirectory,
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Exit Directory'),
+            ),
+          ),
+          const SizedBox(height: 14),
           const AppCard(
             child: ListTile(
               leading: CircleAvatar(child: Icon(Icons.shield_outlined)),
@@ -83,6 +97,18 @@ class _AdminMemberDirectoryScreenState
         ],
       ),
     );
+  }
+
+  Future<void> _exitDirectory() async {
+    FocusScope.of(context).unfocus();
+
+    final onExit = widget.onExit;
+    if (onExit != null) {
+      onExit();
+      return;
+    }
+
+    await Navigator.of(context).maybePop();
   }
 
   Widget _buildDirectory(List<MemberDirectoryEntry> entries) {

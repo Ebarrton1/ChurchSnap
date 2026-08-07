@@ -576,13 +576,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
     'preferNotToSay',
   ];
 
-  static const _genders = <String>[
-    '',
-    'male',
-    'female',
-    'nonBinary',
-    'preferNotToSay',
-  ];
+  static const _genders = <String>['', 'male', 'female'];
 
   @override
   void initState() {
@@ -1209,10 +1203,6 @@ String _genderLabel(String gender) {
       return 'Male';
     case 'female':
       return 'Female';
-    case 'nonBinary':
-      return 'Non-binary';
-    case 'preferNotToSay':
-      return 'Prefer not to say';
     default:
       return 'Not specified';
   }
