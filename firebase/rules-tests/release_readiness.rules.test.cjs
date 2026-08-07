@@ -60,6 +60,7 @@ function memberData({
     directoryEmailVisible: true,
     directoryPhoneVisible: true,
     profileNameComplete: true,
+    authAccountType: "registered",
   };
 }
 
@@ -542,4 +543,396 @@ test('approved members can read profile images while visitors cannot', async () 
 
   await assertSucceeds(getBytes(ref(storageFor('member'), objectPath)));
   await assertFails(getBytes(ref(storageFor('visitor'), objectPath)));
+});
+
+// CHURCHSNAP_REGISTERED_ACCOUNT_ROLE_GUARD_TESTS_V3
+const {
+  assertFails: roleGuardAssertFails,
+  assertSucceeds: roleGuardAssertSucceeds,
+  initializeTestEnvironment: initializeRoleGuardTestEnvironment,
+} = require("@firebase/rules-unit-testing");
+const {
+  collection: roleGuardCollection,
+  doc: roleGuardDoc,
+  getDocs: roleGuardGetDocs,
+  setDoc: roleGuardSetDoc,
+  updateDoc: roleGuardUpdateDoc,
+} = require("firebase/firestore");
+const {
+  ref: roleGuardStorageRef,
+  uploadBytes: roleGuardUploadBytes,
+} = require("firebase/storage");
+const {
+  after: roleGuardAfter,
+  before: roleGuardBefore,
+  beforeEach: roleGuardBeforeEach,
+  describe: roleGuardDescribe,
+  test: roleGuardTest,
+} = require("node:test");
+const { readFileSync: roleGuardReadFileSync } = require("node:fs");
+const { resolve: roleGuardResolve } = require("node:path");
+
+roleGuardDescribe("registered-account role guard", () => {
+  let roleGuardEnvironment;
+
+  roleGuardBefore(async () => {
+    roleGuardEnvironment = await initializeRoleGuardTestEnvironment({
+      projectId: "demo-churchsnap-release-readiness",
+      firestore: {
+        rules: roleGuardReadFileSync(
+          roleGuardResolve(__dirname, "../../firestore.rules"),
+          "utf8",
+        ),
+      },
+      storage: {
+        rules: roleGuardReadFileSync(
+          roleGuardResolve(__dirname, "../../storage.rules"),
+          "utf8",
+        ),
+      },
+    });
+  });
+
+  roleGuardBeforeEach(async () => {
+    await roleGuardEnvironment.clearFirestore();
+  });
+
+  roleGuardAfter(async () => {
+    await roleGuardEnvironment.cleanup();
+  });
+
+  roleGuardTest(
+    "rejects anonymous promotion, allows registered promotion and guest repair",
+    async () => {
+      await roleGuardEnvironment.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha"),
+          {
+            isActive: true,
+            visitorAccessEnabled: true,
+          },
+        );
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha/members/guard-admin"),
+          {
+            id: "guard-admin",
+            churchId: "alpha",
+            displayName: "Guard Admin",
+            email: "admin@example.com",
+            role: "admin",
+            isActive: true,
+            authAccountType: "registered",
+          },
+        );
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha/members/guard-anonymous"),
+          {
+            id: "guard-anonymous",
+            churchId: "alpha",
+            displayName: "Guest Visitor",
+            email: "",
+            role: "visitor",
+            isActive: true,
+            authAccountType: "anonymous",
+          },
+        );
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha/members/guard-registered"),
+          {
+            id: "guard-registered",
+            churchId: "alpha",
+            displayName: "Registered Visitor",
+            email: "member@example.com",
+            role: "visitor",
+            isActive: true,
+            authAccountType: "registered",
+          },
+        );
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha/members/guard-malformed-guest"),
+          {
+            id: "guard-malformed-guest",
+            churchId: "alpha",
+            displayName: "Malformed Guest",
+            email: "",
+            role: "member",
+            isActive: true,
+            authAccountType: "anonymous",
+          },
+        );
+      });
+
+      const adminDb = roleGuardEnvironment
+        .authenticatedContext("guard-admin", {
+          firebase: { sign_in_provider: "password" },
+        })
+        .firestore();
+
+      await roleGuardAssertFails(
+        roleGuardUpdateDoc(
+          roleGuardDoc(adminDb, "churches/alpha/members/guard-anonymous"),
+          {
+            role: "member",
+            roleUpdatedAt: new Date("2026-08-07T18:00:00Z"),
+            roleUpdatedBy: "guard-admin",
+          },
+        ),
+      );
+
+      await roleGuardAssertFails(
+        roleGuardUpdateDoc(
+          roleGuardDoc(adminDb, "churches/alpha/members/guard-anonymous"),
+          {
+            role: "admin",
+            roleUpdatedAt: new Date("2026-08-07T18:01:00Z"),
+            roleUpdatedBy: "guard-admin",
+          },
+        ),
+      );
+
+      await roleGuardAssertSucceeds(
+        roleGuardUpdateDoc(
+          roleGuardDoc(adminDb, "churches/alpha/members/guard-registered"),
+          {
+            role: "member",
+            roleUpdatedAt: new Date("2026-08-07T18:02:00Z"),
+            roleUpdatedBy: "guard-admin",
+          },
+        ),
+      );
+
+      await roleGuardAssertSucceeds(
+        roleGuardUpdateDoc(
+          roleGuardDoc(adminDb, "churches/alpha/members/guard-malformed-guest"),
+          {
+            role: "visitor",
+            roleUpdatedAt: new Date("2026-08-07T18:03:00Z"),
+            roleUpdatedBy: "guard-admin",
+          },
+        ),
+      );
+    },
+  );
+
+  roleGuardTest(
+    "users may only self-tag the account type matching their auth token",
+    async () => {
+      await roleGuardEnvironment.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha"),
+          {
+            isActive: true,
+            visitorAccessEnabled: true,
+          },
+        );
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha/members/guard-password-user"),
+          {
+            id: "guard-password-user",
+            churchId: "alpha",
+            displayName: "Password User",
+            email: "password@example.com",
+            role: "visitor",
+            isActive: true,
+          },
+        );
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha/members/guard-anon-user"),
+          {
+            id: "guard-anon-user",
+            churchId: "alpha",
+            displayName: "Guest Visitor",
+            email: "",
+            role: "visitor",
+            isActive: true,
+          },
+        );
+      });
+
+      const passwordDb = roleGuardEnvironment
+        .authenticatedContext("guard-password-user", {
+          firebase: { sign_in_provider: "password" },
+        })
+        .firestore();
+
+      await roleGuardAssertSucceeds(
+        roleGuardUpdateDoc(
+          roleGuardDoc(
+            passwordDb,
+            "churches/alpha/members/guard-password-user",
+          ),
+          {
+            authAccountType: "registered",
+            authAccountTypeUpdatedAt: new Date("2026-08-07T18:04:00Z"),
+          },
+        ),
+      );
+
+      const anonymousDb = roleGuardEnvironment
+        .authenticatedContext("guard-anon-user", {
+          provider_id: "anonymous",
+          firebase: { sign_in_provider: "anonymous" },
+        })
+        .firestore();
+
+      await roleGuardAssertSucceeds(
+        roleGuardUpdateDoc(
+          roleGuardDoc(
+            anonymousDb,
+            "churches/alpha/members/guard-anon-user",
+          ),
+          {
+            authAccountType: "anonymous",
+            authAccountTypeUpdatedAt: new Date("2026-08-07T18:05:00Z"),
+          },
+        ),
+      );
+
+      await roleGuardAssertFails(
+        roleGuardUpdateDoc(
+          roleGuardDoc(
+            anonymousDb,
+            "churches/alpha/members/guard-anon-user",
+          ),
+          {
+            authAccountType: "registered",
+            authAccountTypeUpdatedAt: new Date("2026-08-07T18:06:00Z"),
+          },
+        ),
+      );
+    },
+  );
+
+  roleGuardTest(
+    "anonymous auth cannot use a stale elevated member role",
+    async () => {
+      await roleGuardEnvironment.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha"),
+          {
+            isActive: true,
+            visitorAccessEnabled: true,
+          },
+        );
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha/members/guard-stale-anon"),
+          {
+            id: "guard-stale-anon",
+            churchId: "alpha",
+            displayName: "Stale Guest",
+            email: "",
+            role: "member",
+            isActive: true,
+            authAccountType: "anonymous",
+          },
+        );
+      });
+
+      const anonymousDb = roleGuardEnvironment
+        .authenticatedContext("guard-stale-anon", {
+          provider_id: "anonymous",
+          firebase: { sign_in_provider: "anonymous" },
+        })
+        .firestore();
+
+      await roleGuardAssertFails(
+        roleGuardGetDocs(
+          roleGuardCollection(anonymousDb, "churches/alpha/members"),
+        ),
+      );
+    },
+  );
+  roleGuardTest(
+    "anonymous stale admin cannot use privileged Storage writes",
+    async () => {
+      await roleGuardEnvironment.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha"),
+          {
+            isActive: true,
+            visitorAccessEnabled: true,
+          },
+        );
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha/members/guard-stale-storage-admin"),
+          {
+            id: "guard-stale-storage-admin",
+            churchId: "alpha",
+            displayName: "Stale Storage Admin",
+            email: "",
+            role: "admin",
+            isActive: true,
+            authAccountType: "anonymous",
+          },
+        );
+
+        await roleGuardSetDoc(
+          roleGuardDoc(db, "churches/alpha/members/guard-storage-admin"),
+          {
+            id: "guard-storage-admin",
+            churchId: "alpha",
+            displayName: "Registered Storage Admin",
+            email: "storage-admin@example.com",
+            role: "admin",
+            isActive: true,
+            authAccountType: "registered",
+          },
+        );
+      });
+
+      const bucketUrl = "gs://demo-churchsnap-release-readiness.appspot.com";
+      const imageBytes = new Uint8Array([1, 2, 3, 4]);
+
+      const anonymousStorage = roleGuardEnvironment
+        .authenticatedContext("guard-stale-storage-admin", {
+          provider_id: "anonymous",
+          firebase: { sign_in_provider: "anonymous" },
+        })
+        .storage(bucketUrl);
+
+      await roleGuardAssertFails(
+        roleGuardUploadBytes(
+          roleGuardStorageRef(
+            anonymousStorage,
+            "churches/alpha/home/stale-anonymous-admin.jpg",
+          ),
+          imageBytes,
+          { contentType: "image/jpeg" },
+        ),
+      );
+
+      const registeredStorage = roleGuardEnvironment
+        .authenticatedContext("guard-storage-admin", {
+          firebase: { sign_in_provider: "password" },
+        })
+        .storage(bucketUrl);
+
+      await roleGuardAssertSucceeds(
+        roleGuardUploadBytes(
+          roleGuardStorageRef(
+            registeredStorage,
+            "churches/alpha/home/registered-admin.jpg",
+          ),
+          imageBytes,
+          { contentType: "image/jpeg" },
+        ),
+      );
+    },
+  );
 });

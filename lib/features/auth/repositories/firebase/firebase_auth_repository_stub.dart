@@ -155,6 +155,10 @@ class FirebaseAuthRepository implements AuthRepository {
       );
 
       final savedUser = await _saveUser(appUser);
+      await _syncAuthAccountType(
+        firebaseUser: refreshedUser,
+        churchId: normalizedChurchId,
+      );
       await _saveChurchLink(
         userId: refreshedUser.uid,
         churchId: normalizedChurchId,
@@ -224,6 +228,10 @@ class FirebaseAuthRepository implements AuthRepository {
       );
 
       final savedUser = await _saveUser(appUser);
+      await _syncAuthAccountType(
+        firebaseUser: visitorUser,
+        churchId: normalizedChurchId,
+      );
       await _saveChurchLink(
         userId: visitorUser.uid,
         churchId: normalizedChurchId,
@@ -362,6 +370,7 @@ class FirebaseAuthRepository implements AuthRepository {
         isActive: data['isActive'] as bool? ?? true,
       );
 
+      await _syncAuthAccountType(firebaseUser: user, churchId: churchId);
       await _saveChurchLink(userId: user.uid, churchId: churchId);
 
       return savedUser;
@@ -380,9 +389,38 @@ class FirebaseAuthRepository implements AuthRepository {
     );
 
     final savedUser = await _saveUser(appUser);
+    await _syncAuthAccountType(firebaseUser: user, churchId: churchId);
     await _saveChurchLink(userId: user.uid, churchId: churchId);
 
     return savedUser;
+  }
+
+  Future<void> _syncAuthAccountType({
+    required User firebaseUser,
+    required String churchId,
+  }) async {
+    final expectedType = firebaseUser.isAnonymous ? 'anonymous' : 'registered';
+    final memberReference = _firestore
+        .collection(FirebasePaths.members(churchId))
+        .doc(firebaseUser.uid);
+
+    try {
+      final snapshot = await memberReference.get();
+      final storedType = (snapshot.data()?['authAccountType']?.toString() ?? '')
+          .trim();
+
+      if (storedType == expectedType) {
+        return;
+      }
+
+      await memberReference.set(<String, dynamic>{
+        'authAccountType': expectedType,
+        'authAccountTypeUpdatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {
+      // Account-type metadata is fail-closed for Staff Access. A temporary
+      // metadata write failure must not prevent an otherwise valid sign-in.
+    }
   }
 
   Future<String> _resolveChurchId(String userId) async {

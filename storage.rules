@@ -24,13 +24,25 @@ service firebase.storage {
       return firestore.get(memberPath(churchId)).data.get('role', 'member');
     }
 
+    function isAnonymousAuthAccount() {
+      return signedIn()
+        && request.auth.token.keys().hasAny(['firebase'])
+        && request.auth.token.firebase.get('sign_in_provider', '') == 'anonymous';
+    }
+
+    function isPermanentAuthAccount() {
+      return signedIn() && !isAnonymousAuthAccount();
+    }
+
     function isApprovedMember(churchId) {
       return isActiveMember(churchId)
+        && isPermanentAuthAccount()
         && memberRole(churchId) != 'visitor';
     }
 
     function isAdmin(churchId) {
       return isActiveMember(churchId)
+        && isPermanentAuthAccount()
         && memberRole(churchId) in ['admin', 'pastor'];
     }
 

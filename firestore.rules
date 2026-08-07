@@ -35,6 +35,7 @@ service cloud.firestore {
 
     function isApprovedMember(churchId) {
       return isActiveMember(churchId)
+        && isPermanentAuthAccount()
         && !isVisitor(churchId);
     }
 
@@ -48,6 +49,30 @@ service cloud.firestore {
         'pastor',
         'admin'
       ];
+    }
+
+    function isAnonymousAuthAccount() {
+      return signedIn()
+        && request.auth.token.keys().hasAny(['firebase'])
+        && request.auth.token.firebase.get('sign_in_provider', '') == 'anonymous';
+    }
+
+    function isPermanentAuthAccount() {
+      return signedIn() && !isAnonymousAuthAccount();
+    }
+
+    function authAccountTypeMatchesRequest(data) {
+      return signedIn()
+        && (
+          (
+            isAnonymousAuthAccount()
+            && data.get('authAccountType', '') == 'anonymous'
+          )
+          || (
+            !isAnonymousAuthAccount()
+            && data.get('authAccountType', '') == 'registered'
+          )
+        );
     }
 
     function validNotificationAudience(audience) {
@@ -65,11 +90,13 @@ service cloud.firestore {
 
     function isAdmin(churchId) {
       return isActiveMember(churchId)
+        && isPermanentAuthAccount()
         && memberRole(churchId) in ['admin', 'pastor'];
     }
 
     function isRoleAdmin(churchId) {
       return memberExists(churchId)
+        && isPermanentAuthAccount()
         && get(
           /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)
         ).data.role == 'admin';
@@ -77,11 +104,13 @@ service cloud.firestore {
 
     function isMinistryLeader(churchId) {
       return isActiveMember(churchId)
+        && isPermanentAuthAccount()
         && memberRole(churchId) == 'ministryLeader';
     }
 
     function isGroupLeader(churchId) {
       return isActiveMember(churchId)
+        && isPermanentAuthAccount()
         && memberRole(churchId) == 'groupLeader';
     }
 
@@ -317,12 +346,28 @@ service cloud.firestore {
           && request.resource.data.get('churchId', churchId) == churchId
           && request.resource.data.get('role', 'visitor') == 'visitor'
           && request.resource.data.get('isActive', true) == true
+          && (
+            !request.resource.data.keys().hasAny(['authAccountType'])
+            || authAccountTypeMatchesRequest(request.resource.data)
+          )
           && churchAcceptsVisitors(churchId)
         )
         || (
           isAdmin(churchId)
           && validRole(request.resource.data.get('role', 'member'))
         );
+
+        allow update: if signedIn()
+          && memberId == currentUserId()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'authAccountType',
+            'authAccountTypeUpdatedAt'
+          ])
+          && authAccountTypeMatchesRequest(request.resource.data)
+          && request.resource.data.get('role', 'visitor')
+            == resource.data.get('role', 'visitor')
+          && request.resource.data.get('isActive', true)
+            == resource.data.get('isActive', true);
 
         allow update: if (
           signedIn()
@@ -358,6 +403,12 @@ service cloud.firestore {
           isRoleAdmin(churchId)
           && memberId != currentUserId()
           && validRole(request.resource.data.get('role', 'member'))
+          && (
+            request.resource.data.get('role', 'visitor')
+              == resource.data.get('role', 'visitor')
+            || request.resource.data.get('role', 'visitor') == 'visitor'
+            || resource.data.get('authAccountType', '') == 'registered'
+          )
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'displayName',
             'email',
