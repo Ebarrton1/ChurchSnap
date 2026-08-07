@@ -66,6 +66,10 @@ class WebAdminStaffAccessService {
       return;
     }
 
+    if (!canAssignRole(member: member, newRole: newRole)) {
+      throw StateError(roleRestrictionMessage(member));
+    }
+
     final memberReference = _members.doc(member.id);
     final auditReference = _auditLogs.doc();
     final batch = _firestore.batch();
@@ -87,6 +91,27 @@ class WebAdminStaffAccessService {
     });
 
     await batch.commit();
+  }
+
+  static bool canAssignRole({
+    required WebAdminStaffMember member,
+    required String newRole,
+  }) {
+    if (member.isRegisteredAccount) {
+      return true;
+    }
+
+    return newRole == AppRoles.visitor;
+  }
+
+  static String roleRestrictionMessage(WebAdminStaffMember member) {
+    if (member.isAnonymousAccount) {
+      return 'Anonymous visitor accounts cannot be promoted to member or '
+          'leadership roles.';
+    }
+
+    return 'This account must sign in with a registered account before an '
+        'administrator can assign member or leadership access.';
   }
 
   static void sortMembers(List<WebAdminStaffMember> members) {

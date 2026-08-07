@@ -8,6 +8,7 @@ class WebAdminStaffMember {
     this.photoUrl = '',
     required this.role,
     required this.isActive,
+    this.authAccountType = '',
   });
 
   factory WebAdminStaffMember.fromMap({
@@ -19,9 +20,8 @@ class WebAdminStaffMember {
       'fullName',
       'name',
     ], fallback: 'Unnamed member');
-    final email = _firstText(data, const [
-      'email',
-    ], fallback: 'Email not provided');
+    final rawEmail = (data['email']?.toString() ?? '').trim();
+    final email = rawEmail.isEmpty ? 'Email not provided' : rawEmail;
     final rawRole = _firstText(data, const ['role'], fallback: AppRoles.member);
     final role = AppRoles.assignableRoles.contains(rawRole)
         ? rawRole
@@ -31,8 +31,9 @@ class WebAdminStaffMember {
         : data['active'] is bool
         ? data['active'] as bool
         : true;
-
     final photoUrl = (data['photoUrl']?.toString() ?? '').trim();
+    final authAccountType = (data['authAccountType']?.toString() ?? '').trim();
+
     return WebAdminStaffMember(
       id: id,
       displayName: name,
@@ -40,6 +41,7 @@ class WebAdminStaffMember {
       photoUrl: photoUrl,
       role: role,
       isActive: isActive,
+      authAccountType: authAccountType,
     );
   }
 
@@ -49,6 +51,7 @@ class WebAdminStaffMember {
   final String photoUrl;
   final String role;
   final bool isActive;
+  final String authAccountType;
 
   bool get isLeadership => const {
     AppRoles.groupLeader,
@@ -57,10 +60,29 @@ class WebAdminStaffMember {
     AppRoles.admin,
   }.contains(role);
 
+  bool get isRegisteredAccount => authAccountType == 'registered';
+
+  bool get isAnonymousAccount => authAccountType == 'anonymous';
+
+  bool get isAccountTypeVerified => isRegisteredAccount || isAnonymousAccount;
+
+  String get accountTypeLabel {
+    if (isRegisteredAccount) {
+      return 'Registered account';
+    }
+
+    if (isAnonymousAccount) {
+      return 'Anonymous visitor';
+    }
+
+    return 'Account verification pending';
+  }
+
   WebAdminStaffMember copyWith({
     String? photoUrl,
     String? role,
     bool? isActive,
+    String? authAccountType,
   }) {
     return WebAdminStaffMember(
       id: id,
@@ -69,6 +91,7 @@ class WebAdminStaffMember {
       photoUrl: photoUrl ?? this.photoUrl,
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
+      authAccountType: authAccountType ?? this.authAccountType,
     );
   }
 

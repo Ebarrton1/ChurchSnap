@@ -93,168 +93,181 @@ class _WebAdminStaffAccessScreenState extends State<WebAdminStaffAccessScreen> {
           final members = snapshot.data!;
           final visibleMembers = _filterMembers(members);
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Roles and permissions',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Assign ChurchSnap access carefully. Your own '
-                      'administrator role is protected, and every role change '
-                      'creates an administrative audit record.',
-                    ),
-                  ],
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Roles and permissions',
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Assign ChurchSnap access carefully. Your own '
+                        'administrator role is protected, and every role change '
+                        'creates an administrative audit record.',
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _RoleSummaryCard(
-                      label: 'Administrators',
-                      count: WebAdminStaffAccessService.countRole(
-                        members,
-                        AppRoles.admin,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      _RoleSummaryCard(
+                        label: 'Administrators',
+                        count: WebAdminStaffAccessService.countRole(
+                          members,
+                          AppRoles.admin,
+                        ),
+                        icon: Icons.admin_panel_settings_rounded,
                       ),
-                      icon: Icons.admin_panel_settings_rounded,
-                    ),
-                    _RoleSummaryCard(
-                      label: 'Pastors',
-                      count: WebAdminStaffAccessService.countRole(
-                        members,
-                        AppRoles.pastor,
+                      _RoleSummaryCard(
+                        label: 'Pastors',
+                        count: WebAdminStaffAccessService.countRole(
+                          members,
+                          AppRoles.pastor,
+                        ),
+                        icon: Icons.church_rounded,
                       ),
-                      icon: Icons.church_rounded,
-                    ),
-                    _RoleSummaryCard(
-                      label: 'Ministry leaders',
-                      count: WebAdminStaffAccessService.countRole(
-                        members,
-                        AppRoles.ministryLeader,
+                      _RoleSummaryCard(
+                        label: 'Ministry leaders',
+                        count: WebAdminStaffAccessService.countRole(
+                          members,
+                          AppRoles.ministryLeader,
+                        ),
+                        icon: Icons.groups_rounded,
                       ),
-                      icon: Icons.groups_rounded,
-                    ),
-                    _RoleSummaryCard(
-                      label: 'Volunteers',
-                      count: WebAdminStaffAccessService.countRole(
-                        members,
-                        AppRoles.volunteer,
+                      _RoleSummaryCard(
+                        label: 'Volunteers',
+                        count: WebAdminStaffAccessService.countRole(
+                          members,
+                          AppRoles.volunteer,
+                        ),
+                        icon: Icons.volunteer_activism_rounded,
                       ),
-                      icon: Icons.volunteer_activism_rounded,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final search = TextField(
-                      controller: _searchController,
-                      onChanged: (value) => setState(() => _search = value),
-                      decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.search_rounded),
-                        labelText: 'Search members',
-                        hintText: 'Name or email',
-                        border: OutlineInputBorder(),
-                      ),
-                    );
-                    final roleFilter = DropdownButtonFormField<String?>(
-                      initialValue: _selectedRole,
-                      decoration: const InputDecoration(
-                        labelText: 'Role filter',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('All roles'),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final search = TextField(
+                        controller: _searchController,
+                        onChanged: (value) => setState(() => _search = value),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search_rounded),
+                          labelText: 'Search members',
+                          hintText: 'Name or email',
+                          border: OutlineInputBorder(),
                         ),
-                        ...AppRoles.assignableRoles.map(
-                          (role) => DropdownMenuItem<String?>(
-                            value: role,
-                            child: Text(AppRoles.label(role)),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setState(() => _selectedRole = value);
-                      },
-                    );
+                      );
 
-                    if (constraints.maxWidth < 760) {
-                      return Column(
+                      final roleFilter = DropdownButtonFormField<String?>(
+                        initialValue: _selectedRole,
+                        decoration: const InputDecoration(
+                          labelText: 'Role filter',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('All roles'),
+                          ),
+                          ...AppRoles.assignableRoles.map(
+                            (role) => DropdownMenuItem<String?>(
+                              value: role,
+                              child: Text(AppRoles.label(role)),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _selectedRole = value);
+                        },
+                      );
+
+                      if (constraints.maxWidth < 760) {
+                        return Column(
+                          children: [
+                            search,
+                            const SizedBox(height: 12),
+                            roleFilter,
+                            const SizedBox(height: 4),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Leadership roles only'),
+                              value: _leadershipOnly,
+                              onChanged: (value) {
+                                setState(() => _leadershipOnly = value);
+                              },
+                            ),
+                          ],
+                        );
+                      }
+
+                      return Row(
                         children: [
-                          search,
-                          const SizedBox(height: 12),
-                          roleFilter,
-                          const SizedBox(height: 4),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Leadership roles only'),
-                            value: _leadershipOnly,
-                            onChanged: (value) {
-                              setState(() => _leadershipOnly = value);
-                            },
+                          Expanded(flex: 2, child: search),
+                          const SizedBox(width: 12),
+                          Expanded(child: roleFilter),
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            width: 210,
+                            child: SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Leadership only'),
+                              value: _leadershipOnly,
+                              onChanged: (value) {
+                                setState(() => _leadershipOnly = value);
+                              },
+                            ),
                           ),
                         ],
                       );
-                    }
-
-                    return Row(
-                      children: [
-                        Expanded(flex: 2, child: search),
-                        const SizedBox(width: 12),
-                        Expanded(child: roleFilter),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 210,
-                          child: SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Leadership only'),
-                            value: _leadershipOnly,
-                            onChanged: (value) {
-                              setState(() => _leadershipOnly = value);
-                            },
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                    },
+                  ),
                 ),
               ),
-              Expanded(
-                child: visibleMembers.isEmpty
-                    ? const _NoStaffResults()
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(24, 4, 24, 40),
-                        itemCount: visibleMembers.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final member = visibleMembers[index];
+              if (visibleMembers.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _NoStaffResults(),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 40),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final member = visibleMembers[index];
 
-                          return _StaffMemberCard(
-                            member: member,
-                            isCurrentUser: member.id == widget.currentUserId,
-                            isSaving: _savingMemberId == member.id,
-                            onRoleChanged: (role) {
-                              _requestRoleChange(member, role);
-                            },
-                          );
-                        },
-                      ),
-              ),
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == visibleMembers.length - 1 ? 0 : 10,
+                        ),
+                        child: _StaffMemberCard(
+                          member: member,
+                          isCurrentUser: member.id == widget.currentUserId,
+                          isSaving: _savingMemberId == member.id,
+                          onRoleChanged: (role) {
+                            _requestRoleChange(member, role);
+                          },
+                        ),
+                      );
+                    }, childCount: visibleMembers.length),
+                  ),
+                ),
             ],
           );
         },
@@ -307,7 +320,7 @@ class _WebAdminStaffAccessScreenState extends State<WebAdminStaffAccessScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    '${AppRoles.label(member.role)} â†’ '
+                    '${AppRoles.label(member.role)} → '
                     '${AppRoles.label(newRole)}',
                   ),
                   const SizedBox(height: 12),
@@ -468,6 +481,12 @@ class _StaffMemberCard extends StatelessWidget {
                             const Chip(label: Text('Your account')),
                           if (!member.isActive)
                             const Chip(label: Text('Inactive')),
+                          if (member.isRegisteredAccount)
+                            const Chip(label: Text('Registered')),
+                          if (member.isAnonymousAccount)
+                            const Chip(label: Text('Anonymous visitor')),
+                          if (!member.isAccountTypeVerified)
+                            const Chip(label: Text('Verification pending')),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -482,6 +501,12 @@ class _StaffMemberCard extends StatelessWidget {
                 ),
               ],
             );
+            final availableRoles = member.isRegisteredAccount
+                ? AppRoles.assignableRoles
+                : member.role == AppRoles.visitor
+                ? const <String>[AppRoles.visitor]
+                : <String>[member.role, AppRoles.visitor];
+
             final roleControl = isSaving
                 ? const SizedBox(
                     width: 48,
@@ -498,10 +523,14 @@ class _StaffMemberCard extends StatelessWidget {
                       decoration: InputDecoration(
                         labelText: isCurrentUser
                             ? 'Protected role'
-                            : 'Assigned role',
+                            : member.isRegisteredAccount
+                            ? 'Assigned role'
+                            : member.role == AppRoles.visitor
+                            ? 'Role locked'
+                            : 'Restricted - Visitor only',
                         border: const OutlineInputBorder(),
                       ),
-                      items: AppRoles.assignableRoles
+                      items: availableRoles
                           .map(
                             (role) => DropdownMenuItem<String>(
                               value: role,
@@ -509,7 +538,10 @@ class _StaffMemberCard extends StatelessWidget {
                             ),
                           )
                           .toList(growable: false),
-                      onChanged: isCurrentUser
+                      onChanged:
+                          isCurrentUser ||
+                              (!member.isRegisteredAccount &&
+                                  member.role == AppRoles.visitor)
                           ? null
                           : (role) {
                               if (role != null) {
